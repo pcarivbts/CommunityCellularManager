@@ -26,6 +26,27 @@ of patent rights can be found in the PATENTS file in the same directory.
   #deregister-tower-messages-container .alert {
     margin-top: 20px;
   }
+.input{
+width: 145px;
+height: 15px;
+border :2px inset #D5D5D5;
+float: left;
+margin :0 0 6px 0;
+padding:0 0 0 2px;
+font-family:Tahoma;
+font-size:11px;
+color:#828282
+
+
+}
+.checkboxd{
+float:left;
+margin: 0 0 0 17px;
+width:13px;
+height:13px;
+color:#2C2C2C;
+
+}
 </style>
 {% endblock %}
 
@@ -71,7 +92,8 @@ of patent rights can be found in the PATENTS file in the same directory.
   {% include "dashboard/tower_detail/nav.html" with uuid=tower.uuid active_tab='deregister'%}
 
   {% if endaga_version > '00000.00003.00019' or status == 'no-data' %}
-  <div class='content col-xs-12 col-sm-6'>
+  <!-- Added id for ForcefullyDereister Tower-->
+  <div id="towerId" class='content col-xs-12 col-sm-6'>
     <p>
       Taking this action will remove the tower from your network
       and reset the hardware to a "factory default" state.
@@ -105,6 +127,41 @@ of patent rights can be found in the PATENTS file in the same directory.
     that cannot correctly process a deregistration request.
     Please contact support if you have questions
     or would like to upgrade your towers.
+    </div>
+     <div class='content col-xs-12 col-sm-6' style="height:100px;color: #428bca;">
+     <label display="block" width="100px">Forcefully Deregister</label>
+    <input style ="color:#428bca;"class="checkboxd" type="checkbox" id="myCheck" />
+
+   </div>
+
+<!-- Added towerId for   ForcefullyDeregister checkbox-->
+
+    <div id="towerId" class='content col-xs-12 col-sm-6' style="display:none">
+    <p>
+      Taking this action will remove the tower from your network
+      and reset the hardware to a "factory default" state.
+      The tower will no longer provide service on your network.
+    </p>
+    <p>
+      If you are deregistering the last tower in your network,
+      the subscribers on your network will not be deleted.
+      These subscribers would regain service if a new tower was added to the network.
+    </p>
+    <p>
+      If you later wish to "undo" deregistration, you should re-add the tower
+      via the link on the <a href='/dashboard/towers'>tower list page</a>,
+      and then power cycle the hardware.
+    </p>
+
+    <p>
+      <a href='#' class='btn btn-default' type='button' data-toggle='modal' data-target='#deregister-tower-modal'>
+        {% if tower.nickname %}
+          Deregister "{{ tower.nickname }}"
+        {% else %}
+          Deregister Tower {{ tower.uuid }}
+        {% endif %}
+      </a>
+    </p>
   </div>
 
   {% endif %}
@@ -116,7 +173,12 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% block js %}
   <script>
 
+
     $(function() {
+      $('#myCheck').change(function() {
+        $('#towerId').toggle();
+    });
+
 
       // Post the deregistration info when the confirm button is clicked.
       $('#deregister-tower-submit').click(function() {
