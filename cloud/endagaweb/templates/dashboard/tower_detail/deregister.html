@@ -36,23 +36,26 @@ padding:0 0 0 2px;
 font-family:Tahoma;
 font-size:11px;
 color:#828282
-
-
 }
 .checkboxd{
 float:left;
 margin: 0 0 0 17px;
-width:13px;
+width: auto;
 height:13px;
 color:#2C2C2C;
-
+vertical-align: middle;
+position: relative;
+top: -1px;
 }
+
+
 </style>
 {% endblock %}
 
 
 {% block content %}
 {% include "dashboard/tower_detail/header.html" with tower=tower %}
+
 
 <div class='modal fade' id='deregister-tower-modal'>
   <div class='modal-dialog'>
@@ -90,10 +93,8 @@ color:#2C2C2C;
 
 <div class = 'row'>
   {% include "dashboard/tower_detail/nav.html" with uuid=tower.uuid active_tab='deregister'%}
-
-  {% if endaga_version > '00000.00003.00019' or status == 'no-data' %}
-  <!-- Added id for ForcefullyDereister Tower-->
-  <div id="towerId" class='content col-xs-12 col-sm-6'>
+<!--Made towerId common to use in both condition if and else--> 
+<div id="towerId" class='content col-xs-12 col-sm-6' style="display:none">
     <p>
       Taking this action will remove the tower from your network
       and reset the hardware to a "factory default" state.
@@ -121,63 +122,48 @@ color:#2C2C2C;
     </p>
   </div>
 
+  {% if endaga_version > '00000.00003.00019' or status == 'no-data' %}
+  <!-- Added id for ForcefullyDereister Tower-->
+
+<script type="text/javascript">
+var ele = document.getElementById("towerId");
+    if(ele.style.display == null || ele.style.display == "none") {
+       ele.style.display = "block";
+    }else {
+     ele.style.display = "none";
+   }
+</script>
+
   {% else %}
-  <div class='col-xs-12 col-sm-6 alert alert-warning'>
+<div class="col-xs-10">
+     <div  id ="warning" class='col-xs-12 col-sm-6 alert alert-warning'>
     Warning!  This tower is running old software
     that cannot correctly process a deregistration request.
     Please contact support if you have questions
     or would like to upgrade your towers.
     </div>
-     <div class='content col-xs-12 col-sm-6' style="height:100px;color: #428bca;">
+     <div class='content col-xs-12 col-sm-12' style="height:400px;color: #428bca;">
      <label display="block" width="100px">Forcefully Deregister</label>
-    <input style ="color:#428bca;"class="checkboxd" type="checkbox" id="myCheck" />
-
+     <input style ="color:#428bca;"class="checkboxd" type="checkbox" id="myCheck" />
    </div>
+</div>
+{% endif %}
 
-<!-- Added towerId for   ForcefullyDeregister checkbox-->
 
-    <div id="towerId" class='content col-xs-12 col-sm-6' style="display:none">
-    <p>
-      Taking this action will remove the tower from your network
-      and reset the hardware to a "factory default" state.
-      The tower will no longer provide service on your network.
-    </p>
-    <p>
-      If you are deregistering the last tower in your network,
-      the subscribers on your network will not be deleted.
-      These subscribers would regain service if a new tower was added to the network.
-    </p>
-    <p>
-      If you later wish to "undo" deregistration, you should re-add the tower
-      via the link on the <a href='/dashboard/towers'>tower list page</a>,
-      and then power cycle the hardware.
-    </p>
-
-    <p>
-      <a href='#' class='btn btn-default' type='button' data-toggle='modal' data-target='#deregister-tower-modal'>
-        {% if tower.nickname %}
-          Deregister "{{ tower.nickname }}"
-        {% else %}
-          Deregister Tower {{ tower.uuid }}
-        {% endif %}
-      </a>
-    </p>
-  </div>
-
-  {% endif %}
+{% endblock %}
 
 </div>
-{% endblock %}
 
 
 {% block js %}
+
   <script>
 
 
     $(function() {
       $('#myCheck').change(function() {
-        $('#towerId').toggle();
-    });
+      $('#towerId').toggle();
+     });
 
 
       // Post the deregistration info when the confirm button is clicked.
