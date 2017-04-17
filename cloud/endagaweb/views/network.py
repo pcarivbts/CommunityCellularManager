@@ -143,6 +143,7 @@ class NetworkInactiveSubscribers(ProtectedView):
             'sub_vacuum_form': dashboard_forms.SubVacuumForm({
                 'sub_vacuum_enabled': network.sub_vacuum_enabled,
                 'inactive_days': network.sub_vacuum_inactive_days,
+		'grace_days': '30',
             }),
             'protected_subs': protected_subs,
             'unprotected_subs': unprotected_subs,
@@ -180,7 +181,86 @@ class NetworkInactiveSubscribers(ProtectedView):
                 extra_tags='alert alert-success')
         return redirect(urlresolvers.reverse('network-inactive-subscribers'))
 
+#Priya for Limit
+class NetworkLimit(ProtectedView):
+    """Edit settings for setting balance limit and failure transactions limit."""
 
+    def get(self, request):
+        """Handles GET requests."""
+        user_profile = models.UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        context = {
+            'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
+            'user_profile': user_profile,
+            'network': network,
+            'limit_form': dashboard_forms.LimitForm({
+                'bal_field': '10000',
+		        'tran_field': '3',
+            }),
+        }
+        # Render template.
+        limit_template = template.loader.get_template(
+            'dashboard/network_detail/limit.html')
+        html = limit_template.render(context, request)
+        return http.HttpResponse(html)
+
+#For Notification
+class NetworkNotification(ProtectedView):
+    """Edit settings for setting Notification."""
+    # notification= models.Notification()
+    def get(self, request):
+        """Handles GET requests."""
+        user_profile = models.UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        context = {
+            'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
+            'user_profile': user_profile,
+            'network': network,
+            'notification_form': dashboard_forms.NotificationForm({
+                'notification_type': models.Notification.objects.all(),
+		        # # 'events_type': '3',
+                # 'automatic_msg': '10000',
+		        # # 'number_type': '3',
+                # 'mapped_msg': '10000',
+		     }),
+        }
+        # Render template.
+        notification_template = template.loader.get_template(
+            'dashboard/network_detail/notification.html')
+        html = notification_template.render(context, request)
+        return http.HttpResponse(html)
+
+class NetworkBroadcast(ProtectedView):
+    def get(self, request):
+        """"Handles GET requests."""
+        user_profile = models.UserProfile.objects.get(user=request.user)
+        towers = models.BTS.objects.filter(network=user_profile.network)
+        # Configure the table of towers.  Do not show any pagination controls
+        # if the total number of towers is small.
+        tower_table = django_tables.TowerTable(list(towers))
+        towers_per_page = 8
+        paginate = False
+        if len(towers) > towers_per_page:
+            paginate = {'per_page': towers_per_page}
+        tables.RequestConfig(request, paginate=paginate).configure(tower_table)
+        # During tower creation, we'll suggest a simple tower nickname based
+        # on the number of towers currenly on the network.  So if there are
+        # already four towers on the network, we'll suggest a nickname of
+        # 'Tower 5' for the next BTS.
+        suggested_nickname = 'Tower %s' % (len(towers) + 1)
+        context = {
+            'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
+            'user_profile': user_profile,
+            'towers': towers,
+            'tower_table': tower_table,
+            'suggested_nickname': suggested_nickname,
+        }
+        # Render template.
+        towers_template = template.loader.get_template('dashboard/broadcast.html')
+        html = towers_template.render(context, request)
+        return http.HttpResponse(html)
+
+#End Priya
 class NetworkPrices(ProtectedView):
     """View pricing for a single network."""
 
