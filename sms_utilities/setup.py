@@ -19,7 +19,7 @@ with open('readme.md') as f:
     readme = f.read()
 
 github_url = 'https://github.com/facebookincubator/CommunityCellularManager/sms_utilities'
-version = '0.0.4'
+version = '0.0.3'
 download_url = '%s/%s' % (github_url, version)
 
 setup(
