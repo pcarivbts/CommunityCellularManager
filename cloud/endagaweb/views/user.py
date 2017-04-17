@@ -113,17 +113,6 @@ def auth_and_login(request):
         messages.error(request, text)
         return redirect('/login/')
 
-#Priya for User Management
-@login_required(login_url='/login/')
-def CreateUserview(request):
-
-    user_profile = UserProfile.objects.get(user=request.user)
-    context = {
-       'user_profile': user_profile,
-    }
-    template = get_template("dashboard/management/createUser.html")
-    html = template.render(context, request)
-    return HttpResponse(html)
 
 @login_required(login_url='/login/')
 def change_password(request):
@@ -229,3 +218,4 @@ def update_notify_numbers(request):
                          extra_tags="alert alert-success notify-numbers")
             return redirect("/dashboard/profile")
     return HttpResponseBadRequest()
+
