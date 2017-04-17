@@ -1,0 +1,26 @@
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+<div class='col-xs-12 col-sm-2'>
+  <ul class='nav nav-pills nav-stacked' id='sub-detail-nav'>
+
+    <li role="presentation" class="{% if active_tab == 'category' %} active {% endif %}">
+      <a href="
+        {% if active_tab == 'category' %} #
+        {% else %} {% url 'subscriber-category' %}
+        {% endif %} ">Change Category</a>
+    </li>
+    <li role="presentation" class="{% if active_tab == 'deprovisioning' %} active {% endif %}">
+      <a href="
+        {% if active_tab == 'deprovisioning' %} #
+        {% else %} {% url 'network-deprovisioning' %}
+        {% endif %} ">Bulk De-provisioning</a>
+    </li>
+
+  </ul>
+</div>

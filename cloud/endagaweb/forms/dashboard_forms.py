@@ -15,7 +15,7 @@ from django.db.models import Value
 from django.db.models.functions import Coalesce
 from django.core import urlresolvers
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, Field
+from crispy_forms.layout import Layout, Submit, Field, HTML, Div
 from crispy_forms.bootstrap import StrictButton, FieldWithButtons
 from django.contrib.auth.forms import PasswordChangeForm
 import pytz
@@ -199,8 +199,8 @@ class SubVacuumForm(forms.Form):
         (False, 'disabled'),
     )
     inactive_help_text = (
-        'Subscribers are considered inactive if they have not sent an SMS or'
-        ' made an outbound phone call in the time period defined below.'
+        'Subscribers are considered inactive if they have not recharged'
+        ' their number after last validity expired in the time period defined below.'
         ' You can protect a Subscriber from automatic deactivation on the'
         ' subscriber edit page.')
     sub_vacuum_enabled = forms.ChoiceField(
@@ -209,7 +209,9 @@ class SubVacuumForm(forms.Form):
         help_text=inactive_help_text,
         choices=enabled_choices, widget=forms.RadioSelect())
     inactive_days = forms.CharField(
-        required=False, label='Outbound inactivity threshold (days)')
+        required=False, label='Inactivity threshold (days)')
+    grace_days = forms.CharField(
+        required=False, label='Grace threshold (days)')
 
     def __init__(self, *args, **kwargs):
         super(SubVacuumForm, self).__init__(*args, **kwargs)
@@ -221,15 +223,115 @@ class SubVacuumForm(forms.Form):
         # not this feature is active.
         if args[0]['sub_vacuum_enabled']:
             days_field = Field('inactive_days')
+	    grace_field = Field('grace_days')
         else:
             days_field = Field('inactive_days', disabled=True)
-        self.helper.layout = Layout(
+	    grace_field = Field('grace_days', disabled=True)
+       # self.helper.layout = Layout(
+        #    'sub_vacuum_enabled',
+         #   days_field,
+          #  Submit('submit', 'Save', css_class='pull-right'),
+	self.helper.layout = Layout(
             'sub_vacuum_enabled',
             days_field,
+	    grace_field,
+	    Submit('submit', 'Save', css_class='pull-right'),
+        )
+
+#Priya for setting Limit
+class LimitForm(forms.Form):
+
+    balance_help_text = (
+        'This is the maximum amount subscriber/retailer can have in his account.')
+    failure_help_text = (
+        'This is the maximum number of consecutive unsuccessful transactions user can perform.'
+        'After reaching this value specific user account shall be blocked for 30 minutes.')
+    limit_amount = forms.CharField(
+        required=False, label='Balance Limit')
+    unsuccessful_tran = forms.CharField(
+        required=False, label='Max Unsuccessful Transactions')
+
+    def __init__(self, *args, **kwargs):
+        super(LimitForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_id = 'limit-form'
+        self.helper.form_method = 'post'
+        self.helper.form_action = 'dashboard/network/limit'
+        # Render the inactive_days field differently depending on whether or
+        # not this feature is active.
+        bal_field = Field('limit_amount')
+	tran_field = Field('unsuccessful_tran')
+
+        self.helper.layout = Layout(
+            bal_field,
+	        tran_field,
+	        Submit('submit', 'Save', css_class='pull-right'),
+        )
+
+#For Notification
+
+class NotificationForm(forms.Form):
+    enabled_choices = (
+        (True, 'Automatic Notification'),
+        (False, 'Mapped Notification'),
+    )
+    autoupgrade_enabled = forms.ChoiceField(
+        required=False, label='Select Notification Type',
+        choices=enabled_choices, widget=forms.RadioSelect())
+
+    # enabled_choices = (
+    #     (True, 'Automatic Notification'),
+    #     (False, 'Mapped Notification'),
+    # )
+
+    # notification_type = forms.ChoiceField(
+    #     required=False,
+    #     label='Please select Notification type',
+    #     choices=enabled_choices, widget=forms.RadioSelect())
+
+    events_choices = (
+        ('REG', 'Number Reqistered Successfully'),
+        ('EXP', 'Your validity has expired'),
+    )
+    number_choices = (
+        ('101', '101'),
+        ('102', '102'),
+        ('103', '103'),
+        ('104', '104'),
+        ('105', '105'),
+    )
+
+    events_type = forms.ChoiceField(required=False, label='Events',
+                                       choices=events_choices)
+    number_type = forms.ChoiceField(required=False, label='Number',
+                                       choices=number_choices)
+    automatic_msg = forms.CharField(required=False, label='Message')
+    mapped_msg = forms.CharField(required=False, label='Message')
+
+    def __init__(self, *args, **kwargs):
+        super(NotificationForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_id = 'select-notification-form'
+        self.helper.form_method = 'post'
+        self.helper.form_class = 'col-xs-12 col-md-10 col-lg-8'
+        self.helper.field_class = 'form-horizaontal'
+        self.helper.form_action = 'dashboard/network/notification'
+
+        event_field=Field('events_type')
+        number_field=Field('number_type')
+        auto_msg_field=Field('automatic_msg')
+        map_msg_field=Field('mapped_msg')
+        self.helper.layout = Layout(
+            # 'notification_type',
+            'autoupgrade_enabled',
+            event_field,
+            auto_msg_field,
+            number_field,
+            map_msg_field,
             Submit('submit', 'Save', css_class='pull-right'),
         )
 
-
+#End Priya
 class NetworkSettingsForm(forms.Form):
     network_name = forms.CharField(required=False, label='Network name')
     choices = [(currency.code, currency.name) for currency in
