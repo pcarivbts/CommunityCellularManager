@@ -133,23 +133,7 @@ def dashboard_view(request):
     html = template.render(context, request)
     return HttpResponse(html)
 
-#Priya for reports
-@login_required
-def report_view(request):
 
-    user_profile = UserProfile.objects.get(user=request.user)
-    network = user_profile.network
-
-    context = {
-        'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
-        'user_profile': user_profile,
-    }
-    template = get_template("dashboard/report.html")
-    html = template.render(context, request)
-    return HttpResponse(html)
-
-
-#End Priya
 @login_required
 def profile_view(request):
     """Shows the operator profile settings.
@@ -277,115 +261,10 @@ def subscriber_list_view(request):
     html = template.render(context, request)
     return HttpResponse(html)
 
-#Priya Subscriber profile management
-@login_required
-def subscriberprofileedit_view(request):
-    """View the list of Subscribers at /dashboard/subscribers.
-
-    You can pass 'query' as a GET request parameter -- it can contain a
-    case-insensitive fragment of a subscriber name, IMSI or number.
-
-    Args:
-       request: (type?)
-
-    Returns:
-       an HttpResponse
-    """
-    print("in profile edit view")
-    user_profile = UserProfile.objects.get(user=request.user)
-    network = user_profile.network
-    all_subscribers = Subscriber.objects.filter(network=network)
-
-    query = request.GET.get('query', None)
-    if query:
-	print("query", query)
-        # Get actual subs with partial IMSI matches or partial name matches.
-        query_subscribers = (
-            network.subscriber_set.filter(imsi__icontains=query) |
-            network.subscriber_set.filter(name__icontains=query))
-        # Get ids of subs with partial number matches.
-        sub_ids = network.number_set.filter(
-            number__icontains=query
-        ).values_list('subscriber_id', flat=True)
-        # Or them together to get list of actual matching subscribers.
-        query_subscribers |= network.subscriber_set.filter(
-            id__in=sub_ids)
-    else:
-        # Display all subscribers.
-        query_subscribers = all_subscribers
-
-    # Setup the subscriber table.
-    subscriber_table = django_tables.SubscriberTable(list(query_subscribers))
-    tables.RequestConfig(request, paginate={'per_page': 15}).configure(
-        subscriber_table)
-
-    # Render the response with context.
-    context = {
-        'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
-        'currency': CURRENCIES[network.subscriber_currency],
-        'user_profile': user_profile,
-        'total_number_of_subscribers': len(all_subscribers),
-        'number_of_filtered_subscribers': len(query_subscribers),
-        'subscriber_table': subscriber_table,
-        'search': dform.SubscriberSearchForm({'query': query}),
-    }
-    template = get_template("dashboard/management/subscribers.html")
-    print("subscriber_table", subscriber_table)
-    html = template.render(context, request)
-    return HttpResponse(html)
-
-    #For bulk deprovisioning
-@login_required
-def subscriberdeprovisioning_view(request):
-
-    user_profile = UserProfile.objects.get(user=request.user)
-    network = user_profile.network
-    all_subscribers = Subscriber.objects.filter(network=network)
-
-    query = request.GET.get('query', None)
-    if query:
-	print("query", query)
-        # Get actual subs with partial IMSI matches or partial name matches.
-        query_subscribers = (
-            network.subscriber_set.filter(imsi__icontains=query) |
-            network.subscriber_set.filter(name__icontains=query))
-        # Get ids of subs with partial number matches.
-        sub_ids = network.number_set.filter(
-            number__icontains=query
-        ).values_list('subscriber_id', flat=True)
-        # Or them together to get list of actual matching subscribers.
-        query_subscribers |= network.subscriber_set.filter(
-            id__in=sub_ids)
-    else:
-        # Display all subscribers.
-        query_subscribers = all_subscribers
-
-    # Setup the subscriber table.
-    subscriber_table = django_tables.SubscriberTable(list(query_subscribers))
-    tables.RequestConfig(request, paginate={'per_page': 15}).configure(
-        subscriber_table)
-
-    # Render the response with context.
-    context = {
-        'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
-        'currency': CURRENCIES[network.subscriber_currency],
-        'user_profile': user_profile,
-        'total_number_of_subscribers': len(all_subscribers),
-        'number_of_filtered_subscribers': len(query_subscribers),
-        'subscriber_table': subscriber_table,
-        'search': dform.SubscriberSearchForm({'query': query}),
-    }
-    template = get_template("dashboard/management/subscriber/deprovisioning.html")
-    print("subscriber_table", subscriber_table)
-    html = template.render(context, request)
-    return HttpResponse(html)
-
-#end Priya
 
 class SubscriberInfo(ProtectedView):
     """View info on a single subscriber."""
 
-    print("in subscriber info")
     def get(self, request, imsi=None):
         """Handles GET requests."""
         user_profile = UserProfile.objects.get(user=request.user)
@@ -888,7 +767,7 @@ class ActivityView(ProtectedView):
                     timezone,
                     subscriber,
                     e.bts_uuid,
-                    e.bts.nickname,
+                    e.bts.nickname if e.bts else "<deleted BTS>",
                     e.kind,
                     e.reason,
                     e.from_number,
