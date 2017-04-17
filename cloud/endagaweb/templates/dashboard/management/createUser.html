@@ -1,0 +1,130 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+
+{% load account socialaccount %}
+{% block pagestyle %}
+<style>
+
+</style>
+{% endblock %}
+
+{% block headerclass %}
+<body id="signup">
+<header class="navbar navbar-inverse normal" role="banner">
+{% endblock %}
+
+{% block content %}
+
+
+{% include "dashboard/management/header.html" with user=user %}
+
+
+<div class = 'row'>
+  {% include "dashboard/management/nav.html" with active_tab='createUser'%}
+
+
+<div class="container">
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="wrapper clearfix">
+        <div class="formy">
+        <div class="row">
+            <div class="col-md-12">
+                <form action="/auth/" method="POST" role="form"> {% csrf_token %}
+                  <span class='col-md-6'>
+                    <form action='/dashboard/network/prices' method='post'>
+
+                      <table class='table table-condensed price-table'>
+                        <tbody>
+
+                          <tr>
+                            <td class='td-label'>Role</td>
+                            <td>
+                              <select>
+                                <option value="r1">Admin</option>
+                                <option value="r2">Loader</option>
+                                <option value="r2">Partner</option>
+                                <option value="r2">Business Analyst</option>
+                              </select>
+                            </td>
+
+                          </tr>
+                          <tr>
+                            <td class='td-label'>Network</td>
+                            <td>
+                              <select>
+                                <option value="r1">Network1</option>
+                                <option value="r2">Network2</option>
+                                <option value="r2">Network3</option>
+                                <option value="r2">Network4</option>
+                              </select>
+                            </td>
+
+                          </tr>
+                          <tr>
+                            <td class='td-label'>User Name</td>
+                            <td><input type='text' class='form-control' name='User Name'
+                                      /></td>
+
+                          </tr>
+
+                          <tr>
+                            <td class='td-label'>Permissions</td>
+                            <td>
+                              <div class="col-xs-5">
+                                      <select name="from" id="lstview" class="form-control" size="13" multiple="multiple">
+                                              <option value="Permission_1">Read Graph</option>
+                                              <option value="Permission_2">Read Report</option>
+                                              <option value="Permission_3">Deactivate Subscriber</option>
+                                              <option value="Permission_4">Braodcast SMS</option>
+                                              <option value="Permission_5">Configure Notifications</option>
+                                              <option value="Permission_6">Add Tower</option>
+                                              <option value="Permission_7">Extract Graph</option>
+                                              <option value="Permission_8">Download Report</option>
+
+                                      </select>
+                              </div>
+                              <div class="col-xs-2">
+                      					<button type="button" id="lstview_undo" class="btn btn-danger btn-block">undo</button>
+                      					<button type="button" id="lstview_rightAll" class="btn btn-default btn-block"><i class="glyphicon glyphicon-forward"></i></button>
+                      					<button type="button" id="lstview_rightSelected" class="btn btn-default btn-block"><i class="glyphicon glyphicon-chevron-right"></i></button>
+                      					<button type="button" id="lstview_leftSelected" class="btn btn-default btn-block"><i class="glyphicon glyphicon-chevron-left"></i></button>
+                      					<button type="button" id="lstview_leftAll" class="btn btn-default btn-block"><i class="glyphicon glyphicon-backward"></i></button>
+                      					<button type="button" id="lstview_redo" class="btn btn-warning btn-block">redo</button>
+                      				</div>
+
+                      				<div class="col-xs-5">
+                      					<select name="to" id="lstview_to" class="form-control" size="13" multiple="multiple"></select>
+                      				</div>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td></td>
+                            <td></td>
+                            <td class='td-button'><button class='btn btn-primary'>Create</button></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </form>
+                  </span>
+
+
+                </form>
+            </div>
+
+          </div>
+        </div>
+    </div>
+</div>
+</div>
+
+
+{% endblock %}

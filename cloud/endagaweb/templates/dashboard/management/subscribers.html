@@ -1,0 +1,85 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+{% load apptags %}
+{% load humanize %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+{% load account socialaccount %}
+{% block pagestyle %}
+<style>
+
+</style>
+{% endblock %}
+
+{% block headerclass %}
+<body id="signup">
+<header class="navbar navbar-inverse normal" role="banner">
+{% endblock %}
+
+{% block content %}
+
+
+{% include "dashboard/management/header.html" with user=user %}
+
+
+
+  {% include "dashboard/management/subscriber/nav.html" with active_tab='category'%}
+
+  <div class="container">
+
+  <div class="row">
+      <div class="col-md-12">
+          <div class="wrapper clearfix">
+          <div class="formy">
+            <div class='row'>
+                <div class="col-md-12">
+      {% if total_number_of_subscribers %}
+        <p>Search subscribers by name, IMSI or number:</p>
+        {% crispy search %}
+      <!--   <p>
+          {% if total_number_of_subscribers == 1 %}
+            You have 1 subscriber on your network.
+          {% else %}
+            You have {{ total_number_of_subscribers }} total subscribers on your network.
+          {% endif %}
+          Keep it up!
+        </p> -->
+      {% endif %}
+      </div>
+  </div>
+
+
+  <div class='row'>
+    <div class="col-xs-6 col-md-4 col-xl-2 pull-left">
+      <label for="duration">Subscriber</label>
+
+
+
+        <input type="radio" name="durationType" value="daily" checked/>
+
+      <label for="duration">Retailer </label>
+
+        <input type="radio" name="durationType" value="daily" disabled="true"/>
+
+      <label for="duration">Test SIM</label>
+
+
+        <input type="radio" name="durationType" value="daily" disabled="true"/>
+
+    </div><!-- /.form-group -->
+  </div>
+  </div>
+  <div class='row'>
+    <div class="col-xs-6 col-md-4 col-xl-2 pull-left">
+    <button class='btn btn-primary'>Update</button>
+  </div>
+  </div>
+</div> <!-- /.row (subscribers) -->
+{% endblock %}

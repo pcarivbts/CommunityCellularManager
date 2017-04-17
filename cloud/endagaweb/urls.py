@@ -81,6 +81,17 @@ urlpatterns = [
     url(r'^account/', endagaweb.views.dashboard.dashboard_view),
     url(r'^logout/$', django.contrib.auth.views.logout, {'next_page': '/'}),
 
+ #Priya
+    # Report view
+   #  url(r'^dashboard/report$',
+    #    endagaweb.views.dashboard.reportview),
+     #User Management
+     #url(r'^dashboard/userMgmt$', endagaweb.views.user.createUserview),
+     # broadcast
+     #url(r'^broadcastsms/', endagaweb.views.dashboard.Broadcastsms.as_view),
+
+    #end Priya
+
     # Dashboard.
     url(r'^dashboard/card', endagaweb.views.dashboard.addcard),
     url(r'^addmoney/', endagaweb.views.dashboard.addmoney),
@@ -133,6 +144,15 @@ urlpatterns = [
     # /network -- GET basic network info
     # /network/prices -- GET pricing data for the network or POST to change it
     # /network/edit -- GET details on the network or POST to change them
+    #Priya
+     # Subscriber Management
+     url(r'^dashboard/management/subscriber$', endagaweb.views.dashboard.subscriberprofileedit_view , name="subscriber-category"),
+     url(r'^dashboard/management/deprovisioning$', endagaweb.views.dashboard.subscriberdeprovisioning_view , name="network-deprovisioning"),
+     url(r'^dashboard/management/user$', endagaweb.views.user.CreateUserview, name="user-createUser"),
+    #for report
+
+    url(r'^dashboard/report$', endagaweb.views.dashboard.report_view),
+    #End Priya
     url(r'^dashboard/network$',
         endagaweb.views.network.NetworkInfo.as_view(),
         name='network-info'),
@@ -142,6 +162,19 @@ urlpatterns = [
     url(r'^dashboard/network/inactive-subscribers$',
         endagaweb.views.network.NetworkInactiveSubscribers.as_view(),
         name='network-inactive-subscribers'),
+    #Priya for Limit
+    url(r'^dashboard/network/limit$',
+        endagaweb.views.network.NetworkLimit.as_view(),
+        name='network-limit'),
+    # For Notification
+    url(r'^dashboard/network/notification$',
+        endagaweb.views.network.NetworkNotification.as_view(),
+        name='network-notification'),
+    #for broadcast
+    url(r'^dashboard/network/broadcast$',
+        endagaweb.views.network.NetworkBroadcast.as_view(),
+        name='network-broadcast'),
+    #End Priya
     url(r'^dashboard/network/edit$',
         endagaweb.views.network.NetworkEdit.as_view(),
         name='network-edit'),
