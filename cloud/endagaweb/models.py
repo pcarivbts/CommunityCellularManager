@@ -1769,3 +1769,13 @@ class FileUpload(models.Model):
     created_time = models.DateTimeField(auto_now_add=True)
     modified_time = models.DateTimeField(auto_now_add=True)
     accessed_time = models.DateTimeField(auto_now=True)
+
+#Priya for Notification
+class Notification(models.Model):
+
+
+    events_type = models.CharField(max_length=100, default="REG")
+    number_type = models.CharField(max_length=10, default="101")
+    notification_type = models.BooleanField(default=False)
+    automatic_msg = models.CharField(max_length=100)
+    mapped_msg = models.CharField(max_length=100)

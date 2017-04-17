@@ -1,0 +1,62 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+{% load apptags %}
+{% load humanize %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+
+{% block title %} {% tmpl_const "SITENAME" %} | Manage Subscribers {% endblock %}
+
+{% block content %}
+
+
+{% include "dashboard/management/header.html" with user=user %}
+
+
+
+  {% include "dashboard/management/subscriber/nav.html" with active_tab='deprovisioning'%}
+  <div class="container">
+
+  <div class="row">
+      <div class="col-md-12">
+          <div class="wrapper clearfix">
+          <div class="formy">
+<div class='row'>
+
+
+
+    <div class="col-xs-12 col-md-8">
+
+
+
+    {% if number_of_filtered_subscribers %}
+  <link rel="stylesheet" href="{{ STATIC_URL }}django_tables2/themes/paleblue/css/screen.css" />
+    {% render_table subscriber_table %}
+
+    {% elif total_number_of_subscribers > 0 %}
+    <h4>No subscribers matched your search.</h4>
+
+    {% else %}
+    <p>
+      There are currently no subscribers registered on this network.
+      Go find some users!
+    </p>
+
+    {% endif %}
+    </div>
+
+</div> <!-- /.row (subscribers) -->
+<div class='row'>
+  <div class="col-xs-21 col-md-6 pull-right">
+  <button class='btn btn-primary'>Deprovision</button>
+</div>
+</div>
+
+{% endblock %}
