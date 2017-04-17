@@ -49,7 +49,11 @@ def proxy():
 
 def _is_hg():
     """ Determines if the project is hg controlled """
-    return False
+    try:
+        local("hg identify")
+        return True
+    except:
+        return False
 
 
 def _is_git():
@@ -117,9 +121,9 @@ def prepdeploy():
     with lcd('/tmp/deploydir'):
         local('zip endagaweb_%s appspec.yml endagaweb_all.deb scripts/*'
               % (pkg_version))
-        local('aws s3 cp endagaweb_%s.zip s3://endagaweb-deployment-aricent/' % pkg_version)
+        local('aws s3 cp endagaweb_%s.zip s3://endagaweb-deployment/' % pkg_version)
     local('rm -r /tmp/deploydir')
-    puts("Deployment bundle: s3://endagaweb-deployment-aricent/endagaweb_%s.zip" % pkg_version)
+    puts("Deployment bundle: s3://endagaweb-deployment/endagaweb_%s.zip" % pkg_version)
     return "endagaweb_%s.zip" % pkg_version
 
 
@@ -251,12 +255,11 @@ def deploy(description=None):
     deployment_bundle = prepdeploy()
     if not description:
         now = datetime.datetime.utcnow()
-        #description = "Deployment of %s at %s UTC" % (deployment_bundle, now)
-        description = "Deployment"
+        description = "Deployment of %s at %s UTC" % (deployment_bundle, now)
     # Start the deploy.
     cmd = ("aws deploy create-deployment --application-name=endagaweb \
            --deployment-group-name=endagaweb-%s --description='%s' \
-           --s3-location bucket=endagaweb-deployment-aricent,key=%s,bundleType=zip"
+           --s3-location bucket=endagaweb-deployment,key=%s,bundleType=zip"
            % (env.deploy_target, description, deployment_bundle))
     deployment_id = json.loads(local(cmd, capture=True))['deploymentId']
 
