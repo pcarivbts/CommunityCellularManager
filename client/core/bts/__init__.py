@@ -22,5 +22,8 @@ elif conf['bts.type'] == 'openbts':
 elif conf['bts.type'] == 'fake':
     from . import _fakebts
     bts = _fakebts.FakeBTS()
+elif conf['bts.type'] == 'lc15bts':
+    from . import _lc15bts
+    bts = _lc15bts.Lc15BTS()
 else:
     raise ImportError("BTS Type not defined")

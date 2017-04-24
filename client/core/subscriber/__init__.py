@@ -23,6 +23,9 @@ if conf['bts.type'] == 'fake':
 elif conf['bts.type'] == 'osmocom':
     from . import _osmocom
     subscriber = _osmocom.OsmocomSubscriber()
+elif conf['bts.type'] == 'lc15bts':
+    from . import _osmocom
+    subscriber = _osmocom.OsmocomSubscriber()
 else:
     from . import _openbts
     subscriber = _openbts.OpenBTSSubscriber()
