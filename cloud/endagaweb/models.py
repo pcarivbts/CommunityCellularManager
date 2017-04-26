@@ -48,6 +48,7 @@ from endagaweb.notifications import bts_up
 from endagaweb.util import currency as util_currency
 from endagaweb.util.parse_destination import parse_destination
 from endagaweb.util import dbutils as dbutils
+from itertools import chain
 
 stripe.api_key = settings.STRIPE_API_KEY
 
@@ -286,7 +287,7 @@ class BTS(models.Model):
         'GSM850' : {'choices' : ('GSM850', 'GSM850'),
                     "valid_values" : set(range(128,252,2))},
         'GSM900' : {'choices' : ('GSM900', 'GSM900'),
-                    "valid_values" : set(range(0,125,1))},
+                    "valid_values" : set(chain(range(0,124,1),range(955,1023,1)))},
         'GSM1800' : {'choices' : ('GSM1800', 'GSM1800'),
                      "valid_values" : set(range(512,886,2))},
         'GSM1900' : {'choices' : ('GSM1900', 'GSM1900'),
