@@ -1,0 +1,35 @@
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+<div class='col-xs-12 col-sm-2'>
+  <ul class='nav nav-pills nav-stacked' id='user-detail-nav'>
+
+    <li role="presentation" class="{% if active_tab == 'add' %} active {% endif %}">
+      <a href="
+        {% if active_tab == 'add' %} #
+        {% else %} {% url 'user-management' %}
+        {% endif %} ">Add</a>
+    </li>
+
+    <li role="presentation" class="{% if active_tab == 'delete' %} active {% endif %}">
+      <a href="
+        {% if active_tab == 'delete' %} #
+        {% else %} {% url 'user-delete' %}
+        {% endif %} ">Delete</a>
+    </li>
+
+    <li role="presentation" class="{% if active_tab == 'blocking' %} active {% endif %}">
+      <a href="
+        {% if active_tab == 'blocking' %} #
+        {% else %} {% url 'user-blocking' %}
+        {% endif %}">Block/Unblock</a>
+    </li>
+
+  </ul>
+</div>
+

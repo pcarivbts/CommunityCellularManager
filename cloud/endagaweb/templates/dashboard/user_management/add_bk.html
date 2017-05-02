@@ -1,0 +1,141 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+
+{% load account socialaccount %}
+{% block pagestyle %}
+{% endblock %}
+
+{% block headerclass %}
+<body id="add_user">
+<header class="navbar navbar-inverse normal" role="banner">
+    {% endblock %}
+    {% block content %}
+
+
+    <div class="row">
+        <div class="col-xs-12 col-sm-12 page-header">
+            <h4 class="page-title">
+                Add
+                <i class='fa fa-user'></i>
+            </h4>
+        </div>
+    </div>
+
+    <div class='row'>
+        {% include "dashboard/user_management/nav.html" with active_tab='add'%}
+
+        <div class="container col-sm-10">
+            <form action="/dashboard/user/management" method="POST" role="form"> {% csrf_token %}
+                <div class="form-group row" required>
+                    <div class="col-xs-5">
+                        <label>Role</label>
+                        <select name="role" class="form-control" onchange="changeRole(this)">
+                            {% for values in roles %}
+                            <option value="{{ values }}">{{ values }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-xs-5">
+                        <label for="username" class="col-3 col-form-label">Username</label>
+                        <div>
+                            <input class="form-control" type="text" id="username" name="username" required="required">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-xs-5">
+                        <label for="InputPassword1">Password</label>
+                        <div>
+                            <input type="password" class="form-control" id="InputPassword1" name="password" placeholder="Password"
+                                   required="required"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-xs-5">
+                        <label for="InputPassword2">Confirm Password</label>
+                        <div>
+                            <input type="password" class="form-control" id="InputPassword2" name="confirm_password"
+                                   placeholder="Confirm Password" required="required"/>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <div class="col-xs-5" data-toggle="tooltip" data-placement="left"
+                         title="Multiple Networks to Network Admin or Cloud Admin only">
+                        <label>Network(s)</label>
+                        <select name='network' id="network" class="form-control" multiple="multiple" size="5"
+                                required="required">
+                            {% for network in networks %}
+                            <option value="{{ network.id }}">{{ network.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group column">
+                    <div>
+                        <label>Permission</label>
+                        <div class="row">
+                            <div class="col-xs-5">
+                                <select name="permissions" id="permissions" class="form-control" size="10"
+                                        multiple="multiple" required="required">
+                                    {% for entry in permissions %}
+                                    {% for values in entry %}
+                                    <option value="{{ values.id }}">{{ values.name }}</option>
+                                    {% endfor %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-xs-2">
+                                <div>&nbsp;</div>
+                                <button type="button" id="lstview_rightAll" class="btn btn-default btn-block"><i
+                                        class="glyphicon glyphicon-forward"></i></button>
+                                <button type="button" id="lstview_rightSelected"
+                                        class="btn btn-default btn-block"><i
+                                        class="glyphicon glyphicon-chevron-right"></i></button>
+                                <button type="button" id="lstview_leftSelected"
+                                        class="btn btn-default btn-block"><i
+                                        class="glyphicon glyphicon-chevron-left"></i></button>
+                                <button type="button" id="lstview_leftAll" class="btn btn-default btn-block"><i
+                                        class="glyphicon glyphicon-backward"></i></button>
+                            </div>
+                            <div class="col-xs-5">
+                                <select name="to" id="lstview_to" class="form-control" size="10"
+                                        multiple="multiple"></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
+</header>
+{% endblock %}
+{% block js %}
+<script>
+    function changeRole(role) {
+        if(role.value == 'Network Admin' || role.value=='Cloud Admin'){
+            document.getElementById('network').multiple = true;
+        } else {
+            document.getElementById('network').multiple = false;
+        }
+        $("#network").val('');
+    }
+
+
+
+
+</script>
+
+{% endblock %}

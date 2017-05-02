@@ -27,6 +27,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from endagaweb.models import UserProfile
 import logging
+from django.http import JsonResponse
 
 logger = logging.getLogger('endagaweb')
 
@@ -38,7 +39,7 @@ def validate_phone(value):
     if (len(value) < 6 or (not value.isdigit())):
         raise ValidationError(
             _('%(value)s is not a phone number'),
-            params={'value': value},)
+            params={'value': value}, )
 
 
 def loginview(request):
@@ -55,6 +56,7 @@ def loginview(request):
     template = get_template("home/login.html")
     html = template.render(context, request)
     return HttpResponse(html)
+
 
 class WhitelistedSocialAccountAdapter(DefaultSocialAccountAdapter):
     """Custom social account login handler."""
@@ -88,8 +90,9 @@ class WhitelistedSocialAccountAdapter(DefaultSocialAccountAdapter):
 
         if domain not in settings.STAFF_EMAIL_DOMAIN_WHITELIST:
             logger.warning("User %s not in approved domain",
-                social_login_email)
+                           social_login_email)
             self.raiseException()
+
 
 def staff_login_view(request):
     """Show the staff login page."""
@@ -113,17 +116,6 @@ def auth_and_login(request):
         messages.error(request, text)
         return redirect('/login/')
 
-#Priya for User Management
-@login_required(login_url='/login/')
-def CreateUserview(request):
-
-    user_profile = UserProfile.objects.get(user=request.user)
-    context = {
-       'user_profile': user_profile,
-    }
-    template = get_template("dashboard/management/createUser.html")
-    html = template.render(context, request)
-    return HttpResponse(html)
 
 @login_required(login_url='/login/')
 def change_password(request):
@@ -186,11 +178,12 @@ def update_contact(request):
         return redirect("/dashboard/profile")
     return HttpResponseBadRequest()
 
+
 @login_required(login_url='/login/')
 def update_notify_emails(request):
     if request.method == 'POST':
         if 'notify_emails' in request.POST:
-            notify_emails =  request.POST['notify_emails'].strip();
+            notify_emails = request.POST['notify_emails'].strip();
             if not notify_emails == "":
                 for current_email in notify_emails.split(','):
                     try:
@@ -204,9 +197,10 @@ def update_notify_emails(request):
             network.notify_emails = notify_emails
             network.save()
             messages.success(request, "Notify emails updated.",
-                         extra_tags="alert alert-success notify-emails")
+                             extra_tags="alert alert-success notify-emails")
             return redirect("/dashboard/profile")
     return HttpResponseBadRequest()
+
 
 @login_required(login_url='/login/')
 def update_notify_numbers(request):
@@ -226,6 +220,33 @@ def update_notify_numbers(request):
             network.notify_numbers = notify_numbers
             network.save()
             messages.success(request, "Notify numbers updated.",
-                         extra_tags="alert alert-success notify-numbers")
+                             extra_tags="alert alert-success notify-numbers")
             return redirect("/dashboard/profile")
     return HttpResponseBadRequest()
+
+
+@login_required(login_url='/login/')
+def check_username(request):
+    if request.method == 'GET':
+        context = {}
+        if 'username' in request.GET:
+            if User.objects.filter(username=request.GET['username']).exists():
+                context['username_available'] = False
+            else:
+                context['username_available'] = True
+        return JsonResponse(context)
+    return HttpResponseBadRequest()
+
+# @login_required(login_url='/login/')
+# def role_based_permissions(request):
+#     if request.method == 'GET':
+#         context = {}
+#         if 'role' in request.GET:
+#             if request.GET['role'] == 'Network Admin':
+#                 pass
+#             elif request.GET['role'] == 'Cloud Admin':pass
+#             elif request.GET['role'] == 'Business Analyst':pass
+#             elif request.GET['role'] == 'Loader':pass
+#             elif request.GET['role'] == 'Partner':pass
+#
+#     return HttpResponseBadRequest()
