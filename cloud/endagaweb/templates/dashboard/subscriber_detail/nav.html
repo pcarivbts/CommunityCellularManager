@@ -15,34 +15,36 @@ of patent rights can be found in the PATENTS file in the same directory.
         {% else %} {% url 'subscriber-info' imsi=imsi %}
         {% endif %} ">Info</a>
     </li>
-
+    {% if user_profile.user.is_staff %}
     <li role="presentation" class="{% if active_tab == 'activity' %} active {% endif %}">
       <a href="
         {% if active_tab == 'activity' %} #
         {% else %} {% url 'subscriber-activity' imsi=imsi %}
         {% endif %}">Activity</a>
     </li>
-
     <li role="presentation" class="{% if active_tab == 'send_sms' %} active {% endif %}">
       <a href="
         {% if active_tab == 'send sms' %} #
         {% else %} {% url 'subscriber-send-sms' imsi=imsi %}
         {% endif %}">Send SMS</a>
     </li>
-
+    {% endif %}
+    {% if user_profile.role == 'loader' or user_profile.user.is_staff %}
     <li role="presentation" class="{% if active_tab == 'adjust_credit' %} active {% endif %}">
       <a href="
         {% if active_tab == 'adjust credit' %} #
         {% else %} {% url 'subscriber-adjust-credit' imsi=imsi %}
         {% endif %}">Adjust Credit</a>
     </li>
-
+    {% endif %}
+    {% if user_profile.user.is_staff %}
     <li role="presentation" class="{% if active_tab == 'edit' %} active {% endif %}">
       <a href="
         {% if active_tab == 'edit' %} #
         {% else %}{% url 'subscriber-edit' imsi=imsi %}
         {% endif %}">Edit</a>
     </li>
+    {% endif %}
 
   </ul>
 </div>

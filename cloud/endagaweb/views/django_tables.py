@@ -170,14 +170,14 @@ class SubscriberActivityTable(tables.Table):
         """
         if record.oldamt < 0 and record.kind != 'add_money':
             return humanize_credits(0,
-                    CURRENCIES[record.network.subscriber_currency])
+                                    CURRENCIES[record.network.subscriber_currency])
         else:
             return humanize_credits(record.change,
-                    CURRENCIES[record.network.subscriber_currency])
+                                    CURRENCIES[record.network.subscriber_currency])
 
     def render_newamt(self, record):
         return humanize_credits(record.newamt,
-                CURRENCIES[record.network.subscriber_currency])
+                                CURRENCIES[record.network.subscriber_currency])
 
 
 class TowerTable(tables.Table):
@@ -216,7 +216,6 @@ class TowerTable(tables.Table):
 
     def render_uptime(self, record):
         return render_uptime(record)
-
 
 
 class StaffTowerTable(tables.Table):
@@ -314,3 +313,52 @@ class NumberTable(tables.Table):
                     " id='%s'>release</a>")
         element = template % record.number
         return safestring.mark_safe(element)
+
+
+def render_username(record, **kwargs):
+    """Shows the username as a link.
+    kwargs: 
+    sender: name for the sender to change on click behaviour"""
+
+    if kwargs.get('sender')=='blocking':
+        element = "<a href='#' onclick='block(\"%s\");' data-target='#block-user-modal' data-toggle='modal'>%s</a>" \
+                  % (record.id, html_utils.escape(record.username))
+
+    elif kwargs.get('sender') == 'delete':
+        element = "<a href='#' onclick='remove(\"%s\");' data-target='#delete-user-modal' data-toggle='modal'>%s</a>" \
+                  % (record.id, html_utils.escape(record.username))
+
+# 'dashboard/user/management/?username=%s/delete
+    return safestring.mark_safe(element)
+
+
+class UserTable(tables.Table):
+    """A django-tables2 Table definition for User."""
+
+    class Meta:
+        model = models.User
+        fields = ('username', 'last_login')
+        attrs = {'class': 'table'}
+        orderable = False
+
+    username = tables.Column(verbose_name='Username')
+    last_login = tables.DateTimeColumn(verbose_name='Last Login', short=True)
+
+    def render_username(self, record):
+        return render_username(record,sender='delete')
+
+
+class BlockedUserTable(tables.Table):
+    """A django-tables2 Table definition for Blocked User."""
+
+    class Meta:
+        model = models.User
+        fields = ('username', 'is_active')
+        attrs = {'class': 'table'}
+        orderable = False
+
+    username = tables.Column(verbose_name='Username', orderable=True)
+    is_active = tables.BooleanColumn(yesno=u'Active, Blocked', verbose_name='Status', orderable=True)
+
+    def render_username(self, record):
+        return render_username(record,sender='blocking')

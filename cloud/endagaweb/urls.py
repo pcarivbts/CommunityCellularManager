@@ -73,6 +73,7 @@ urlpatterns = [
     url(r'^account/notify_emails/update', endagaweb.views.user.update_notify_emails),
     url(r'^account/notify_numbers/update', endagaweb.views.user.update_notify_numbers),
 
+
     # Auth.
     url(r'^login/$', endagaweb.views.user.loginview, name='endagaweb-login'),
     url(r'^auth/', endagaweb.views.user.auth_and_login),
@@ -80,17 +81,6 @@ urlpatterns = [
     url(r'^account/update', endagaweb.views.user.update_contact),
     url(r'^account/', endagaweb.views.dashboard.dashboard_view),
     url(r'^logout/$', django.contrib.auth.views.logout, {'next_page': '/'}),
-
- #Priya
-    # Report view
-   #  url(r'^dashboard/report$',
-    #    endagaweb.views.dashboard.reportview),
-     #User Management
-     #url(r'^dashboard/userMgmt$', endagaweb.views.user.createUserview),
-     # broadcast
-     #url(r'^broadcastsms/', endagaweb.views.dashboard.Broadcastsms.as_view),
-
-    #end Priya
 
     # Dashboard.
     url(r'^dashboard/card', endagaweb.views.dashboard.addcard),
@@ -140,19 +130,39 @@ urlpatterns = [
     url(r'^dashboard/subscribers/(?P<imsi>[^/]+)/edit$',
         endagaweb.views.dashboard.SubscriberEdit.as_view(),
         name='subscriber-edit'),
+
+#47600
+
+    url(r'^dashboard/user/management$',
+        endagaweb.views.dashboard.UserManagement.as_view(),
+        name='user-management'),
+
+    url(r'^dashboard/user/management/delete',
+        endagaweb.views.dashboard.UserDelete.as_view(),
+        name='user-delete'),
+
+    url(r'^dashboard/user/management/blocking$',
+        endagaweb.views.dashboard.UserBlockUnblock.as_view(),
+        name='user-blocking'),
+
+    url(r'^dashboard/user/management/checkusername', endagaweb.views.user.check_username),
+
+    # url(r'^dashboard/user/management/permissions', endagaweb.views.user.role_based_permissions),
+
+    url(r'^dashboard/network/broadcast_sms$',
+        endagaweb.views.dashboard.SubscriberSendSMS.as_view(),
+        name='broadcast-sms'),
+
+    url(r'^dashboard/subscriber_management/subscriber$', endagaweb.views.dashboard.SubscriberCategoryEdit.as_view(),
+        name='subscriber-category'),
+    url(r'^dashboard/subscriber_management/categoryupdate$',
+        endagaweb.views.dashboard.SubscriberCategoryUpdate.as_view(), name='subscriber-categoryupdate'),
+#47600
+
     # Network views in the dashboard.
     # /network -- GET basic network info
     # /network/prices -- GET pricing data for the network or POST to change it
     # /network/edit -- GET details on the network or POST to change them
-    #Priya
-     # Subscriber Management
-     url(r'^dashboard/management/subscriber$', endagaweb.views.dashboard.subscriberprofileedit_view , name="subscriber-category"),
-     url(r'^dashboard/management/deprovisioning$', endagaweb.views.dashboard.subscriberdeprovisioning_view , name="network-deprovisioning"),
-     url(r'^dashboard/management/user$', endagaweb.views.user.CreateUserview, name="user-createUser"),
-    #for report
-
-    url(r'^dashboard/report$', endagaweb.views.dashboard.report_view),
-    #End Priya
     url(r'^dashboard/network$',
         endagaweb.views.network.NetworkInfo.as_view(),
         name='network-info'),
@@ -162,19 +172,6 @@ urlpatterns = [
     url(r'^dashboard/network/inactive-subscribers$',
         endagaweb.views.network.NetworkInactiveSubscribers.as_view(),
         name='network-inactive-subscribers'),
-    #Priya for Limit
-    url(r'^dashboard/network/limit$',
-        endagaweb.views.network.NetworkLimit.as_view(),
-        name='network-limit'),
-    # For Notification
-    url(r'^dashboard/network/notification$',
-        endagaweb.views.network.NetworkNotification.as_view(),
-        name='network-notification'),
-    #for broadcast
-    url(r'^dashboard/network/broadcast$',
-        endagaweb.views.network.NetworkBroadcast.as_view(),
-        name='network-broadcast'),
-    #End Priya
     url(r'^dashboard/network/edit$',
         endagaweb.views.network.NetworkEdit.as_view(),
         name='network-edit'),

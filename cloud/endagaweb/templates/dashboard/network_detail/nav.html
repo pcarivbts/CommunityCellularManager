@@ -24,32 +24,12 @@ of patent rights can be found in the PATENTS file in the same directory.
     </li>
     {% endcomment %}
 
+    {% if user_profile.user.is_staff %}
     <li role="presentation" class="{% if active_tab == 'inactive-subscribers' %} active {% endif %}">
       <a href="
         {% if active_tab == 'inactive-subscribers' %} #
         {% else %} {% url 'network-inactive-subscribers' %}
         {% endif %} ">Inactive Subscribers</a>
-    </li>
-
-    <li role="presentation" class="{% if active_tab == 'limit' %} active {% endif %}">
-      <a href="
-        {% if active_tab == 'inactive-subscribers' %} #
-        {% else %} {% url 'network-limit' %}
-        {% endif %} ">Limit</a>
-    </li>
-
-    <li role="presentation" class="{% if active_tab == 'notification' %} active {% endif %}">
-      <a href="
-        {% if active_tab == 'notification' %} #
-        {% else %} {% url 'network-notification' %}
-        {% endif %} ">Notifications</a>
-    </li>
-
-    <li role="presentation" class="{% if active_tab == 'broadcast' %} active {% endif %}">
-      <a href="
-        {% if active_tab == 'broadcast' %} #
-        {% else %} {% url 'network-broadcast' %}
-        {% endif %} ">Broadcast SMS</a>
     </li>
 
     <li role="presentation" class="{% if active_tab == 'edit' %} active {% endif %}">
@@ -58,6 +38,6 @@ of patent rights can be found in the PATENTS file in the same directory.
         {% else %}{% url 'network-edit' %}
         {% endif %}">Edit</a>
     </li>
-
+    {% endif %}
   </ul>
 </div>

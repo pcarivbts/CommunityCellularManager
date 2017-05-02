@@ -52,6 +52,7 @@ of patent rights can be found in the PATENTS file in the same directory.
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
+
         <h4 class='modal-title'>
           Add a new Tower
           <i class='fa fa-signal'></i>
@@ -103,7 +104,29 @@ of patent rights can be found in the PATENTS file in the same directory.
 </div>
 
 
+<div class="row">
+  <div class="col-xs-12 page-header">
+    <h3>Towers
+      <a href='#' data-toggle='modal' data-target='#add-tower-modal'>
+        <small>(add a new tower)</small>
+      </a>
+    </h3>
+  </div>
+</div> <!-- /.row -->
 
+{% if towers %}
+<div class="row">
+  <div class="col-xs-12 col-md-6">
+    {% render_table tower_table %}
+  </div>
+
+  <div class ='col-xs-12 col-md-6'>
+    <div id='map'></div>
+  </div>
+</div>
+{% else %}
+<p>There are currently no base stations associated with this network.</p>
+{% endif %}
 
 {% endblock %}
 
