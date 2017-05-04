@@ -36,7 +36,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     </li>
     {% endif %}
 
-    {% if perms.endagaweb.change_bts %}
+    {% if perms.endagaweb.deregister_bts %}
     <li role="presentation" class="{% if active_tab == 'deregister' %} active {% endif %}">
       <a href="
         {% if active_tab == 'deregister' %} #
@@ -45,7 +45,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     </li>
     {% endif %}
 
-    {% if perms.endagaweb.view_bts %}
+    {% if perms.endagaweb.add_bts %}
     <li role="presentation" class="{% if active_tab == 'tower_events' %} active {% endif %}">
       <a href="
         {% if active_tab == 'tower_events' %} #

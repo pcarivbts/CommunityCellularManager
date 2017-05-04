@@ -933,21 +933,24 @@ class UserManagement(ProtectedView):
         # Handles request from Network Admin or Cloud Admin
         user_profile = UserProfile.objects.get(user=request.user)
         user = User.objects.get(id=user_profile.user_id)
-        role = ('Network Admin', 'Business Analyst', 'Loader', 'Partner', 'Cloud Admin')
-
+        permission_set = ["credit","graph","report","smsbroadcast","tower","bts","subscriber","network","notification","usageevent"]
         if user.is_staff:
             networks = Network.objects.all()
+            role = ('Network Admin', 'Business Analyst', 'Loader', 'Partner')
         else:
             networks = user_profile.network
+            role = ('Business Analyst', 'Loader', 'Partner')
 
         # Set the context with various stats.
-        content_type = ContentType.objects.filter(app_label='endagaweb').values_list('id', flat=True)
+        #content_type = ContentType.objects.filter(app_label='endagaweb').values_list('id', flat=True)
+        content_type = ContentType.objects.filter(app_label='endagaweb', model__in=permission_set).values_list('id', flat=True)
         permission = []
         for content in content_type:
             # Excluding view_network permission else a user
             # will have access to all networks
 
-            permissions = Permission.objects.filter(content_type=content).exclude(codename='view_network')
+            #permissions = Permission.objects.filter(content_type=content).exclude(codename='view_network')
+            permissions = Permission.objects.filter(content_type=content)
             permission.append(permissions)
         context = {
             'user_profile': user_profile,

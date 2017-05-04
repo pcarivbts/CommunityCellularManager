@@ -29,7 +29,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     {% endif %}
     {% endcomment %}
 
-    {% if perms.endagaweb.delete_network %}
+    {% if perms.endagaweb.deactive_subscriber %}
     <li role="presentation" class="{% if active_tab == 'inactive-subscribers' %} active {% endif %}">
       <a href="
         {% if active_tab == 'inactive-subscribers' %} #

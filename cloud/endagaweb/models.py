@@ -48,6 +48,8 @@ from endagaweb.notifications import bts_up
 from endagaweb.util import currency as util_currency
 from endagaweb.util.parse_destination import parse_destination
 from endagaweb.util import dbutils as dbutils
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 
 stripe.api_key = settings.STRIPE_API_KEY
 
@@ -307,10 +309,13 @@ class BTS(models.Model):
     channel = models.IntegerField(null=True, blank=True)
 
     class Meta:
-        managed = False
+        default_permissions = ()
         permissions = ( 
-            ('view_bts', 'View BTS'),  
-            ('download_bts', 'Download BTS')
+            ('view_bts', 'View BTS(Tower)'),  
+            ('add_bts', 'Add BTS(Tower)'),
+            ('change_bts', 'Change BTS(Tower)'),
+            ('deregister_bts', 'Deregister BTS(Tower)'),
+            ('download_bts', 'Download BTS(Tower)')
         )
 
     def __unicode__(self):
@@ -549,8 +554,11 @@ class Subscriber(models.Model):
     role = models.TextField(null=True, blank=True, default="Subscriber")
 
     class Meta:
+        default_permissions = ()
         permissions = (
             ('view_subscriber', 'View subscriber list'),
+            ('change_subscriber', 'Edit subscriber'),
+            ('deactive_subscriber', 'Deactive subscriber'),
         )
 
     @classmethod
@@ -819,6 +827,13 @@ class UsageEvent(models.Model):
     timespan = models.DecimalField(null=True, max_digits=7, decimal_places=1)
     date_synced = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        default_permissions = ()
+        permissions = ( 
+            ('view_usage', 'View usage activities'),  
+            ('download_usage', 'Download usage activities')
+        )
+
     def voice_sec(self):
         """Gets the number of seconds for this call.
 
@@ -1007,8 +1022,10 @@ class Network(models.Model):
     environment = models.TextField(default="default")
 
     class Meta:
-        permissions = (
+        default_permissions = ()
+        permissions = ( 
             ('view_network', 'View network'),
+            ('change_network', 'Change network'),
         )
 
     @property
@@ -1806,8 +1823,7 @@ class FileUpload(models.Model):
 
 
 
-from django.contrib.auth.models import Permission
-from django.contrib.contenttypes.models import ContentType
+
 """
 class GlobalPermissionManager(models.Manager):
     def get_queryset(self):
@@ -1837,8 +1853,10 @@ class SMSBroadcast(models.Model):
     class Meta:
         managed = False  # No database table creation or deletion operations \
                          # will be performed for this model. 
+        default_permissions = ()
         permissions = ( 
-            ('view_sms', 'View SMS broadcast'),
+            ('add_sms', 'Add SMS broadcast'),
+            ('send_sms', 'Send SMS broadcast from subscriber'),
         )
 
 class Credit(models.Model):
@@ -1846,8 +1864,9 @@ class Credit(models.Model):
 
     class Meta:
         managed = False
+        default_permissions = ()
         permissions = ( 
-            ('view_credit', 'View credit adjustment'),
+            ('add_credit', 'Add credit adjustment to subscriber'),
         )
 
 class Notification(models.Model):
@@ -1855,6 +1874,7 @@ class Notification(models.Model):
 
     class Meta:
         managed = False
+        default_permissions = ()
         permissions = ( 
             ('view_notification', 'View Notification'),
         )
@@ -1864,6 +1884,7 @@ class Report(models.Model):
 
     class Meta:
         managed = False
+        default_permissions = ()
         permissions = ( 
             ('view_report', 'View reports'),  
             ('download_report', 'Download reports')
@@ -1874,6 +1895,7 @@ class Graph(models.Model):
 
     class Meta:
         managed = False
+        default_permissions = ()
         permissions = ( 
             ('view_graph', 'View graph'),  
             ('download_graph', 'Download graph')
