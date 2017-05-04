@@ -23,7 +23,7 @@ import logging
 from logging.handlers import SysLogHandler
 from os import environ
 from sys import stderr
-from syslog import LOG_DEBUG, LOG_LOCAL0
+from syslog import LOG_DEBUG, LOG_LOCAL4
 import traceback
 
 
@@ -152,7 +152,7 @@ try:
     # and in some cases, e.g., running under Django, we use a handler from,
     # that env, so the empty socket name prevents adding our root handler.
     if sock:
-        handler = SysLogHandler(address=sock, facility=LOG_LOCAL0)
+        handler = SysLogHandler(address=sock, facility=LOG_LOCAL4)
     else:
         handler = None
     DefaultLogger.update_handler(
