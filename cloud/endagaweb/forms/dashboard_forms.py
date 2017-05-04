@@ -388,3 +388,11 @@ class UserSearchForm(forms.Form):
                                      type='submit')
         self.helper.layout = Layout(FieldWithButtons('query', search_button))
         super(UserSearchForm, self).__init__(*args, **kwargs)
+
+from django.contrib.auth.forms import PasswordResetForm
+
+class PasswordResetRequestForm(PasswordResetForm):
+    email = forms.CharField(label=("Email"), max_length=254)
+    class Meta:
+        model = User
+        fields = ("email")

@@ -22,7 +22,7 @@ import time
 import uuid
 
 from django.conf import settings
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import Group, User, Permission
 from django.contrib.gis.db import models as geomodels
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
@@ -32,7 +32,7 @@ from django.db import transaction
 from django.db.models import F
 from django.db.models.signals import post_save
 from guardian.shortcuts import (assign_perm, get_objects_for_user,
-        get_users_with_perms)
+                                get_users_with_perms)
 from rest_framework.authtoken.models import Token
 import django.utils.timezone
 import itsdangerous
@@ -74,14 +74,7 @@ class UserProfile(models.Model):
     timezone_choices = [(v, v) for v in pytz.common_timezones]
     timezone = models.CharField(max_length=50, default='UTC',
                                 choices=timezone_choices)
-    role_choices = (
-                    ('cloud_admin', 'Cloud Admin'),
-                    ('network_admin', 'Network Admin'),
-                    ('business analyst', 'Business Analyst'),
-                    ('loader', 'Loader'),
-                    ('partner', 'Partner'),
-                )
-    role = models.CharField(max_length=20,choices=role_choices, default='admin')
+    role = models.CharField(max_length=20,default='cloud_admin')
 
     # A UI kludge indicate which network a user is currently viewing
     # Important: This is not the only network a User is associated with
@@ -121,7 +114,9 @@ class UserProfile(models.Model):
             profile.network = network
             profile.save()
 
+
 post_save.connect(UserProfile.new_user_hook, sender=User)
+
 
 class Ledger(models.Model):
     """A ledger represents a list of transactions and a balance.
@@ -174,6 +169,7 @@ class Ledger(models.Model):
                 return
             ledger.balance = F('balance') + instance.amount
             ledger.save()
+
 
 class Transaction(models.Model):
     """ The transaction object represents a single line item in an account
@@ -305,6 +301,11 @@ class BTS(models.Model):
     # channel number used
     # none is unknown or invalid
     channel = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        permissions = (
+            ('view_bts', 'can view bts'),
+        )
 
     def __unicode__(self):
         return "BTS(%s, %s, last active: %s)" % (
@@ -541,6 +542,10 @@ class Subscriber(models.Model):
     prevent_automatic_deactivation = models.BooleanField(default=False)
     role = models.TextField(null=True, blank=True, default="Subscriber")
 
+    class Meta:
+        permissions = (
+            ('view_subscriber', 'can view subscriber'),
+        )
     @classmethod
     def update_balance(cls, imsi, other_bal):
         """
@@ -1449,7 +1454,7 @@ class Network(models.Model):
             # instance.auth_group, created_group = Group.objects.get_or_create(name='network_%s'
             #     % instance.pk)
             instance.auth_group, created_group = Group.objects.get_or_create(name='%s_GROUP_%s'
-                % (instance.name,instance.pk))
+                                                                                  % (instance.name, instance.pk))
             if created_group:
                 assign_perm('view_network', instance.auth_group, instance)
 
@@ -1457,7 +1462,7 @@ class Network(models.Model):
             # instance.auth_user, created_user = User.objects.get_or_create(username='network_%s'
             #     % instance.pk)
             instance.auth_user, created_user = User.objects.get_or_create(username='%s_USER_%s'
-                % (instance.name,instance.pk))
+                                                                                   % (instance.name, instance.pk))
             if created_user:
                 Token.objects.create(user=instance.auth_user)
                 instance.auth_group.user_set.add(instance.auth_user)
@@ -1472,7 +1477,6 @@ class Network(models.Model):
 
 # Whenever we update the Ledger, attempt to recharge the Network bill.
 post_save.connect(Network.ledger_save_handler, sender=Ledger)
-
 
 post_save.connect(Network.create_ledger, sender=Network)
 post_save.connect(Network.create_auth, sender=Network)

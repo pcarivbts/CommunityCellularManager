@@ -18,7 +18,7 @@ import operator
 from django.template.loader import get_template
 from django.http import HttpResponse, HttpResponseBadRequest, QueryDict, JsonResponse
 
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone as django_utils_timezone
 from django.utils.decorators import method_decorator
@@ -62,6 +62,8 @@ class ProtectedView(View):
 """
 Views for logged in users.
 """
+USER_ROLES = ('Business Analyst', 'Loader',
+        'Partner', 'Network Admin') # Cloud Admin will only be available when created via createsuperuser
 
 logger = logging.getLogger(__name__)
 
@@ -929,11 +931,15 @@ class ActivityView(ProtectedView):
 
 # 47600
 class UserManagement(ProtectedView):
+
     def get(self, request, *args, **kwargs):
         # Handles request from Network Admin or Cloud Admin
         user_profile = UserProfile.objects.get(user=request.user)
         user = User.objects.get(id=user_profile.user_id)
-        role = ('Network Admin', 'Business Analyst', 'Loader', 'Partner', 'Cloud Admin')
+        role = USER_ROLES
+
+        if not user_profile.user.is_superuser:
+            role = USER_ROLES[0:len(USER_ROLES)-1]
 
         if user.is_staff:
             networks = Network.objects.all()
@@ -947,8 +953,9 @@ class UserManagement(ProtectedView):
             # Excluding view_network permission else a user
             # will have access to all networks
 
-            permissions = Permission.objects.filter(content_type=content).exclude(codename='view_network')
+            permissions = Permission.objects.filter(content_type=content)
             permission.append(permissions)
+
         context = {
             'user_profile': user_profile,
             'networks': networks,
@@ -957,6 +964,7 @@ class UserManagement(ProtectedView):
             'staff': user.is_staff,
             'roles': role
         }
+
         # Render template.
         info_template = get_template(
             'dashboard/user_management/add.html')
@@ -964,17 +972,10 @@ class UserManagement(ProtectedView):
         return HttpResponse(html)
 
     def post(self, request, *args, **kwargs):
-        """Cloud Admin --> superuser + staff + active
-       
-        No user allowed to access Django Admin Site
-        Network Admin --> staff + active 
-        Loader --> active
-        BA --> active
-        Partner --> active
-        Creating a user with (can be Admin, Loader, Partner or Business Analyst)
-        """
-        # Get form details
-        username = request.POST['username']
+
+        # setting email as username
+        username = request.POST['email']
+        email = request.POST['email']
         password = request.POST['password']
         user_role = str(request.POST['role']).lower().replace(' ', '_')
         networks = request.POST.getlist('network')
@@ -984,19 +985,14 @@ class UserManagement(ProtectedView):
         post_save.disconnect(UserProfile.new_user_hook, sender=User)
         try:
             with transaction.atomic():
-                # Add User
-                # is_staff --> If a user can log into Django administration
-                # is_superuser --> has all permissions
-                # is_active --> Can login or not
-
                 user = User(username=username)
-                if user_role == 'cloud_admin':
-                    user.is_staff = user.is_superuser = True
-                elif user_role == 'network_admin':
-                    user.is_staff = False
+
+                if user_role == 'network_admin':
+                    user.is_staff = True
                 else:
                     user.is_staff = user.is_superuser = False
                 user.set_password(password)
+                user.email = email
                 user.save()
                 # creates Token that BTSs on the network use to authenticate
                 Token.objects.create(user=user)
@@ -1020,7 +1016,7 @@ class UserManagement(ProtectedView):
                     user.user_permissions.add(permission)
 
         except Exception as err:
-            # ReConnect the signal before return if it reaches exception
+            # Re-connect the signal before return if it reaches exception
             post_save.connect(UserProfile.new_user_hook, sender=User)
             messages.warning(request, err)
             return redirect(urlresolvers.reverse('user-management'))
@@ -1031,50 +1027,25 @@ class UserManagement(ProtectedView):
         return redirect(urlresolvers.reverse('user-management'))
 
 
-# class ProfileManagement(ProtectedView):
-#     def get(self, request):
-#         """Handles GET requests."""
-#         user_profile = UserProfile.objects.get(user=request.user)
-#         network = Network.objects.values()
-#         # network = Network.objects.values_list('name','id')
-#         # Set the context with various stats.
-#         context = {
-#             'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
-#             'user_profile': user_profile,
-#             'network': network,
-#             'network_settings_form': dform.NetworkSettingsForm({
-#                 # 'network_name': network.name,
-#                 'subscriber_currency': network.subscriber_currency,
-#                 'number_country': network.number_country,
-#                 'autoupgrade_enabled': network.autoupgrade_enabled,
-#                 'autoupgrade_channel': network.autoupgrade_channel,
-#                 'autoupgrade_in_window': network.autoupgrade_in_window,
-#                 'autoupgrade_window_start': network.autoupgrade_window_start,
-#             }),
-#         }
-#         # Render template.
-#         info_template = get_template(
-#             'dashboard/subscriber_detail/profile_mgmt.html')
-#         html = info_template.render(context, request)
-#         return HttpResponse(html)
-#
-
 class UserDelete(ProtectedView):
-    def get(self, request, *args, **kwargs):
 
+    def get(self, request, *args, **kwargs):
+        # Use render_table to hide/unhide users on search page.
         user_profile = UserProfile.objects.get(user=request.user)
         all_users = User.objects.all().exclude(is_superuser=True)
         query = request.GET.get('query', None)
 
         if query:
-            # Not showing Super/Django Admin
+            # Not showing cloud admins
             query_users = (
                 User.objects.filter(username__icontains=query)).exclude(is_superuser=True)
-            # Remove render_table to show all users
+            # Network Admin cannot delete same role
+            if not user_profile.user.is_superuser:
+                query_users = query_users.exclude(is_staff=True)
             render_table = True
         else:
-            # Display all users currently and using render_table variable to hide.
-            query_users = all_users
+            # Display all users except Admins
+            query_users = all_users.exclude(is_staff=True)
             render_table = False
 
         # Setup the subscriber table.
@@ -1083,7 +1054,6 @@ class UserDelete(ProtectedView):
             user_table)
 
         context = {
-            # Except Super User
             'search': dform.UserSearchForm({'query': query}),
             'users_found': len(query_users),
             'user_table': user_table,
@@ -1245,3 +1215,4 @@ class SubscriberCategoryUpdate(ProtectedView):
             return JsonResponse({'message': 'IMSI category updated successfully'})
         else:
             return JsonResponse({'message': 'IMSI category update cannot happen'})
+

@@ -52,9 +52,9 @@ of patent rights can be found in the PATENTS file in the same directory.
                 </div>
                 <div class="form-group row">
                     <div class="col-xs-5">
-                        <label for="username" class="col-3 col-form-label">Username</label>
+                        <label for="email" class="col-3 col-form-label">Email</label>
                         <div>
-                            <input class="form-control" type="text" id="username" name="username" required="required"/>
+                            <input class="form-control" type="email" id="email" name="email" required="required"/>
                         </div>
                     </div>
                 </div>
@@ -175,25 +175,25 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 
     var _changeInterval = null;
-    $("#username").keyup(function() {
+    $("#email").keyup(function() {
         clearInterval(_changeInterval);
         _changeInterval = setInterval(function() {
             clearInterval(_changeInterval)
             console.log("now search");
             $.ajax({
-                url: "/dashboard/user/management/checkusername?username=" + $('#username').val(),
+                url: "/dashboard/user/management/checkuser?email=" + $('#email').val(),
                 //beforeSend: function(xhr) {
                 // xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
                 //},
             }).done(function(response) {
-                $('#username').removeClass('form-control-success');
-                $('#username').removeClass('form-control-warning');
-                if(response.username_available) {
-                    $('#username').parent().parent().addClass('has-success');
-                    $('#username').addClass('form-control-success');
+                $('#email').removeClass('form-control-success');
+                $('#email').removeClass('form-control-warning');
+                if(response.email_available) {
+                    $('#email').parent().parent().addClass('has-success');
+                    $('#email').addClass('form-control-success');
                 } else {
-                    $('#username').parent().parent().addClass('has-warning');
-                    $('#username').addClass('form-control-warning');
+                    $('#email').parent().parent().addClass('has-warning');
+                    $('#email').addClass('form-control-warning');
                 }
             });
 

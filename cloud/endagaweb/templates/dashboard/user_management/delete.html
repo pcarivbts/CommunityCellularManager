@@ -32,10 +32,10 @@ of patent rights can be found in the PATENTS file in the same directory.
         {% include "dashboard/user_management/nav.html" with active_tab='delete'%}
         <div class="container">
             {% for message in messages %}
-            <div class="message alert alert-{{message.tags}}">
+            <dasdiv class="message alert alert-{{message.tags}}">
                 <a href="#" class="close" data-dismiss="alert">&times;</a>
                 {{message}}
-            </div>
+            </dasdiv>
             {% endfor %}
             <div class="row">
                 <form action="/dashboard/user/management/delete" method="GET" role="form">
