@@ -306,6 +306,13 @@ class BTS(models.Model):
     # none is unknown or invalid
     channel = models.IntegerField(null=True, blank=True)
 
+    class Meta:
+        managed = False
+        permissions = ( 
+            ('view_bts', 'View BTS'),  
+            ('download_bts', 'Download BTS')
+        )
+
     def __unicode__(self):
         return "BTS(%s, %s, last active: %s)" % (
             self.uuid, self.inbound_url, self.last_active)
@@ -540,6 +547,11 @@ class Subscriber(models.Model):
     # can still delete subs with the usual "deactivate" button.
     prevent_automatic_deactivation = models.BooleanField(default=False)
     role = models.TextField(null=True, blank=True, default="Subscriber")
+
+    class Meta:
+        permissions = (
+            ('view_subscriber', 'View subscriber list'),
+        )
 
     @classmethod
     def update_balance(cls, imsi, other_bal):
@@ -1791,3 +1803,78 @@ class FileUpload(models.Model):
     created_time = models.DateTimeField(auto_now_add=True)
     modified_time = models.DateTimeField(auto_now_add=True)
     accessed_time = models.DateTimeField(auto_now=True)
+
+
+
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
+"""
+class GlobalPermissionManager(models.Manager):
+    def get_queryset(self):
+        return super(GlobalPermissionManager, self).\
+            get_queryset().filter(content_type__model='global_permission')
+
+class GlobalPermission(Permission):
+    #A global permission, not attached to a model
+
+    objects = GlobalPermissionManager()
+
+    class Meta:
+        proxy = True
+        verbose_name = "global_permission"
+
+    def save(self, *args, **kwargs):
+        ct, created = ContentType.objects.get_or_create(
+            model=self._meta.verbose_name, app_label=self._meta.app_label,
+        )
+        self.content_type = ct
+        super(GlobalPermission, self).save(*args)
+"""
+
+class SMSBroadcast(models.Model):
+    """ Global permission set for SMS Broadcasting module in network section"""
+
+    class Meta:
+        managed = False  # No database table creation or deletion operations \
+                         # will be performed for this model. 
+        permissions = ( 
+            ('view_sms', 'View SMS broadcast'),
+        )
+
+class Credit(models.Model):
+    """ Global permission set for Credit Adjustment module in subscribers"""
+
+    class Meta:
+        managed = False
+        permissions = ( 
+            ('view_credit', 'View credit adjustment'),
+        )
+
+class Notification(models.Model):
+    """ Global permission set for Credit Adjustment module in subscribers"""
+
+    class Meta:
+        managed = False
+        permissions = ( 
+            ('view_notification', 'View Notification'),
+        )
+
+class Report(models.Model):
+    """ Global permission set for Report module"""
+
+    class Meta:
+        managed = False
+        permissions = ( 
+            ('view_report', 'View reports'),  
+            ('download_report', 'Download reports')
+        )
+
+class Graph(models.Model):
+    """ Global permission set for Report module"""
+
+    class Meta:
+        managed = False
+        permissions = ( 
+            ('view_graph', 'View graph'),  
+            ('download_graph', 'Download graph')
+        )
