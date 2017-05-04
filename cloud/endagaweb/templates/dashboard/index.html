@@ -34,10 +34,15 @@ of patent rights can be found in the PATENTS file in the same directory.
   </div>
 </div>
 
+
 {% if network_has_activity %}
+{% if perms.endagaweb.view_graph %}
   <div id='sms-usage-chart'></div>
   <div id='call-usage-chart'></div>
   <div id='data-usage-chart'></div>
+  {% else %}
+  <p>Permission denied.</p>
+  {% endif %}
   {% include 'dashboard/timezone-notice.html' %}
 {% else %}
   <p>There is no network activity to display.</p>

@@ -110,7 +110,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 <div class="row">
   <div class="col-xs-12 page-header">
     <h3>Towers
-        {% if user_profile.user.is_staff %}
+        {% if perms.endagaweb.add_bts %}
       <a href='#' data-toggle='modal' data-target='#add-tower-modal'>
         <small>(add a new tower)</small>
       </a>
@@ -120,15 +120,18 @@ of patent rights can be found in the PATENTS file in the same directory.
 </div> <!-- /.row -->
 
 {% if towers %}
-<div class="row">
-  <div class="col-xs-12 col-md-6">
-    {% render_table tower_table %}
+  {% if perms.endagaweb.view_bts %}
+  <div class="row">
+    <div class="col-xs-12 col-md-6">
+      {% render_table tower_table %}
+    </div>
+    <div class ='col-xs-12 col-md-6'>
+      <div id='map'></div>
+    </div>
   </div>
-
-  <div class ='col-xs-12 col-md-6'>
-    <div id='map'></div>
-  </div>
-</div>
+  {% else %}
+  <p>Permission denied.</p>
+  {% endif %}
 {% else %}
 <p>There are currently no base stations associated with this network.</p>
 {% endif %}
