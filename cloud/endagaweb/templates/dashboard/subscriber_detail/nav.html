@@ -18,7 +18,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     </li>
     {% endif %}
 
-    {% if perms.endagaweb.view_report %}
+    {% if perms.endagaweb.view_usage %}
     <li role="presentation" class="{% if active_tab == 'activity' %} active {% endif %}">
       <a href="
         {% if active_tab == 'activity' %} #
@@ -27,7 +27,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     </li>
     {% endif %}
 
-    {% if perms.endagaweb.view_sms %}
+    {% if perms.endagaweb.send_sms %}
     <li role="presentation" class="{% if active_tab == 'send_sms' %} active {% endif %}">
       <a href="
         {% if active_tab == 'send sms' %} #
@@ -35,7 +35,7 @@ of patent rights can be found in the PATENTS file in the same directory.
         {% endif %}">Send SMS</a>
     </li>
     {% endif %}
-    {% if perms.endagaweb.view_credit %}
+    {% if perms.endagaweb.add_credit %}
     <li role="presentation" class="{% if active_tab == 'adjust_credit' %} active {% endif %}">
       <a href="
         {% if active_tab == 'adjust credit' %} #
