@@ -119,7 +119,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                             </div>
                             <div class="col-xs-5">
                                 <select name="permissions" id="permissions_right" class="form-control" size="10"
-                                        multiple="multiple" required="required"></select>
+                                        multiple="multiple"></select>
                             </div>
                         </div>
                     </div>
@@ -141,12 +141,32 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 <script>
     function changeRole(role) {
-        if(role.value == 'admin' || role.value=='super_admin'){
+        if(role.value == 'cloud_admin' || role.value=='network_admin'){
             document.getElementById('network').multiple = true;
         } else {
             document.getElementById('network').multiple = false;
         }
         $("#network").val('');
+        if (role.value) {
+            $.ajax({
+                url: "/dashboard/user/management/permissions?role=" + role.value
+            }).done(function(response) {
+                console.log(response.Permission);
+
+                $.each(response.permission, function(key,val){
+
+                    var left = $('#permissions_left option[value=="'+val+'"]');
+
+                    console.log(left);
+
+                    //var option_str = "<option value='"+val.id+"'>"+val.codename+"</option>";
+
+                    // $('#permissions_right').append(option_str);
+
+                });
+            });
+
+        }
     }
 
     function moveItems(origin, dest) {
