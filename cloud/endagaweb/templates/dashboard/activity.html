@@ -94,9 +94,17 @@ of patent rights can be found in the PATENTS file in the same directory.
             <td>{{ event.date }}</td>
             {% if event.subscriber %}
               {% if event.subscriber.name %}
+                {% if perms.endagaweb.view_subscriber %}
                 <td><a href="{% url 'subscriber-info' imsi=event.subscriber.imsi %}">{{ event.subscriber.name }} ({{ event.subscriber.imsi }})</a></td>
+                {% else %}
+                <td>{{ event.subscriber.name }} ({{ event.subscriber.imsi }})</td>
+                {% endif %}
               {% else %}
+                {% if perms.endagaweb.view_subscriber %}
                 <td><a href="{% url 'subscriber-info' imsi=event.subscriber.imsi %}">{{ event.subscriber.imsi }}</a></td>
+                {% else %}
+                <td>{{ event.subscriber.imsi }}</td>
+                {% endif %}
               {% endif %}
             {% else %}  {# /event.subscriber check #}
 
@@ -146,6 +154,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     </div>
 </div>
 
+{% if perms.endagaweb.download_report %}
 <div class="row">
     <div class="col-xs-12">
     <p>
@@ -157,6 +166,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     </p>
     </div>
 </div>
+{% endif %}
 
 
 {% include 'dashboard/timezone-notice.html' %}

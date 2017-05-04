@@ -41,7 +41,10 @@ of patent rights can be found in the PATENTS file in the same directory.
 
     <div class="col-xs-12 col-md-8">
     {% if number_of_filtered_subscribers %}
-    {% render_table subscriber_table %}
+
+      {% if perms.endagaweb.view_subscriber %}
+        {% render_table subscriber_table %}
+      {% endif %}
 
     {% elif total_number_of_subscribers > 0 %}
     <h4>No subscribers matched your search.</h4>
