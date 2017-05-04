@@ -18,6 +18,8 @@ from core.config_database import ConfigDB
 from core.bts.base import BaseBTS, BSSError
 from core.service import Service
 
+from ccm.common import logger
+
 class Lc15BTS(BaseBTS):
 
     REGISTERED_AUTH_VALUES = [1, ] # 0 = camped, open reg. 1 = camped, auth'd
@@ -42,6 +44,12 @@ class Lc15BTS(BaseBTS):
 
     def __init__(self):
         self.conf = ConfigDB()
+        """Osmo-NITB can not set/get authorized-regexp in run-time.
+        Therefore we use shadow variable to avoid  error during regisration"""
+        self.defaults = {
+            'openRegistration' : ".*",
+        }
+
         self.subscribers = Subscribers(host=self.conf['bts.osmocom.ip'],
             port=self.conf['bts.osmocom.bsc_vty_port'],
             hlr_loc=self.conf['bts.osmocom.hlr_loc'],
@@ -55,6 +63,17 @@ class Lc15BTS(BaseBTS):
         self.trx = TRX(host=self.conf['bts.osmocom.ip'],
             port=self.conf['bts.osmocom.bsc_vty_port'],
             timeout=self.conf['bss_timeout'])
+
+    def __get(self, name):
+        db_name = "lc15bts." + name
+        if name in self.defaults:
+            return self.conf.get(db_name, default=self.defaults[name])
+        else:
+            return self.conf.get(db_name)
+
+    def __set(self, name, value):
+        self.conf['lc15bts.' + name] = value
+
     def set_factory_config(self):
         pass
 
@@ -112,7 +131,9 @@ class Lc15BTS(BaseBTS):
     def set_open_registration(self, expression):
         """Set a regular expression matching IMSIs
         that can camp to the network"""
-        raise NotImplementedError("Osmocom needs to implement this. Only has token auth for Ad-Hoc networks.")
+        logger.warning("Cloud pushes authorized-regexp %s" % (expression))
+        logger.warning("Osmo-NITB needs to implement 'authorized-regexp updatable in run-time")
+        return self.__set('openRegistration', expression)
 
     def set_timer(self, timer, value):
         """Set a particular BTS timer.
@@ -171,7 +192,9 @@ class Lc15BTS(BaseBTS):
             raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
 
     def get_open_registration(self):
-        raise NotImplementedError()
+        auth_regex = self.__get('openRegistration')
+        logger.warning("Cloud requests authorized-regexp %s" % (auth_regex))
+        return auth_regex
 
     def get_timer(self, timer):
         try:
