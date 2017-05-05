@@ -939,15 +939,20 @@ class UserManagement(ProtectedView):
         permission_set = ["credit", "graph", "report", "smsbroadcast", "tower", "bts", "subscriber", "network",
                           "notification", "usageevent"]
         role = USER_ROLES
+        restricted_perms = []
 
         if not user_profile.user.is_superuser:
             role = USER_ROLES[0:len(USER_ROLES)-1]
 
         if user.is_staff:
             networks = Network.objects.all()
+            
         else:
             networks = [user_profile.network]
             role = ('Business Analyst', 'Loader', 'Partner')
+
+        if user_profile.role == 'network_admin':
+            restricted_perms = ['add_bts', 'change_bts', 'deregister_bts', 'change_network',  'download_report', 'download_graph', 'deactive_subscriber']
 
         # Set the context with various stats.
         content_type = ContentType.objects.filter(app_label='endagaweb',
@@ -955,7 +960,7 @@ class UserManagement(ProtectedView):
 
         permission = []
         for content in content_type:
-            permissions = Permission.objects.filter(content_type=content)
+            permissions = Permission.objects.filter(content_type=content).exclude(codename__in=restricted_perms)
             permission.append(permissions)
 
         context = {

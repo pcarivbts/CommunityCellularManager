@@ -284,9 +284,6 @@ def get_permissions_object(perm_list):
 def role_default_permissions(request):
     if request.method == 'GET':
         role = request.GET['role']
-        print "***********--------"
-        print role
-        print "***********++++++++"
         permission_set = ['credit', 'graph', 'report', "smsbroadcast", "tower", "bts", "subscriber", "network",
                           "notification", "usageevent"]
 
@@ -301,8 +298,7 @@ def role_default_permissions(request):
                    'view_network', 'edit_subscriber', 'edit_network',
                    'add_subscriber', 'add_sms', 'download_graph']
 
-        content_type = ContentType.objects.filter(app_label='endagaweb',
-                                                  model__in=permission_set).values_list('id', flat=True)
+        content_type = ContentType.objects.filter(app_label='endagaweb',model__in=permission_set).values_list('id', flat=True)
         permission = Permission.objects.filter(content_type__in=content_type).values_list('id', flat=True)
         if role == 'Business Analyst':
             role_permission = get_permissions_object(business_analyst)
