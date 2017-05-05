@@ -325,7 +325,7 @@ def render_username(record, **kwargs):
                   % (record.id, html_utils.escape(record.username))
 
     elif kwargs.get('sender') == 'delete':
-        element = "<a href='#' onclick='remove(\"%s\");' data-target='#delete-user-modal' data-toggle='modal'>%s</a>" \
+        element = "<a href='#' id='user_"+str(record.id)+"' onclick='remove(\"%s\");' data-target='#delete-user-modal' data-toggle='modal'>%s</a>" \
                   % (record.id, html_utils.escape(record.username))
 
 # 'dashboard/user/management/?username=%s/delete
