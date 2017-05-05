@@ -125,7 +125,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                             </div>
                             <div class="col-xs-5">
                                 <select name="permissions" id="permissions_right" class="form-control" size="10"
-                                        multiple="multiple" required="required"></select>
+                                        multiple="multiple"></select>
                             </div>
                         </div>
                     </div>
@@ -261,7 +261,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <div class="row">&nbsp;</div>
 
                 <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
-                    <button id="submit" class="btn btn-primary">Submit</button>
+                    <input type="submit" id="submit" class="btn btn-primary" value="Submit" />
                 </div>                
             </form>
             
@@ -319,7 +319,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
         $('#user_form').validator().on('submit', function (e) {
             $('#permissions_right option').attr('selected','selected');
-            $('#user_form').submit();
+            return true;
         })
 
         $('#lstview_rightSelected').click(function () {
