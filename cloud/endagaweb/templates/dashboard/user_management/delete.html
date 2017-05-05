@@ -72,7 +72,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             </div>
             <div class='modal-body'>
                 <h4>
-                    Are you sure you want to delete?
+                    Are you sure you want to delete "<span id="username"></span>"?
                 </h4>
             </div>
             <div class='modal-footer'>
@@ -89,6 +89,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script>
     function remove(user) {
         $("#user").val(user);
+        $("#username").html($("#user_"+user).html())
     }
     $('#delete-user-submit').click(function(){
 
