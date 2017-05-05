@@ -947,7 +947,7 @@ class UserManagement(ProtectedView):
             networks = Network.objects.all()
             role = ('Network Admin', 'Business Analyst', 'Loader', 'Partner')
         else:
-            networks = user_profile.network
+            networks = [user_profile.network]
             role = ('Business Analyst', 'Loader', 'Partner')
 
         # Set the context with various stats.
