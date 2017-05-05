@@ -273,19 +273,25 @@ from django.contrib.auth.models import ContentType, Permission
 # To get objects of specific permissions
 
 def get_permissions_object(perm_list):
-    permissions = Permission.objects.filter(codename__in=perm_list)
-    return permissions
+    permissions = Permission.objects.filter(codename__in=perm_list).values_list('id', flat=True)
+    perms = []
+    for i in permissions:
+        perms.append(i)
+    return perms
 
 
 @login_required(login_url='/login/')
 def role_default_permissions(request):
     if request.method == 'GET':
         role = request.GET['role']
+        print "***********--------"
+        print role
+        print "***********++++++++"
         permission_set = ['credit', 'graph', 'report', "smsbroadcast", "tower", "bts", "subscriber", "network",
                           "notification", "usageevent"]
 
         business_analyst = ['view_graph', 'view_report', 'view_bts',
-                            'view_subscriber', 'view_network', 'download_graph'],
+                            'view_subscriber', 'view_network', 'download_graph']
 
         loader = ['view_graph', 'view_report', 'view_bts', 'view_subscriber',
                   'view_network', 'change_subscriber', 'change_network',
@@ -293,17 +299,22 @@ def role_default_permissions(request):
 
         partner = ['view_graph', 'view_report', 'view_bts', 'view_subscriber',
                    'view_network', 'edit_subscriber', 'edit_network',
-                   'add_subscriber', 'add_sms', 'download_graph'],
+                   'add_subscriber', 'add_sms', 'download_graph']
 
         content_type = ContentType.objects.filter(app_label='endagaweb',
                                                   model__in=permission_set).values_list('id', flat=True)
-        role_permission = Permission.objects.filter(content_type__in=content_type)
+        permission = Permission.objects.filter(content_type__in=content_type).values_list('id', flat=True)
         if role == 'Business Analyst':
             role_permission = get_permissions_object(business_analyst)
         elif role == 'Loader':
             role_permission = get_permissions_object(loader)
         elif role == 'Partner':
             role_permission = get_permissions_object(partner)
+        else:
+            role_permission = []
+            for i in permission:
+                role_permission.append(i)
 
-        return HttpResponse({'permissions': role_permission})
+
+        return JsonResponse({'permissions': role_permission})
     return HttpResponseBadRequest()

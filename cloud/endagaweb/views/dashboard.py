@@ -946,7 +946,8 @@ class UserManagement(ProtectedView):
         if user.is_staff:
             networks = Network.objects.all()
         else:
-            networks = user_profile.network
+            networks = [user_profile.network]
+            role = ('Business Analyst', 'Loader', 'Partner')
 
         # Set the context with various stats.
         content_type = ContentType.objects.filter(app_label='endagaweb',
