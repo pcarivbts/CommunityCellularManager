@@ -6,13 +6,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
-
 import sys
+import re
 
 from osmocom.bts import BTS
 from osmocom.network import Network
 from osmocom.trx import TRX
 from osmocom.subscribers import Subscribers
+from osmocom.vty import BaseVTY
 
 from core.config_database import ConfigDB
 from core.bts.base import BaseBTS, BSSError
@@ -20,7 +21,8 @@ from core.service import Service
 
 from ccm.common import logger
 
-class Lc15BTS(BaseBTS):
+
+class Lc15BTS(BaseVTY, BaseBTS):
 
     REGISTERED_AUTH_VALUES = [1, ] # 0 = camped, open reg. 1 = camped, auth'd
     DEFAULT_BTS_ID = 0
@@ -43,6 +45,12 @@ class Lc15BTS(BaseBTS):
                 Service.SystemService('osmo-sgsn')]
 
     def __init__(self):
+        # initialize VTY connection to osmo-bts-lc15
+        super(Lc15BTS, self).__init__('OsmoBTS', '127.0.0.1', 4241, 3)
+        self.PARSE_SHOW = [
+            re.compile('Paging: Queue size (?P<paging_queue_limit>\d+)\, occupied (?P<paging_queue_occupied>\d+)'),
+            re.compile('AGCH: Queue limit (?P<agch_queue_limit>\d+)\, occupied (?P<agch_queue_occupied>\d+)') ]
+        # conencts to client database
         self.conf = ConfigDB()
         """Osmo-NITB can not set/get authorized-regexp in run-time.
         Therefore we use shadow variable to avoid  error during regisration"""
@@ -74,6 +82,16 @@ class Lc15BTS(BaseBTS):
     def __set(self, name, value):
         self.conf['lc15bts.' + name] = value
 
+    def __get_load(self):
+        """Retreives data returned when issuing the show command
+        on the VTY as a dictionary with data entries corresponding
+        to the named regex matching groups in `self.PARSE_SHOW`
+        """
+        self.open()
+        resp = self.sendrecv('show bts 0')
+        self.close()
+        return self._parse_show(resp)
+
     def set_factory_config(self):
         pass
 
@@ -87,13 +105,30 @@ class Lc15BTS(BaseBTS):
 
     def get_load(self):
         try:
+            # get BTS load status
+            bts_load = self.__get_load()
+            logger.debug("LC15BTS load %s" % (bts_load))
+
             with self.bts as b:
-                load = b.get_load(self.DEFAULT_BTS_ID)
+                # get BTS load status from BSC
+                bsc_load = b.get_load(self.DEFAULT_BTS_ID)
                 # If we weren't able to read any channel load
                 # the transceiver is not running
-                if sum(load.values()) == 0:
+                if sum(bsc_load.values()) == 0:
                     raise BSSError("LC15 BTS not running")
-                return load
+                logger.debug("LC15BTS load via BSC %s" % (bsc_load))
+                # we need to reformat load dict to meet openBTS load
+                # since CCM cloud expects to see load with openBTS format
+                return {
+                    'sdcch_load': bsc_load['sdcch8_load'] + bsc_load['ccch_sdcch4_load'],
+                    'sdcch_available': bsc_load['sdcch8_max'] + bsc_load['ccch_sdcch4_max'],
+                    'tchf_load': bsc_load['tch_f_load'],
+                    'tchf_available': bsc_load['tch_f_max'],
+                    'tchh_load': bsc_load['tch_h_load'],
+                    'tchh_available': bsc_load['tch_h_max'],
+                    'pch_active': bts_load['paging_queue_occupied'],
+                    'agch_active': bts_load['agch_queue_occupied'],
+                }
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
             raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
