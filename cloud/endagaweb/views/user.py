@@ -27,6 +27,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.core.urlresolvers import reverse
 from django.contrib.auth.views import password_reset, password_reset_confirm
 from django.shortcuts import render
+from django.contrib.auth.models import ContentType, Permission
 
 from endagaweb.models import UserProfile
 import logging
@@ -267,19 +268,6 @@ def success(request):
     return render(request, "dashboard/user_management/success.html")
 
 
-from django.contrib.auth.models import ContentType, Permission
-
-
-# To get objects of specific permissions
-
-def get_permissions_object(perm_list):
-    permissions = Permission.objects.filter(codename__in=perm_list).values_list('id', flat=True)
-    perms = []
-    for i in permissions:
-        perms.append(i)
-    return perms
-
-
 @login_required(login_url='/login/')
 def role_default_permissions(request):
     if request.method == 'GET':
@@ -300,17 +288,16 @@ def role_default_permissions(request):
 
         content_type = ContentType.objects.filter(app_label='endagaweb',model__in=permission_set).values_list('id', flat=True)
         permission = Permission.objects.filter(content_type__in=content_type).values_list('id', flat=True)
+        role_permission = []
         if role == 'Business Analyst':
-            role_permission = get_permissions_object(business_analyst)
+            role_permission = Permission.objects.filter(codename__in=business_analyst).values_list('id', flat=True)
         elif role == 'Loader':
-            role_permission = get_permissions_object(loader)
+            role_permission = Permission.objects.filter(codename__in=loader).values_list('id', flat=True)
         elif role == 'Partner':
-            role_permission = get_permissions_object(partner)
+            role_permission = Permission.objects.filter(codename__in=partner).values_list('id', flat=True)
         else:
-            role_permission = []
             for i in permission:
                 role_permission.append(i)
 
-
-        return JsonResponse({'permissions': role_permission})
+        return JsonResponse({'permissions': list(role_permission)})
     return HttpResponseBadRequest()
