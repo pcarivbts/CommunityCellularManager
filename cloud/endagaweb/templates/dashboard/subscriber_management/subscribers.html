@@ -54,8 +54,8 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <thead>
                 <tr>
                     <th class="col-xs-3">Select</th>
-                    <th class="col-xs-3">IMSI</th>
-                    <th class="col-xs-2">Status</th>
+                    <th class="col-xs-3">IMSI/Name</th>
+                    <th class="col-xs-2">Number</th>
                     <th class="col-xs-8">Active</th>
                     <th class="col-xs-2">Role</th>
                 </tr>
@@ -66,10 +66,10 @@ of patent rights can be found in the PATENTS file in the same directory.
                                id="imsi_id_{{ event.imsi }}" onchange="imsiSelected(this)"/>
                     </td>
                     <td for="sub_imsi" id="sub_imsi" class="sub_imsi" value="{{ event.imsi }}">
-                        {{ event.imsi }}
+                         {{ event.name }} ({{ event.imsi }})
                     </td>
                     <td>
-                        {{ event.state}}
+                        {{ event.numbers}}
                     </td>
                     <td>
                         {{ event.last_active }}
