@@ -319,6 +319,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
         $('#user_form').validator().on('submit', function (e) {
             $('#permissions_right option').attr('selected','selected');
+            $('#user_form').submit();
         })
 
         $('#lstview_rightSelected').click(function () {
