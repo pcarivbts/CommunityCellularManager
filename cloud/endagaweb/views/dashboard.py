@@ -945,14 +945,14 @@ class UserManagement(ProtectedView):
 
         if user.is_staff:
             networks = Network.objects.all()
-            role = ('Network Admin', 'Business Analyst', 'Loader', 'Partner')
         else:
             networks = [user_profile.network]
             role = ('Business Analyst', 'Loader', 'Partner')
 
         # Set the context with various stats.
-        #content_type = ContentType.objects.filter(app_label='endagaweb').values_list('id', flat=True)
-        content_type = ContentType.objects.filter(app_label='endagaweb', model__in=permission_set).values_list('id', flat=True)
+        content_type = ContentType.objects.filter(app_label='endagaweb',
+                                                  model__in=permission_set).values_list('id', flat=True)
+
         permission = []
         for content in content_type:
             permissions = Permission.objects.filter(content_type=content)

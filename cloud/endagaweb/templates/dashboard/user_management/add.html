@@ -50,6 +50,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                     <div class="col-xs-5">
                         <label>Role</label>
                         <select name="role" class="form-control" onchange="changeRole(this)">
+                            <option value="">-Select role-</option>
                             {% for values in roles %}
                             <option value="{{ values }}">{{ values }}</option>
                             {% endfor %}
@@ -96,7 +97,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                         </select>
                     </div>
                 </div>
-                <!--div class="form-group column">
+                <div class="form-group column">
                     <div>
                         <label>Permission</label>
                         <div class="row">
@@ -125,22 +126,22 @@ of patent rights can be found in the PATENTS file in the same directory.
                             </div>
                             <div class="col-xs-5">
                                 <select name="permissions" id="permissions_right" class="form-control" size="10"
-                                        multiple="multiple" required="required"></select>
+                                        multiple="multiple"></select>
                             </div>
                         </div>
                     </div>
-                </div-->
+                </div>
 
-                <div class="column">
+                <!--div class="column">
                     <div>
                         <label>Permission</label>
                         <div class="row">
                             <div class="col-xs-10">
                                 <table id="permissions_row" border="0" width="100%" cellpadding="5" cellspacing="0">
-                                    <!--tr>
+                                    <tr>
                                         <th>Modules</th>
                                         <th>Permissions&nbsp;</th>
-                                    </tr-->
+                                    </tr>
                                     <tr>
                                         <td>Graphs</td>
                                         <td>
@@ -236,10 +237,6 @@ of patent rights can be found in the PATENTS file in the same directory.
                                             </div>
                                         </td>
                                     </tr>
-                                    <!--tr>
-                                        <td>Adjust Credit</td>
-                                        <td colspan="5">&nbsp;</td>
-                                    </tr-->
                                     <tr>
                                         <td>Network</td>
                                         <td>
@@ -261,7 +258,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                         </div>
                     </div>
                 </div>
-                <div class="row">&nbsp;</div>
+                <div class="row">&nbsp;</div-->
                 <div class="row">&nbsp;</div>
 
                 <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
@@ -284,12 +281,32 @@ of patent rights can be found in the PATENTS file in the same directory.
         $("#permissions_row tr:even").css("background", "#eee");
     });
     function changeRole(role) {
-        if(role.value == 'admin' || role.value=='super_admin'){
+        if(role.value == 'cloud_admin' || role.value=='network_admin'){
             document.getElementById('network').multiple = true;
         } else {
             document.getElementById('network').multiple = false;
         }
         $("#network").val('');
+        if (role.value) {
+            $.ajax({
+                url: "/dashboard/user/management/permissions?role=" + role.value
+            }).done(function(response) {
+                console.log(response.permissions);
+
+                moveAllItems('#permissions_right', '#permissions_left');
+
+                $.each(response.permissions, function(key,val){
+
+                    var left = $('#permissions_left option[value="'+val+'"]');
+                    $('#permissions_right').append(left);
+
+                    //var option_str = "<option value='"+val.id+"'>"+val.codename+"</option>";
+                    //$('#permissions_right').append(option_str);
+
+                });
+            });
+
+        }
     }
 
     function moveItems(origin, dest) {
