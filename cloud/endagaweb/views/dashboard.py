@@ -988,6 +988,11 @@ class UserManagement(ProtectedView):
         networks = request.POST.getlist('network')
         permissions = request.POST.getlist('permissions')
 
+        if len(permissions) < 1:
+            messages.warning(request, "User must have assigned some permissions.")
+            return redirect(urlresolvers.reverse('user-management'))
+
+
         # Disconnect the signal only to create user,set network,role and group
         post_save.disconnect(UserProfile.new_user_hook, sender=User)
         try:

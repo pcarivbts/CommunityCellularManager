@@ -45,11 +45,11 @@ of patent rights can be found in the PATENTS file in the same directory.
             </div>
             {% endfor %}
 
-            <form action="/dashboard/user/management" method="POST" role="form"> {% csrf_token %}
+            <form action="/dashboard/user/management" id="user_form" method="POST" data-toggle="validator" role="form"> {% csrf_token %}
                 <div class="form-group row" required>
                     <div class="col-xs-5">
                         <label>Role</label>
-                        <select name="role" class="form-control" onchange="changeRole(this)" required="required">
+                        <select name="role" class="form-control" onchange="changeRole(this)" required>
                             <option value="">-Select role-</option>
                             {% for values in roles %}
                             <option value="{{ values }}">{{ values }}</option>
@@ -61,7 +61,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                     <div class="col-xs-5">
                         <label for="email" class="col-3 col-form-label">Email</label>
                         <div>
-                            <input class="form-control" type="email" id="email" name="email" required="required"/>
+                            <input class="form-control" type="email" id="email" name="email" required/>
                         </div>
                     </div>
                 </div>
@@ -70,8 +70,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                         <label for="InputPassword1">Password</label>
                         <div>
                             <input type="password" class="form-control" id="InputPassword1" name="password"
-                                   placeholder="Password"
-                                   required="required"/>
+                                   placeholder="Password" required />
                         </div>
                     </div>
                 </div>
@@ -80,7 +79,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                         <label for="InputPassword2">Confirm Password</label>
                         <div>
                             <input type="password" class="form-control" id="InputPassword2" name="confirm_password"
-                                   placeholder="Confirm Password" required="required"/>
+                                   placeholder="Confirm Password" required />
                         </div>
                     </div>
                 </div>
@@ -126,7 +125,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                             </div>
                             <div class="col-xs-5">
                                 <select name="permissions" id="permissions_right" class="form-control" size="10"
-                                        multiple="multiple"></select>
+                                        multiple="multiple" required="required"></select>
                             </div>
                         </div>
                     </div>
@@ -274,17 +273,10 @@ of patent rights can be found in the PATENTS file in the same directory.
 </header>
 {% endblock %}
 {% block js %}
+<script src="/static/js/dashboard/validator.js"></script>
 
 <script>
-    $(document).ready(function() {
-        $("#permissions_row tr:odd").css("background", "#DAE4F0");
-        $("#permissions_row tr:even").css("background", "#eee");
 
-
-        $('#submit').click(function(){
-            $('#permissions_right option').attr('selected','selected');
-        });
-    });
     function changeRole(role) {
         if(role.value=='Network Admin'){
             document.getElementById('network').multiple = true;
@@ -321,48 +313,54 @@ of patent rights can be found in the PATENTS file in the same directory.
         $(origin).children().appendTo(dest);
     }
 
-    $('#lstview_rightSelected').click(function () {
-        moveItems('#permissions_left', '#permissions_right');
-    });
+    $(document).ready(function() {
+        $("#permissions_row tr:odd").css("background", "#DAE4F0");
+        $("#permissions_row tr:even").css("background", "#eee");
 
-    $('#lstview_leftSelected').on('click', function () {
-        moveItems('#permissions_right', '#permissions_left');
-    });
+        $('#user_form').validator().on('submit', function (e) {
+            $('#permissions_right option').attr('selected','selected');
+        })
 
-    $('#lstview_leftAll').on('click', function () {
-        moveAllItems('#permissions_right', '#permissions_left');
-    });
+        $('#lstview_rightSelected').click(function () {
+            moveItems('#permissions_left', '#permissions_right');
+        });
 
-    $('#lstview_rightAll').on('click', function () {
-        moveAllItems('#permissions_left', '#permissions_right');
-    });
+        $('#lstview_leftSelected').on('click', function () {
+            moveItems('#permissions_right', '#permissions_left');
+        });
 
+        $('#lstview_leftAll').on('click', function () {
+            moveAllItems('#permissions_right', '#permissions_left');
+        });
 
-    var _changeInterval = null;
-    $("#email").keyup(function() {
-        clearInterval(_changeInterval);
-        _changeInterval = setInterval(function() {
-            clearInterval(_changeInterval)
-            console.log("now search");
-            $.ajax({
-                url: "/dashboard/user/management/checkuser?email=" + $('#email').val(),
-                //beforeSend: function(xhr) {
-                // xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
-                //},
-            }).done(function(response) {
-                $('#email').removeClass('form-control-success');
-                $('#email').removeClass('form-control-warning');
-                if(response.email_available) {
-                    $('#email').parent().parent().addClass('has-success');
-                    $('#email').addClass('form-control-success');
-                } else {
-                    $('#email').parent().parent().addClass('has-warning');
-                    $('#email').addClass('form-control-warning');
-                }
-            });
+        $('#lstview_rightAll').on('click', function () {
+            moveAllItems('#permissions_left', '#permissions_right');
+        });
 
-        }, 2000);
-
+        var _changeInterval = null;
+        $("#email").keyup(function() {
+            clearInterval(_changeInterval);
+            _changeInterval = setInterval(function() {
+                clearInterval(_changeInterval)
+                console.log("now search");
+                $.ajax({
+                    url: "/dashboard/user/management/checkuser?email=" + $('#email').val(),
+                    //beforeSend: function(xhr) {
+                    // xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                    //},
+                }).done(function(response) {
+                    $('#email').removeClass('form-control-success');
+                    $('#email').removeClass('form-control-warning');
+                    if(response.email_available) {
+                        $('#email').parent().parent().addClass('has-success');
+                        $('#email').addClass('form-control-success');
+                    } else {
+                        $('#email').parent().parent().addClass('has-warning');
+                        $('#email').addClass('form-control-warning');
+                    }
+                });
+            }, 2000);
+        });
     });
 
 </script>
