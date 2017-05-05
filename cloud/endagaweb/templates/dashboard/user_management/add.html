@@ -49,7 +49,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <div class="form-group row" required>
                     <div class="col-xs-5">
                         <label>Role</label>
-                        <select name="role" class="form-control" onchange="changeRole(this)">
+                        <select name="role" class="form-control" onchange="changeRole(this)" required="required">
                             <option value="">-Select role-</option>
                             {% for values in roles %}
                             <option value="{{ values }}">{{ values }}</option>
@@ -262,7 +262,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <div class="row">&nbsp;</div>
 
                 <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
-                    <button class="btn btn-primary">Submit</button>
+                    <button id="submit" class="btn btn-primary">Submit</button>
                 </div>                
             </form>
             
@@ -279,9 +279,14 @@ of patent rights can be found in the PATENTS file in the same directory.
     $(document).ready(function() {
         $("#permissions_row tr:odd").css("background", "#DAE4F0");
         $("#permissions_row tr:even").css("background", "#eee");
+
+
+        $('#submit').click(function(){
+            $('#permissions_right option').attr('selected','selected');
+        });
     });
     function changeRole(role) {
-        if(role.value == 'cloud_admin' || role.value=='network_admin'){
+        if(role.value=='Network Admin'){
             document.getElementById('network').multiple = true;
         } else {
             document.getElementById('network').multiple = false;
@@ -291,8 +296,6 @@ of patent rights can be found in the PATENTS file in the same directory.
             $.ajax({
                 url: "/dashboard/user/management/permissions?role=" + role.value
             }).done(function(response) {
-                console.log(response.permissions);
-
                 moveAllItems('#permissions_right', '#permissions_left');
 
                 $.each(response.permissions, function(key,val){
@@ -305,7 +308,8 @@ of patent rights can be found in the PATENTS file in the same directory.
 
                 });
             });
-
+        } else {
+            moveAllItems('#permissions_right', '#permissions_left');
         }
     }
 

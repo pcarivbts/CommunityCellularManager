@@ -275,15 +275,9 @@ from django.contrib.auth.models import ContentType, Permission
 def get_permissions_object(perm_list):
     permissions = Permission.objects.filter(codename__in=perm_list).values_list('id', flat=True)
     perms = []
-    print permissions
-    print "---------------------------------"
     for i in permissions:
-        print i
         perms.append(i)
-    print "____________________________________"
-    print perms
     return perms
-    #return permissions
 
 
 @login_required(login_url='/login/')
