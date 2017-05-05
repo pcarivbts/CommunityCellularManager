@@ -29,7 +29,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     {% block pagestyle %}
     {% endblock %}
 
-    {% if user_profile.user.is_staff %}
+    {% if user_profile.user.is_staff%}
     <style>
       .navbar,
       .nav-pills > li.active > a,
@@ -74,6 +74,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <li><a href="/dashboard/towers"><i class="fa fa-signal"></i> Towers</a></li>
             <li><a href="/dashboard/subscribers"><i class="fa fa-users"></i> Subscribers</a></li>
             <li><a href="/dashboard/network"><i class="fa fa-cogs"></i> Network</a></li>
+            <li><a href="#"><i class="fa fa-envelope"></i>Notification</a></li>
           </ul>
 
           <ul class="nav navbar-nav navbar-top-links navbar-right navbar-user">
@@ -118,14 +119,19 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <li><a href="/dashboard/profile"><i class="fa fa-gear"></i>&nbsp; Settings</a></li>
                 <li><a href="/dashboard/billing"><i class="fa fa-money"></i>&nbsp; Billing</a></li>
                 <li class="divider"></li>
+
+                {% if user_profile.user.is_superuser %}
+                  <li><a href="/django-admin"><i class="fa fa-key"></i>&nbsp; Django Admin</a></li>
+                  {% endif %}
                 {% if user_profile.user.is_staff %}
-                <li><a href="/django-admin"><i class="fa fa-key"></i>&nbsp; Django Admin</a></li>
-                <li><a href="/dashboard/staff/all-numbers"><i class="fa fa-space-shuttle"></i>&nbsp; All Numbers</a></li>
-                <li><a href="/dashboard/staff/all-towers"><i class="fa fa-building-o"></i>&nbsp; All Towers</a></li>
-                <li><a href="/dashboard/staff/margin-analysis"><i class="fa fa-euro"></i>&nbsp; Margin Analysis</a></li>
-                <li><a href="/dashboard/staff/tower-monitoring"><i class="fa fa-paper-plane-o"></i>&nbsp; Tower Monitoring</a></li>
-                <li><a href="/dashboard/staff/network-earnings"><i class="fa fa-credit-card"></i>&nbsp; Network Earnings</a></li>
-                <li class="divider"></li>
+                    <li><a href="/dashboard/staff/all-numbers"><i class="fa fa-space-shuttle"></i>&nbsp; All Numbers</a></li>
+                    <li><a href="/dashboard/staff/all-towers"><i class="fa fa-building-o"></i>&nbsp; All Towers</a></li>
+                    <li><a href="/dashboard/staff/margin-analysis"><i class="fa fa-euro"></i>&nbsp; Margin Analysis</a></li>
+                    <li><a href="/dashboard/staff/tower-monitoring"><i class="fa fa-paper-plane-o"></i>&nbsp; Tower Monitoring</a></li>
+                    <li><a href="/dashboard/staff/network-earnings"><i class="fa fa-credit-card"></i>&nbsp; Network Earnings</a></li>
+                    <li><a href="/dashboard/user/management"><i class="fa fa-user" aria-hidden="true"></i>&nbsp; User Management</a></li>
+                    <li><a href="/dashboard/subscriber_management/subscriber"><i class="fa fa-gear"></i>&nbsp; Subscriber Management</a></li>
+                    <li class="divider"></li>
                 {% endif %}
                 <li><a href="/logout"><i class="fa fa-sign-out"></i>&nbsp; Log Out</a></li>
               </ul>
@@ -150,6 +156,10 @@ of patent rights can be found in the PATENTS file in the same directory.
         setTimeout(function() {
           $('.alert.message').fadeOut(500);
         }, 4000);
+
+        //$('.alert').fadeTo(2000,500).slideUp(500,function(){
+        //  $('.alert').slideUp(3000);
+        //});
       });
     </script>
     {% block js %}

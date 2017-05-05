@@ -73,6 +73,7 @@ urlpatterns = [
     url(r'^account/notify_emails/update', endagaweb.views.user.update_notify_emails),
     url(r'^account/notify_numbers/update', endagaweb.views.user.update_notify_numbers),
 
+
     # Auth.
     url(r'^login/$', endagaweb.views.user.loginview, name='endagaweb-login'),
     url(r'^auth/', endagaweb.views.user.auth_and_login),
@@ -129,6 +130,35 @@ urlpatterns = [
     url(r'^dashboard/subscribers/(?P<imsi>[^/]+)/edit$',
         endagaweb.views.dashboard.SubscriberEdit.as_view(),
         name='subscriber-edit'),
+
+#47600
+
+    url(r'^dashboard/user/management$',
+        endagaweb.views.dashboard.UserManagement.as_view(),
+        name='user-management'),
+
+    url(r'^dashboard/user/management/delete',
+        endagaweb.views.dashboard.UserDelete.as_view(),
+        name='user-delete'),
+
+    url(r'^dashboard/user/management/blocking$',
+        endagaweb.views.dashboard.UserBlockUnblock.as_view(),
+        name='user-blocking'),
+
+    url(r'^dashboard/user/management/checkusername', endagaweb.views.user.check_username),
+
+    # url(r'^dashboard/user/management/permissions', endagaweb.views.user.role_based_permissions),
+
+    url(r'^dashboard/network/broadcast_sms$',
+        endagaweb.views.dashboard.SubscriberSendSMS.as_view(),
+        name='broadcast-sms'),
+
+    url(r'^dashboard/subscriber_management/subscriber$', endagaweb.views.dashboard.SubscriberCategoryEdit.as_view(),
+        name='subscriber-category'),
+    url(r'^dashboard/subscriber_management/categoryupdate$',
+        endagaweb.views.dashboard.SubscriberCategoryUpdate.as_view(), name='subscriber-categoryupdate'),
+#47600
+
     # Network views in the dashboard.
     # /network -- GET basic network info
     # /network/prices -- GET pricing data for the network or POST to change it

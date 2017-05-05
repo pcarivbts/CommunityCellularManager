@@ -24,6 +24,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     </li>
     {% endcomment %}
 
+    {% if user_profile.user.is_staff %}
     <li role="presentation" class="{% if active_tab == 'inactive-subscribers' %} active {% endif %}">
       <a href="
         {% if active_tab == 'inactive-subscribers' %} #
@@ -37,6 +38,6 @@ of patent rights can be found in the PATENTS file in the same directory.
         {% else %}{% url 'network-edit' %}
         {% endif %}">Edit</a>
     </li>
-
+    {% endif %}
   </ul>
 </div>

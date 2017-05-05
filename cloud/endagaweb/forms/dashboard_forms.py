@@ -23,7 +23,8 @@ import pytz
 from ccm.common.currency import CURRENCIES
 from endagaweb import models
 from endagaweb.templatetags import apptags
-
+from django.utils.translation import ugettext_lazy as _
+from django.contrib.auth.models import User
 
 class UpdateContactForm(forms.Form):
     email = forms.EmailField(required=False, label="Email")
@@ -368,3 +369,22 @@ class SelectTowerForm(forms.Form):
         self.helper.form_action = '/dashboard/staff/tower-monitoring'
         self.helper.add_input(Submit('submit', 'Select'))
         self.helper.layout = Layout('tower')
+
+
+class UserSearchForm(forms.Form):
+    """Crispy search form on /dashboard/subscribers."""
+    query = forms.CharField(required=False, label="Search Username")
+
+    def __init__(self,sender, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.form_id = 'id-SearchForm'
+        self.helper.form_method = 'get'
+        if 'blocking' is sender:
+            self.helper.form_action = '/dashboard/user/management/blocking'
+        else:
+            self.helper.form_action = '/dashboard/user/management/delete'
+        # self.helper.form_class = 'form-vertical'
+        search_button = StrictButton('Find', css_class='btn-default',
+                                     type='submit')
+        self.helper.layout = Layout(FieldWithButtons('query', search_button))
+        super(UserSearchForm, self).__init__(*args, **kwargs)

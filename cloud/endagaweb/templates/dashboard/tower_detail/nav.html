@@ -15,7 +15,7 @@ of patent rights can be found in the PATENTS file in the same directory.
         {% else %} {% url 'tower-info' uuid=uuid %}
         {% endif %} ">Info</a>
     </li>
-
+    {% if user_profile.user.is_staff %}
     <li role="presentation" class="{% if active_tab == 'monitor' %} active {% endif %}">
       <a href="
         {% if active_tab == 'monitor' %} #
@@ -43,6 +43,6 @@ of patent rights can be found in the PATENTS file in the same directory.
         {% else %}{% url 'tower-events' uuid=uuid %}
         {% endif %}">Events</a>
     </li>
-
+    {% endif %}
   </ul>
 </div>

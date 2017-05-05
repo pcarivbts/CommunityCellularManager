@@ -16,7 +16,7 @@ import uuid
 import operator
 
 from django.template.loader import get_template
-from django.http import HttpResponse, HttpResponseBadRequest, QueryDict
+from django.http import HttpResponse, HttpResponseBadRequest, QueryDict, JsonResponse
 
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
@@ -35,8 +35,6 @@ import humanize
 import pytz
 from rest_framework.authtoken.models import Token
 import stripe
-from guardian.shortcuts import get_objects_for_user
-
 from ccm.common.currency import parse_credits, humanize_credits, \
     CURRENCIES, Money
 from endagaweb.models import (UserProfile, Ledger, Subscriber, UsageEvent,
@@ -45,6 +43,13 @@ from endagaweb.util.currency import cents2mc
 from endagaweb.forms import dashboard_forms as dform
 from endagaweb import tasks
 from endagaweb.views import django_tables
+from guardian.shortcuts import (assign_perm, get_objects_for_user,
+                                get_users_with_perms)
+
+from django.contrib.auth.models import User, Permission, ContentType, Group
+from django.db.models.signals import post_save
+from django.db import transaction
+
 
 class ProtectedView(View):
     """ A class-based view that requires a login. """
@@ -62,6 +67,7 @@ logger = logging.getLogger(__name__)
 
 stripe.api_key = settings.STRIPE_API_KEY
 
+
 # views
 @login_required
 def addcard(request):
@@ -71,15 +77,17 @@ def addcard(request):
         network = user_profile.network
         if network.update_card(token):
             messages.add_message(request, messages.INFO, "addcard_saved",
-                    extra_tags="billing_resp_code")
+                                 extra_tags="billing_resp_code")
             return redirect("/dashboard/billing")
         else:
             # The card has been declined
             messages.add_message(request, messages.ERROR,
-                    "addcard_stripe_declined", extra_tags="billing_resp_code")
+                                 "addcard_stripe_declined",
+                                 extra_tags="billing_resp_code")
             return redirect("/dashboard/billing")
     else:
         return HttpResponseBadRequest()
+
 
 @login_required
 def addmoney(request):
@@ -122,7 +130,8 @@ def dashboard_view(request):
     network_has_activity = UsageEvent.objects.filter(
         network=network).exists()
     context = {
-        'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+        'networks': get_objects_for_user(request.user,
+                                         'view_network', klass=Network),
         'user_profile': user_profile,
         'network_id': network.id,
         'current_time_epoch': int(time.time()),
@@ -148,14 +157,15 @@ def profile_view(request):
         'timezone': user_profile.timezone
     })
     context = {
-        'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+        'networks': get_objects_for_user(request.user,
+                                         'view_network', klass=Network),
         'user_profile': user_profile,
         'network': user_profile.network,
         'contact_form': contact_form,
         'change_pass_form': dform.ChangePasswordForm(request.user),
         'update_notify_emails_form': dform.NotifyEmailsForm(
             {'notify_emails': user_profile.network.notify_emails}),
-        'update_notify_numbers_form' : dform.NotifyNumbersForm(
+        'update_notify_numbers_form': dform.NotifyNumbersForm(
             {'notify_numbers': user_profile.network.notify_numbers}),
     }
     template = get_template("dashboard/profile.html")
@@ -183,7 +193,8 @@ def billing_view(request):
         num_pages = transaction_paginator.num_pages
         transactions = transaction_paginator.page(num_pages)
     context = {
-        'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+        'networks': get_objects_for_user(request.user,
+                                         'view_network', klass=Network),
         'user_profile': user_profile,
         'transactions': transactions
     }
@@ -192,7 +203,7 @@ def billing_view(request):
     msgs = messages.get_messages(request)
     for m in msgs:
         if "billing_resp_code" in m.tags:
-            context[m.message] = True # pass the message on to the template as-is
+            context[m.message] = True  # pass the message on to the template as-is
 
     if network.stripe_card_type == "American Express":
         context['card_type'] = 'AmEx'
@@ -249,7 +260,8 @@ def subscriber_list_view(request):
 
     # Render the response with context.
     context = {
-        'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+        'networks': get_objects_for_user(request.user,
+                                         'view_network', klass=Network),
         'currency': CURRENCIES[network.subscriber_currency],
         'user_profile': user_profile,
         'total_number_of_subscribers': len(all_subscribers),
@@ -276,7 +288,8 @@ class SubscriberInfo(ProtectedView):
             return HttpResponseBadRequest()
         # Set the context with various stats.
         context = {
-            'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+            'networks': get_objects_for_user(request.user,
+                                             'view_network', klass=Network),
             'currency': CURRENCIES[network.subscriber_currency],
             'user_profile': user_profile,
             'subscriber': subscriber,
@@ -420,7 +433,8 @@ class SubscriberActivity(ProtectedView):
             context_end_date = end_date.strftime(self.datepicker_time_format)
 
         context = {
-            'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+            'networks': get_objects_for_user(request.user,
+                                             'view_network', klass=Network),
             'currency': CURRENCIES[network.subscriber_currency],
             'user_profile': user_profile,
             'subscriber': subscriber,
@@ -457,7 +471,8 @@ class SubscriberSendSMS(ProtectedView):
         }
         # Set the response context.
         context = {
-            'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+            'networks': get_objects_for_user(request.user,
+                                             'view_network', klass=Network),
             'user_profile': user_profile,
             'subscriber': subscriber,
             'send_sms_form': dform.SubscriberSendSMSForm(
@@ -519,7 +534,8 @@ class SubscriberAdjustCredit(ProtectedView):
             'imsi': subscriber.imsi,
         }
         context = {
-            'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+            'networks': get_objects_for_user(request.user,
+                                             'view_network', klass=Network),
             'currency': CURRENCIES[network.subscriber_currency],
             'user_profile': user_profile,
             'subscriber': subscriber,
@@ -557,7 +573,7 @@ class SubscriberAdjustCredit(ProtectedView):
         try:
             currency = network.subscriber_currency
             amount = parse_credits(request.POST['amount'],
-                    CURRENCIES[currency]).amount_raw
+                                   CURRENCIES[currency]).amount_raw
             if abs(amount) > 2147483647:
                 raise ValueError(error_text)
         except ValueError:
@@ -609,7 +625,8 @@ class SubscriberEdit(ProtectedView):
                 subscriber.prevent_automatic_deactivation),
         }
         context = {
-            'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+            'networks': get_objects_for_user(request.user,
+                                             'view_network', klass=Network),
             'user_profile': user_profile,
             'subscriber': subscriber,
             'subscriber_info_form': dform.SubscriberInfoForm(
@@ -633,7 +650,7 @@ class SubscriberEdit(ProtectedView):
         except Subscriber.DoesNotExist:
             return HttpResponseBadRequest()
         if (request.POST.get('name') and
-                subscriber.name != request.POST.get('name')):
+                    subscriber.name != request.POST.get('name')):
             subscriber.name = request.POST.get('name')
             subscriber.save()
         if request.POST.get('prevent_automatic_deactivation'):
@@ -747,13 +764,13 @@ class ActivityView(ProtectedView):
             # TODO(shaddi): use a filename that captures the search terms?
             response['Content-Disposition'] = ('attachment;filename='
                                                '"etage-%s.csv"') \
-                % (datetime.datetime.now().date(),)
+                                              % (datetime.datetime.now().date(),)
             writer = csv.writer(response)
             writer.writerow(headers)
             # Forcibly limit to 7000 items.
             timezone = pytz.timezone(profile.timezone)
             for e in events[:7000]:
-                #first strip the IMSI off if present
+                # first strip the IMSI off if present
                 subscriber = e.subscriber_imsi
                 if e.subscriber_imsi.startswith('IMSI'):
                     subscriber = e.subscriber_imsi[4:]
@@ -767,7 +784,7 @@ class ActivityView(ProtectedView):
                     timezone,
                     subscriber,
                     e.bts_uuid,
-                    e.bts.nickname,
+                    e.bts.nickname if e.bts else "<deleted BTS>",
                     e.kind,
                     e.reason,
                     e.from_number,
@@ -784,7 +801,7 @@ class ActivityView(ProtectedView):
                     if e.newamt else None,
                     e.uploaded_bytes,
                     e.downloaded_bytes,
-                    ])
+                ])
             return response
         # Otherwise, we paginate.
         event_paginator = Paginator(events, 25)
@@ -798,14 +815,14 @@ class ActivityView(ProtectedView):
             events = event_paginator.page(event_paginator.num_pages)
         # Setup the context for the template.
         context = {
-            'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+            'networks': get_objects_for_user(request.user,
+                                             'view_network', klass=Network),
             'currency': CURRENCIES[network.subscriber_currency],
             'user_profile': profile,
             'network_has_activity': network_has_activity,
             'events': events,
             'event_count': event_count,
         }
-
 
         # Setup various stuff for filter form generation.
         service_names = ["SMS", "Call", "GPRS", "Transfer", "Other"]
@@ -875,7 +892,7 @@ class ActivityView(ProtectedView):
         return events
 
     def _search_events(self, profile, query_string, orig_events):
-            """ Searches for events matching space-separated keyword list
+        """ Searches for events matching space-separated keyword list
 
             Args:
                 a UserProfile object
@@ -885,28 +902,346 @@ class ActivityView(ProtectedView):
             Returns:
                 a QuerySet that matches the query string
             """
-            network = profile.network
-            queries = query_string.split()
+        network = profile.network
+        queries = query_string.split()
 
-            res_events = UsageEvent.objects.none()
-            for query in queries:
-                events = orig_events
-                events = (events.filter(kind__icontains=query)
-                          | events.filter(reason__icontains=query)
-                          | events.filter(subscriber__name__icontains=query)
-                          | events.filter(subscriber__imsi__icontains=query)
-                          | events.filter(subscriber_imsi__icontains=query))
+        res_events = UsageEvent.objects.none()
+        for query in queries:
+            events = orig_events
+            events = (events.filter(kind__icontains=query)
+                      | events.filter(reason__icontains=query)
+                      | events.filter(subscriber__name__icontains=query)
+                      | events.filter(subscriber__imsi__icontains=query)
+                      | events.filter(subscriber_imsi__icontains=query))
 
-                # Get any numbers that match, and add their associated
-                # subscribers' events to the results
-                potential_subs = (
-                    Number.objects.filter(number__icontains=query)
-                                  .values('subscriber')
-                                  .filter(subscriber__network=network)
-                                  .distinct())
-                if potential_subs:
-                    events |= (UsageEvent.objects
-                                .filter(subscriber__in=potential_subs))
+            # Get any numbers that match, and add their associated
+            # subscribers' events to the results
+            potential_subs = (
+                Number.objects.filter(number__icontains=query).values('subscriber')
+                    .filter(subscriber__network=network).distinct())
+            if potential_subs:
+                events |= (UsageEvent.objects
+                           .filter(subscriber__in=potential_subs))
 
-                res_events |= events
-            return res_events
+            res_events |= events
+        return res_events
+
+
+# 47600
+class UserManagement(ProtectedView):
+    def get(self, request, *args, **kwargs):
+        # Handles request from Network Admin or Cloud Admin
+        user_profile = UserProfile.objects.get(user=request.user)
+        user = User.objects.get(id=user_profile.user_id)
+        role = ('Network Admin', 'Business Analyst', 'Loader', 'Partner', 'Cloud Admin')
+
+        if user.is_staff:
+            networks = Network.objects.all()
+        else:
+            networks = user_profile.network
+
+        # Set the context with various stats.
+        content_type = ContentType.objects.filter(app_label='endagaweb').values_list('id', flat=True)
+        permission = []
+        for content in content_type:
+            # Excluding view_network permission else a user
+            # will have access to all networks
+
+            permissions = Permission.objects.filter(content_type=content).exclude(codename='view_network')
+            permission.append(permissions)
+        context = {
+            'user_profile': user_profile,
+            'networks': networks,
+            'network': user_profile.network,
+            'permissions': permission,
+            'staff': user.is_staff,
+            'roles': role
+        }
+        # Render template.
+        info_template = get_template(
+            'dashboard/user_management/add.html')
+        html = info_template.render(context, request)
+        return HttpResponse(html)
+
+    def post(self, request, *args, **kwargs):
+        """Cloud Admin --> superuser + staff + active
+       
+        No user allowed to access Django Admin Site
+        Network Admin --> staff + active 
+        Loader --> active
+        BA --> active
+        Partner --> active
+        Creating a user with (can be Admin, Loader, Partner or Business Analyst)
+        """
+        # Get form details
+        username = request.POST['username']
+        password = request.POST['password']
+        user_role = str(request.POST['role']).lower().replace(' ', '_')
+        networks = request.POST.getlist('network')
+        permissions = request.POST.getlist('permissions')
+
+        # Disconnect the signal only to create user,set network,role and group
+        post_save.disconnect(UserProfile.new_user_hook, sender=User)
+        try:
+            with transaction.atomic():
+                # Add User
+                # is_staff --> If a user can log into Django administration
+                # is_superuser --> has all permissions
+                # is_active --> Can login or not
+
+                user = User(username=username)
+                if user_role == 'cloud_admin':
+                    user.is_staff = user.is_superuser = True
+                elif user_role == 'network_admin':
+                    user.is_staff = False
+                else:
+                    user.is_staff = user.is_superuser = False
+                user.set_password(password)
+                user.save()
+                # creates Token that BTSs on the network use to authenticate
+                Token.objects.create(user=user)
+
+                # Setup UserProfile database
+                user_profile = UserProfile.objects.create(user=user)
+
+                for network in networks:
+                    user_network = Network.objects.get(id=network)
+                    auth_group = Group.objects.get(id=user_network.auth_group_id)
+                    auth_group.user_set.add(user)
+
+                # Set last network as default network for User
+                user_profile.network = user_network
+                user_profile.role = user_role
+                user_profile.save()
+
+                # Add the permissions
+                for permission_id in permissions:
+                    permission = Permission.objects.get(id=permission_id)
+                    user.user_permissions.add(permission)
+
+        except Exception as err:
+            # ReConnect the signal before return if it reaches exception
+            post_save.connect(UserProfile.new_user_hook, sender=User)
+            messages.warning(request, err)
+            return redirect(urlresolvers.reverse('user-management'))
+
+        post_save.connect(UserProfile.new_user_hook, sender=User)
+        messages.success(request, 'User added successfully!')
+
+        return redirect(urlresolvers.reverse('user-management'))
+
+
+# class ProfileManagement(ProtectedView):
+#     def get(self, request):
+#         """Handles GET requests."""
+#         user_profile = UserProfile.objects.get(user=request.user)
+#         network = Network.objects.values()
+#         # network = Network.objects.values_list('name','id')
+#         # Set the context with various stats.
+#         context = {
+#             'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+#             'user_profile': user_profile,
+#             'network': network,
+#             'network_settings_form': dform.NetworkSettingsForm({
+#                 # 'network_name': network.name,
+#                 'subscriber_currency': network.subscriber_currency,
+#                 'number_country': network.number_country,
+#                 'autoupgrade_enabled': network.autoupgrade_enabled,
+#                 'autoupgrade_channel': network.autoupgrade_channel,
+#                 'autoupgrade_in_window': network.autoupgrade_in_window,
+#                 'autoupgrade_window_start': network.autoupgrade_window_start,
+#             }),
+#         }
+#         # Render template.
+#         info_template = get_template(
+#             'dashboard/subscriber_detail/profile_mgmt.html')
+#         html = info_template.render(context, request)
+#         return HttpResponse(html)
+#
+
+class UserDelete(ProtectedView):
+    def get(self, request, *args, **kwargs):
+
+        user_profile = UserProfile.objects.get(user=request.user)
+        all_users = User.objects.all().exclude(is_superuser=True)
+        query = request.GET.get('query', None)
+
+        if query:
+            # Not showing Super/Django Admin
+            query_users = (
+                User.objects.filter(username__icontains=query)).exclude(is_superuser=True)
+            # Remove render_table to show all users
+            render_table = True
+        else:
+            # Display all users currently and using render_table variable to hide.
+            query_users = all_users
+            render_table = False
+
+        # Setup the subscriber table.
+        user_table = django_tables.UserTable(list(query_users))
+        tables.RequestConfig(request, paginate={'per_page': 10}).configure(
+            user_table)
+
+        context = {
+            # Except Super User
+            'search': dform.UserSearchForm({'query': query}),
+            'users_found': len(query_users),
+            'user_table': user_table,
+            'show_all_users': render_table,
+            'user_profile': user_profile,
+            'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+        }
+        # Render template.
+        info_template = get_template(
+            'dashboard/user_management/delete.html')
+        html = info_template.render(context, request)
+        return HttpResponse(html)
+
+    def post(self, request, *args, **kwargs):
+        """Handles POST requests to delete User."""
+        user_profile = UserProfile.objects.get(user=request.user)
+        try:
+            user = User.objects.get(id=request.GET['user'])
+        except User.DoesNotExist:
+            return HttpResponseBadRequest()
+
+        if user.is_staff:
+            message = 'Cannot Delete admin %s' % user.username
+        else:
+            user.delete()
+            message = '%s successfully deleted' % user.username
+
+        messages.success(request, message)
+        return HttpResponse(message)
+
+
+class UserBlockUnblock(ProtectedView):
+    def get(self, request, *args, **kwargs):
+
+        user_profile = UserProfile.objects.get(user=request.user)
+        all_blocked_users = User.objects.all().exclude(is_active=True)
+        query = request.GET.get('query', None)
+
+        if query:
+            # Exclude Super/Django Admin
+            all_users = (
+                User.objects.filter(username__icontains=query))
+        else:
+            # Display all blocked users.
+            all_users = all_blocked_users.exclude(is_active=True)
+
+        # Setup the subscriber table.
+        user_table = django_tables.BlockedUserTable(list(all_users))
+        tables.RequestConfig(request, paginate={'per_page': 10}).configure(
+            user_table)
+
+        context = {
+            'search': dform.UserSearchForm({'query': query}),
+            'users_found': len(all_users),
+            'user_table': user_table,
+            'user_profile': user_profile,
+            'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+        }
+        # Render template.
+        info_template = get_template(
+            'dashboard/user_management/block-unblock.html')
+        html = info_template.render(context, request)
+        return HttpResponse(html)
+
+    def post(self, request, *args, **kwargs):
+        """Handles POST requests to block/unblock User.
+        """
+        try:
+            user = User.objects.get(id=request.GET['user'])
+        except User.DoesNotExist:
+            return HttpResponseBadRequest()
+
+        if user.is_superuser:
+            message = 'Cannot Block/Unblock Admin %s' % user.username
+            messages.warning(request, message)
+            return HttpResponse(message)
+
+        elif user.is_active:
+            user.is_active = False
+            message = '%s is Blocked!' % user.username
+
+        else:
+            user.is_active = True
+            message = '%s is Unblocked!' % user.username
+
+        user.save()
+        messages.success(request, message)
+        return HttpResponse(message)
+
+
+class SubscriberCategoryEdit(ProtectedView):
+    """Search the Subscriber"""
+
+    def get(self, request, *args, **kwargs):
+        return self._handle_request(request)
+
+    def post(self, request, *args, **kwargs):
+        return self._handle_request(request)
+
+    def _handle_request(self, request):
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        all_subscribers = Subscriber.objects.filter(network=network)
+        if request.method == "POST":
+            query = request.POST.get('keyword', None)
+        elif request.method == "GET":
+            query = None
+        else:
+            return HttpResponseBadRequest()
+        show_table = "false"
+
+        if query:
+            # Get actual subs with partial IMSI matches or partial name matches.
+            query_subscribers = (
+                network.subscriber_set.filter(imsi__icontains=query) |
+                network.subscriber_set.filter(name__icontains=query))
+            # Get ids of subs with partial number matches.
+            sub_ids = network.number_set.filter(
+                number__icontains=query
+            ).values_list('subscriber_id', flat=True)
+            # Or them together to get list of actual matching subscribers.
+            query_subscribers |= network.subscriber_set.filter(
+                id__in=sub_ids)
+            show_table = "true"
+        else:
+            # Display all subscribers.
+            query_subscribers = all_subscribers
+            show_table = "false"
+        subscriber_table = django_tables.SubscriberTable(list(query_subscribers))
+        tables.RequestConfig(request, paginate={'per_page': 15}).configure(
+            subscriber_table)
+
+        # Render the response with context.
+        context = {
+            'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+            'currency': CURRENCIES[network.subscriber_currency],
+            'user_profile': user_profile,
+            'total_number_of_subscribers': len(all_subscribers),
+            'number_of_filtered_subscribers': len(query_subscribers),
+            'query_subscribers': query_subscribers,
+            'subscriber_table': subscriber_table,
+            'show_table': show_table
+        }
+        template = get_template('dashboard/subscriber_management/subscribers.html')
+        html = template.render(context, request)
+        return HttpResponse(html)
+
+
+class SubscriberCategoryUpdate(ProtectedView):
+    """Updating Subscriber category"""
+
+    def post(self, request, *args, **kwargs):
+        print("in subscriber update", request.POST)
+        imsi = request.POST.getlist('imsi_val[]')
+        category = request.POST.get('category')
+        search_imsi = Subscriber.objects.filter(imsi__in=imsi)
+        update_imsi = Subscriber.objects.filter(imsi__in=imsi).update(role=category)
+        if (update_imsi > 0):
+            return JsonResponse({'message': 'IMSI category updated successfully'})
+        else:
+            return JsonResponse({'message': 'IMSI category update cannot happen'})

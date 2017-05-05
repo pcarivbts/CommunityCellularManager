@@ -1,0 +1,188 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+{% load apptags %}
+{% load humanize %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+{% load account socialaccount %}
+{% block pagestyle %}
+<style>
+
+</style>
+{% endblock %}
+{% block title %} {% tmpl_const "SITENAME" %} | Subscribers Management {% endblock %}
+
+{% block content %}
+{% include "dashboard/subscriber_management/header.html" with user=user %}
+{% include "dashboard/subscriber_management/nav.html" with active_tab='category'%}
+<div class='col-md-10'>
+    <div class='row'>
+        {% if total_number_of_subscribers %}
+
+        <form action="/dashboard/subscriber_management/subscriber" class="form-horizontal" method="post" role="form">
+            {% csrf_token %}
+            <div class="col-md-6">
+                <div class="input-group">
+                    <input type="text" class="form-control" name="keyword"
+                           placeholder="Search subscribers by name, IMSI or number"
+                           value="{{ eventfilter.keyword|default_if_none:''}}"/>
+                    <span class="input-group-btn">
+                <button class="btn btn-secondary" type="submit" name="submit">Search</button>
+              </span>
+                </div>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+    <div class='row'>&nbsp;</div>
+    <div class='row'>
+        <div class="col-md-6 left">
+            <div id='number-messages-container'></div>
+        </div>
+    </div>
+    <div class='row' id="table_id">
+        <div class="col-xs-8">
+            {% if show_table == "true" and number_of_filtered_subscribers %}
+            <table class="table table-striped" id="sub_table" name="sub_table">
+                <thead>
+                <tr>
+                    <th class="col-xs-3">Select</th>
+                    <th class="col-xs-3">IMSI</th>
+                    <th class="col-xs-2">Status</th>
+                    <th class="col-xs-8">Active</th>
+                    <th class="col-xs-2">Role</th>
+                </tr>
+                {% for event in query_subscribers %}
+                <tr>
+                    <td>
+                        <input type="checkbox" class="imsi_id" name="imsi[]" value="{{ event.imsi }}"
+                               id="imsi_id_{{ event.imsi }}" onchange="imsiSelected(this)"/>
+                    </td>
+                    <td for="sub_imsi" id="sub_imsi" class="sub_imsi" value="{{ event.imsi }}">
+                        {{ event.imsi }}
+                    </td>
+                    <td>
+                        {{ event.state}}
+                    </td>
+                    <td>
+                        {{ event.last_active }}
+                    </td>
+                    <td>
+                        {{ event.role }}
+                    </td>
+                </tr>
+                {% endfor %}
+
+            </table>
+
+            {% elif show_table == "true" and total_number_of_subscribers > 0 %}
+            <h4>No subscribers matched your search.</h4>
+
+            {% elif show_table == "false" and total_number_of_subscribers > 0 %}
+            <h4></h4>
+            {% else %}
+            <p>
+                There are currently no subscribers registered on this network.
+                Go find some users!
+            </p>
+
+            {% endif %}
+        </div>
+
+    </div> <!-- /.row (subscribers) -->
+    <div class='row'>
+        <div class="pull-left" class="container" id="container_id" style="display:none">
+            <table class="table table">
+                <tr>
+                    <td>
+                        <label for="subType" id="subType">Subscriber</label>
+                        <input type="radio" class="sub_type" name="subscriberType" value="Subscriber"
+                               id="subscriber"/>
+                    </td>
+                    <td>
+                        <label for="subType">Retailer </label>
+                        <input type="radio" class="sub_type" name="subscriberType" value="Retailer"
+                               id="retailer"/>
+                    </td>
+                    <td>
+                        <label for="subType">Test SIM</label>
+                        <input type="radio" class="sub_type" name="subscriberType" value="TestSim"
+                               id="testsim"/>
+                    </td>
+                </tr>
+            </table>
+            <div class='row'>
+                <div class="col-xs-6 col-md-4 col-xl-2 pull-left">
+                    <button class='btn btn-primary' id="update" type="Submit">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block js %}
+<script>
+$('.sub_type').click(function(){
+  $('#number-messages-container').hide();
+});
+
+function imsiSelected(check){
+    var imsi = $('.imsi_id:checked').length;
+    var updateDiv = document.getElementById('container_id');
+    if(imsi){
+          updateDiv.style.display = "block";
+      }
+      else{
+        updateDiv.style.display = "none";
+      }
+}
+imsiSelected();
+$('#update').click(function(){
+  console.log("update")
+
+  if($('input[name="subscriberType"]:checked').length<=0){
+    var html = "<div class='alert alert-danger'> Please select category</div>";
+    $('#number-messages-container').html(html).show();
+    return
+  }
+
+  category=document.querySelector('input[name="subscriberType"]:checked').value
+  console.log("category")
+  var i=0;
+  var imsi_val=[];
+  var imsi_list = $('.imsi_id:checked');
+  $.each(imsi_list, function(key, val){
+    imsi_val[i++]=val.value;
+  });
+  console.log(imsi_val)
+  var data = {
+    category: category,
+    imsi_val : imsi_val,
+    csrfmiddlewaretoken: '{{ csrf_token }}',
+  };
+  var url = '/dashboard/subscriber_management/categoryupdate';
+  $.ajax({
+        url: url,
+        data: data,
+        dataType: "json",
+        type: "POST",
+        success: function(response) {
+          var html = "<div class='alert alert-success'>" + response.message + "</div>";
+          $('#number-messages-container').html(html).show();
+          document.getElementById('container_id').style.display = "none";
+          document.getElementById('table_id').style.display = "none";
+        },
+    });
+});
+
+
+</script>
+{% endblock %}

@@ -48,15 +48,19 @@ of patent rights can be found in the PATENTS file in the same directory.
 <div class='modal fade' id='add-tower-modal'>
   <div class='modal-dialog'>
     <div class='modal-content'>
+
       <div class='modal-header'>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
+
+
         <h4 class='modal-title'>
           Add a new Tower
           <i class='fa fa-signal'></i>
         </h4>
       </div>
+
       <div class='modal-body'>
         <form id='add-tower-form'>
           <div class='form-group'>
@@ -106,9 +110,11 @@ of patent rights can be found in the PATENTS file in the same directory.
 <div class="row">
   <div class="col-xs-12 page-header">
     <h3>Towers
+        {% if user_profile.user.is_staff %}
       <a href='#' data-toggle='modal' data-target='#add-tower-modal'>
         <small>(add a new tower)</small>
       </a>
+        {% endif %}
     </h3>
   </div>
 </div> <!-- /.row -->
