@@ -311,8 +311,7 @@ class BTS(models.Model):
             ('view_bts', 'View BTS(Tower)'),  
             ('add_bts', 'Add BTS(Tower)'),
             ('change_bts', 'Change BTS(Tower)'),
-            ('deregister_bts', 'Deregister BTS(Tower)'),
-            ('download_bts', 'Download BTS(Tower)')
+            ('deregister_bts', 'Deregister BTS(Tower)')
         )
 
     def __unicode__(self):

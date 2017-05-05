@@ -10,6 +10,12 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 {% load account socialaccount %}
 {% block pagestyle %}
+<style>
+      .form-check-label {
+            font-weight: unset;
+      }
+    
+</style>
 {% endblock %}
 
 {% block headerclass %}
@@ -90,7 +96,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                         </select>
                     </div>
                 </div>
-                <div class="form-group column">
+                <!--div class="form-group column">
                     <div>
                         <label>Permission</label>
                         <div class="row">
@@ -123,23 +129,160 @@ of patent rights can be found in the PATENTS file in the same directory.
                             </div>
                         </div>
                     </div>
+                </div-->
+
+                <div class="column">
+                    <div>
+                        <label>Permission</label>
+                        <div class="row">
+                            <div class="col-xs-10">
+                                <table id="permissions_row" border="0" width="100%" cellpadding="5" cellspacing="0">
+                                    <!--tr>
+                                        <th>Modules</th>
+                                        <th>Permissions&nbsp;</th>
+                                    </tr-->
+                                    <tr>
+                                        <td>Graphs</td>
+                                        <td>
+                                            <div class="form-check has-success col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> View
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-warning col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxWarning" value="option1"> Download
+                                              </label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Reports</td>
+                                        <td>
+                                            <div class="form-check has-success col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> View
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-warning col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxWarning" value="option1"> Download
+                                              </label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Towers</td>
+                                        <td>
+                                            <div class="form-check has-success col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> View
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-warning col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxWarning" value="option1"> Add
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-danger col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxDanger" value="option1"> Edit
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-danger col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxDanger" value="option1"> Deregister
+                                              </label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Subscribers</td>                                        
+                                        <td>
+                                            <div class="form-check has-success col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> View
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-warning col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxWarning" value="option1"> Edit
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-danger col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxDanger" value="option1"> Deactivate
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-danger col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxDanger" value="option1"> Adjust Credit
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-danger col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxDanger" value="option1"> Send SMS
+                                              </label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>SMS</td>
+                                        <td>
+                                            <div class="form-check has-success col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> Broadcast
+                                              </label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <!--tr>
+                                        <td>Adjust Credit</td>
+                                        <td colspan="5">&nbsp;</td>
+                                    </tr-->
+                                    <tr>
+                                        <td>Network</td>
+                                        <td>
+                                            <div class="form-check has-success col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> View
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-warning col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxWarning" value="option1"> Edit
+                                              </label>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <button class="btn btn-primary">Submit</button>
+                <div class="row">&nbsp;</div>
+                <div class="row">&nbsp;</div>
+
+                <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
+                    <button class="btn btn-primary">Submit</button>
+                </div>                
             </form>
-            {% if messages %}
-            <ul class="messages">
-                {% for message in messages %}
-                <li class="{{ message.tags }}">{{ message }}</li>
-                {% endfor %}
-            </ul>
-            {% endif %}
+            
         </div>
     </div>
+    <div class="row">&nbsp;</div>
+    <div class="row">&nbsp;</div>
+    <div class="row">&nbsp;</div>
 </header>
 {% endblock %}
 {% block js %}
 
 <script>
+    $(document).ready(function() {
+        $("#permissions_row tr:odd").css("background", "#DAE4F0");
+        $("#permissions_row tr:even").css("background", "#eee");
+    });
     function changeRole(role) {
         if(role.value == 'admin' || role.value=='super_admin'){
             document.getElementById('network').multiple = true;
@@ -200,14 +343,6 @@ of patent rights can be found in the PATENTS file in the same directory.
         }, 2000);
 
     });
-
-
-
-
-
-
-
-
 
 </script>
 
