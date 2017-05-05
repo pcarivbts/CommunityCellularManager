@@ -131,7 +131,7 @@ urlpatterns = [
         endagaweb.views.dashboard.SubscriberEdit.as_view(),
         name='subscriber-edit'),
 
-#47600
+    # sagar2.sharma@aricent.com _start_
 
     url(r'^dashboard/user/management$',
         endagaweb.views.dashboard.UserManagement.as_view(),
@@ -145,19 +145,27 @@ urlpatterns = [
         endagaweb.views.dashboard.UserBlockUnblock.as_view(),
         name='user-blocking'),
 
-    url(r'^dashboard/user/management/checkusername', endagaweb.views.user.check_username),
+    url(r'^dashboard/user/management/checkuser', endagaweb.views.user.check_username),
 
-    # url(r'^dashboard/user/management/permissions', endagaweb.views.user.role_based_permissions),
+    url(r'^dashboard/user/management/permissions', endagaweb.views.user.role_default_permissions),
 
     url(r'^dashboard/network/broadcast_sms$',
         endagaweb.views.dashboard.SubscriberSendSMS.as_view(),
         name='broadcast-sms'),
 
+    url(r'^reset', endagaweb.views.user.reset),
+
+    url(r'^reset/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
+        endagaweb.views.user.reset_confirm,
+        name='password_reset_confirm'),
+
+    url(r'^success/$', endagaweb.views.user.success, name='success'),
+    # sagar2.sharma@aricent.com _ends_
+
     url(r'^dashboard/subscriber_management/subscriber$', endagaweb.views.dashboard.SubscriberCategoryEdit.as_view(),
         name='subscriber-category'),
     url(r'^dashboard/subscriber_management/categoryupdate$',
         endagaweb.views.dashboard.SubscriberCategoryUpdate.as_view(), name='subscriber-categoryupdate'),
-#47600
 
     # Network views in the dashboard.
     # /network -- GET basic network info

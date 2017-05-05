@@ -10,6 +10,12 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 {% load account socialaccount %}
 {% block pagestyle %}
+<style>
+      .form-check-label {
+            font-weight: unset;
+      }
+    
+</style>
 {% endblock %}
 
 {% block headerclass %}
@@ -43,7 +49,8 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <div class="form-group row" required>
                     <div class="col-xs-5">
                         <label>Role</label>
-                        <select name="role" class="form-control" onchange="changeRole(this)">
+                        <select name="role" class="form-control" onchange="changeRole(this)" required="required">
+                            <option value="">-Select role-</option>
                             {% for values in roles %}
                             <option value="{{ values }}">{{ values }}</option>
                             {% endfor %}
@@ -52,9 +59,9 @@ of patent rights can be found in the PATENTS file in the same directory.
                 </div>
                 <div class="form-group row">
                     <div class="col-xs-5">
-                        <label for="username" class="col-3 col-form-label">Username</label>
+                        <label for="email" class="col-3 col-form-label">Email</label>
                         <div>
-                            <input class="form-control" type="text" id="username" name="username" required="required"/>
+                            <input class="form-control" type="email" id="email" name="email" required="required"/>
                         </div>
                     </div>
                 </div>
@@ -119,34 +126,191 @@ of patent rights can be found in the PATENTS file in the same directory.
                             </div>
                             <div class="col-xs-5">
                                 <select name="permissions" id="permissions_right" class="form-control" size="10"
-                                        multiple="multiple" required="required"></select>
+                                        multiple="multiple"></select>
                             </div>
                         </div>
                     </div>
                 </div>
-                <button class="btn btn-primary">Submit</button>
+
+                <!--div class="column">
+                    <div>
+                        <label>Permission</label>
+                        <div class="row">
+                            <div class="col-xs-10">
+                                <table id="permissions_row" border="0" width="100%" cellpadding="5" cellspacing="0">
+                                    <tr>
+                                        <th>Modules</th>
+                                        <th>Permissions&nbsp;</th>
+                                    </tr>
+                                    <tr>
+                                        <td>Graphs</td>
+                                        <td>
+                                            <div class="form-check has-success col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> View
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-warning col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxWarning" value="option1"> Download
+                                              </label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Reports</td>
+                                        <td>
+                                            <div class="form-check has-success col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> View
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-warning col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxWarning" value="option1"> Download
+                                              </label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Towers</td>
+                                        <td>
+                                            <div class="form-check has-success col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> View
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-warning col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxWarning" value="option1"> Add
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-danger col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxDanger" value="option1"> Edit
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-danger col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxDanger" value="option1"> Deregister
+                                              </label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Subscribers</td>                                        
+                                        <td>
+                                            <div class="form-check has-success col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> View
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-warning col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxWarning" value="option1"> Edit
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-danger col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxDanger" value="option1"> Deactivate
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-danger col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxDanger" value="option1"> Adjust Credit
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-danger col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxDanger" value="option1"> Send SMS
+                                              </label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>SMS</td>
+                                        <td>
+                                            <div class="form-check has-success col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> Broadcast
+                                              </label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Network</td>
+                                        <td>
+                                            <div class="form-check has-success col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> View
+                                              </label>
+                                            </div>
+                                            <div class="form-check has-warning col-xs-2">
+                                              <label class="form-check-label">
+                                                <input type="checkbox" class="form-check-input" id="checkboxWarning" value="option1"> Edit
+                                              </label>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">&nbsp;</div-->
+                <div class="row">&nbsp;</div>
+
+                <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
+                    <button id="submit" class="btn btn-primary">Submit</button>
+                </div>                
             </form>
-            {% if messages %}
-            <ul class="messages">
-                {% for message in messages %}
-                <li class="{{ message.tags }}">{{ message }}</li>
-                {% endfor %}
-            </ul>
-            {% endif %}
+            
         </div>
     </div>
+    <div class="row">&nbsp;</div>
+    <div class="row">&nbsp;</div>
+    <div class="row">&nbsp;</div>
 </header>
 {% endblock %}
 {% block js %}
 
 <script>
+    $(document).ready(function() {
+        $("#permissions_row tr:odd").css("background", "#DAE4F0");
+        $("#permissions_row tr:even").css("background", "#eee");
+
+
+        $('#submit').click(function(){
+            $('#permissions_right option').attr('selected','selected');
+        });
+    });
     function changeRole(role) {
-        if(role.value == 'admin' || role.value=='super_admin'){
+        if(role.value=='Network Admin'){
             document.getElementById('network').multiple = true;
         } else {
             document.getElementById('network').multiple = false;
         }
         $("#network").val('');
+        if (role.value) {
+            $.ajax({
+                url: "/dashboard/user/management/permissions?role=" + role.value
+            }).done(function(response) {
+                moveAllItems('#permissions_right', '#permissions_left');
+
+                $.each(response.permissions, function(key,val){
+
+                    var left = $('#permissions_left option[value="'+val+'"]');
+                    $('#permissions_right').append(left);
+
+                    //var option_str = "<option value='"+val.id+"'>"+val.codename+"</option>";
+                    //$('#permissions_right').append(option_str);
+
+                });
+            });
+        } else {
+            moveAllItems('#permissions_right', '#permissions_left');
+        }
     }
 
     function moveItems(origin, dest) {
@@ -175,39 +339,31 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 
     var _changeInterval = null;
-    $("#username").keyup(function() {
+    $("#email").keyup(function() {
         clearInterval(_changeInterval);
         _changeInterval = setInterval(function() {
             clearInterval(_changeInterval)
             console.log("now search");
             $.ajax({
-                url: "/dashboard/user/management/checkusername?username=" + $('#username').val(),
+                url: "/dashboard/user/management/checkuser?email=" + $('#email').val(),
                 //beforeSend: function(xhr) {
                 // xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
                 //},
             }).done(function(response) {
-                $('#username').removeClass('form-control-success');
-                $('#username').removeClass('form-control-warning');
-                if(response.username_available) {
-                    $('#username').parent().parent().addClass('has-success');
-                    $('#username').addClass('form-control-success');
+                $('#email').removeClass('form-control-success');
+                $('#email').removeClass('form-control-warning');
+                if(response.email_available) {
+                    $('#email').parent().parent().addClass('has-success');
+                    $('#email').addClass('form-control-success');
                 } else {
-                    $('#username').parent().parent().addClass('has-warning');
-                    $('#username').addClass('form-control-warning');
+                    $('#email').parent().parent().addClass('has-warning');
+                    $('#email').addClass('form-control-warning');
                 }
             });
 
         }, 2000);
 
     });
-
-
-
-
-
-
-
-
 
 </script>
 

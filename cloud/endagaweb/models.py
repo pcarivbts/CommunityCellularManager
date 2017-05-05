@@ -22,7 +22,7 @@ import time
 import uuid
 
 from django.conf import settings
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import Group, User, Permission
 from django.contrib.gis.db import models as geomodels
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
@@ -32,7 +32,7 @@ from django.db import transaction
 from django.db.models import F
 from django.db.models.signals import post_save
 from guardian.shortcuts import (assign_perm, get_objects_for_user,
-        get_users_with_perms)
+                                get_users_with_perms)
 from rest_framework.authtoken.models import Token
 import django.utils.timezone
 import itsdangerous
@@ -48,6 +48,8 @@ from endagaweb.notifications import bts_up
 from endagaweb.util import currency as util_currency
 from endagaweb.util.parse_destination import parse_destination
 from endagaweb.util import dbutils as dbutils
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 
 stripe.api_key = settings.STRIPE_API_KEY
 
@@ -74,14 +76,7 @@ class UserProfile(models.Model):
     timezone_choices = [(v, v) for v in pytz.common_timezones]
     timezone = models.CharField(max_length=50, default='UTC',
                                 choices=timezone_choices)
-    role_choices = (
-                    ('cloud_admin', 'Cloud Admin'),
-                    ('network_admin', 'Network Admin'),
-                    ('business analyst', 'Business Analyst'),
-                    ('loader', 'Loader'),
-                    ('partner', 'Partner'),
-                )
-    role = models.CharField(max_length=20,choices=role_choices, default='admin')
+    role = models.CharField(max_length=20,default='cloud_admin')
 
     # A UI kludge indicate which network a user is currently viewing
     # Important: This is not the only network a User is associated with
@@ -121,7 +116,9 @@ class UserProfile(models.Model):
             profile.network = network
             profile.save()
 
+
 post_save.connect(UserProfile.new_user_hook, sender=User)
+
 
 class Ledger(models.Model):
     """A ledger represents a list of transactions and a balance.
@@ -174,6 +171,7 @@ class Ledger(models.Model):
                 return
             ledger.balance = F('balance') + instance.amount
             ledger.save()
+
 
 class Transaction(models.Model):
     """ The transaction object represents a single line item in an account
@@ -305,6 +303,15 @@ class BTS(models.Model):
     # channel number used
     # none is unknown or invalid
     channel = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        default_permissions = ()
+        permissions = ( 
+            ('view_bts', 'View BTS(Tower)'),  
+            ('add_bts', 'Add BTS(Tower)'),
+            ('change_bts', 'Change BTS(Tower)'),
+            ('deregister_bts', 'Deregister BTS(Tower)')
+        )
 
     def __unicode__(self):
         return "BTS(%s, %s, last active: %s)" % (
@@ -540,6 +547,14 @@ class Subscriber(models.Model):
     # can still delete subs with the usual "deactivate" button.
     prevent_automatic_deactivation = models.BooleanField(default=False)
     role = models.TextField(null=True, blank=True, default="Subscriber")
+
+    class Meta:
+        default_permissions = ()
+        permissions = (
+            ('view_subscriber', 'View subscriber list'),
+            ('change_subscriber', 'Edit subscriber'),
+            ('deactive_subscriber', 'Deactive subscriber'),
+        )
 
     @classmethod
     def update_balance(cls, imsi, other_bal):
@@ -807,6 +822,13 @@ class UsageEvent(models.Model):
     timespan = models.DecimalField(null=True, max_digits=7, decimal_places=1)
     date_synced = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        default_permissions = ()
+        permissions = ( 
+            ('view_usage', 'View usage activities'),  
+            ('download_usage', 'Download usage activities')
+        )
+
     def voice_sec(self):
         """Gets the number of seconds for this call.
 
@@ -995,8 +1017,10 @@ class Network(models.Model):
     environment = models.TextField(default="default")
 
     class Meta:
-        permissions = (
+        default_permissions = ()
+        permissions = ( 
             ('view_network', 'View network'),
+            ('change_network', 'Change network'),
         )
 
     @property
@@ -1449,7 +1473,7 @@ class Network(models.Model):
             # instance.auth_group, created_group = Group.objects.get_or_create(name='network_%s'
             #     % instance.pk)
             instance.auth_group, created_group = Group.objects.get_or_create(name='%s_GROUP_%s'
-                % (instance.name,instance.pk))
+                                                                                  % (instance.name, instance.pk))
             if created_group:
                 assign_perm('view_network', instance.auth_group, instance)
 
@@ -1457,7 +1481,7 @@ class Network(models.Model):
             # instance.auth_user, created_user = User.objects.get_or_create(username='network_%s'
             #     % instance.pk)
             instance.auth_user, created_user = User.objects.get_or_create(username='%s_USER_%s'
-                % (instance.name,instance.pk))
+                                                                                   % (instance.name, instance.pk))
             if created_user:
                 Token.objects.create(user=instance.auth_user)
                 instance.auth_group.user_set.add(instance.auth_user)
@@ -1472,7 +1496,6 @@ class Network(models.Model):
 
 # Whenever we update the Ledger, attempt to recharge the Network bill.
 post_save.connect(Network.ledger_save_handler, sender=Ledger)
-
 
 post_save.connect(Network.create_ledger, sender=Network)
 post_save.connect(Network.create_auth, sender=Network)
@@ -1791,3 +1814,83 @@ class FileUpload(models.Model):
     created_time = models.DateTimeField(auto_now_add=True)
     modified_time = models.DateTimeField(auto_now_add=True)
     accessed_time = models.DateTimeField(auto_now=True)
+
+
+
+
+"""
+class GlobalPermissionManager(models.Manager):
+    def get_queryset(self):
+        return super(GlobalPermissionManager, self).\
+            get_queryset().filter(content_type__model='global_permission')
+
+class GlobalPermission(Permission):
+    #A global permission, not attached to a model
+
+    objects = GlobalPermissionManager()
+
+    class Meta:
+        proxy = True
+        verbose_name = "global_permission"
+
+    def save(self, *args, **kwargs):
+        ct, created = ContentType.objects.get_or_create(
+            model=self._meta.verbose_name, app_label=self._meta.app_label,
+        )
+        self.content_type = ct
+        super(GlobalPermission, self).save(*args)
+"""
+
+class SMSBroadcast(models.Model):
+    """ Global permission set for SMS Broadcasting module in network section"""
+
+    class Meta:
+        managed = False  # No database table creation or deletion operations \
+                         # will be performed for this model. 
+        default_permissions = ()
+        permissions = ( 
+            ('add_sms', 'Add SMS broadcast'),
+            ('send_sms', 'Send SMS broadcast from subscriber'),
+        )
+
+class Credit(models.Model):
+    """ Global permission set for Credit Adjustment module in subscribers"""
+
+    class Meta:
+        managed = False
+        default_permissions = ()
+        permissions = ( 
+            ('add_credit', 'Add credit adjustment to subscriber'),
+        )
+
+class Notification(models.Model):
+    """ Global permission set for Credit Adjustment module in subscribers"""
+
+    class Meta:
+        managed = False
+        default_permissions = ()
+        permissions = ( 
+            ('view_notification', 'View Notification'),
+        )
+
+class Report(models.Model):
+    """ Global permission set for Report module"""
+
+    class Meta:
+        managed = False
+        default_permissions = ()
+        permissions = ( 
+            ('view_report', 'View reports'),  
+            ('download_report', 'Download reports')
+        )
+
+class Graph(models.Model):
+    """ Global permission set for Report module"""
+
+    class Meta:
+        managed = False
+        default_permissions = ()
+        permissions = ( 
+            ('view_graph', 'View graph'),  
+            ('download_graph', 'Download graph')
+        )
