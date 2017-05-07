@@ -145,7 +145,7 @@ urlpatterns = [
         endagaweb.views.dashboard.UserBlockUnblock.as_view(),
         name='user-blocking'),
 
-    url(r'^dashboard/user/management/checkuser', endagaweb.views.user.check_username),
+    url(r'^dashboard/user/management/checkuser', endagaweb.views.user.check_user),
 
     url(r'^dashboard/user/management/permissions', endagaweb.views.user.role_default_permissions),
 

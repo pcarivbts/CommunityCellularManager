@@ -45,7 +45,6 @@ from endagaweb import tasks
 from endagaweb.views import django_tables
 from guardian.shortcuts import (assign_perm, get_objects_for_user,
                                 get_users_with_perms)
-
 from django.contrib.auth.models import User, Permission, ContentType, Group
 from django.db.models.signals import post_save
 from django.db import transaction
@@ -63,7 +62,7 @@ class ProtectedView(View):
 Views for logged in users.
 """
 USER_ROLES = ('Business Analyst', 'Loader',
-        'Partner', 'Network Admin') # Cloud Admin will only be available when created via createsuperuser
+              'Partner', 'Network Admin')  # Cloud Admin will only be available when created via createsuperuser
 
 logger = logging.getLogger(__name__)
 
@@ -929,9 +928,8 @@ class ActivityView(ProtectedView):
         return res_events
 
 
-# 47600
+# sagar2.sharma@aricent.com
 class UserManagement(ProtectedView):
-
     def get(self, request, *args, **kwargs):
         # Handles request from Network Admin or Cloud Admin
         user_profile = UserProfile.objects.get(user=request.user)
@@ -942,17 +940,18 @@ class UserManagement(ProtectedView):
         restricted_perms = []
 
         if not user_profile.user.is_superuser:
-            role = USER_ROLES[0:len(USER_ROLES)-1]
+            role = USER_ROLES[0:len(USER_ROLES) - 1]
 
         if user.is_staff:
             networks = Network.objects.all()
-            
+
         else:
             networks = [user_profile.network]
             role = ('Business Analyst', 'Loader', 'Partner')
 
         if user_profile.role == 'network_admin':
-            restricted_perms = ['add_bts', 'change_bts', 'deregister_bts', 'change_network',  'download_report', 'download_graph', 'deactive_subscriber']
+            restricted_perms = ['add_bts', 'change_bts', 'deregister_bts', 'change_network', 'download_report',
+                                'download_graph', 'deactive_subscriber']
 
         # Set the context with various stats.
         content_type = ContentType.objects.filter(app_label='endagaweb',
@@ -991,7 +990,6 @@ class UserManagement(ProtectedView):
         if len(permissions) < 1:
             messages.warning(request, "User must have assigned some permissions.")
             return redirect(urlresolvers.reverse('user-management'))
-
 
         # Disconnect the signal only to create user,set network,role and group
         post_save.disconnect(UserProfile.new_user_hook, sender=User)
@@ -1040,24 +1038,24 @@ class UserManagement(ProtectedView):
 
 
 class UserDelete(ProtectedView):
-
     def get(self, request, *args, **kwargs):
         # Use render_table to hide/unhide users on search page.
         user_profile = UserProfile.objects.get(user=request.user)
-        all_users = User.objects.all().exclude(is_superuser=True)
+        # exclude cloud admin for every scenario
         query = request.GET.get('query', None)
 
         if query:
-            # Not showing cloud admins
             query_users = (
                 User.objects.filter(username__icontains=query)).exclude(is_superuser=True)
-            # Network Admin cannot delete same role
             if not user_profile.user.is_superuser:
                 query_users = query_users.exclude(is_staff=True)
             render_table = True
         else:
-            # Display all users except Admins
-            query_users = all_users.exclude(is_staff=True)
+            # Will Display all users, currently not showing any!
+            query_users = (
+                User.objects.all()).exclude(is_superuser=True)
+            if not user_profile.user.is_superuser:
+                query_users = query_users.exclude(is_staff=True)
             render_table = False
 
         # Setup the subscriber table.
@@ -1087,11 +1085,15 @@ class UserDelete(ProtectedView):
         except User.DoesNotExist:
             return HttpResponseBadRequest()
 
-        if user.is_staff:
-            message = 'Cannot Delete admin %s' % user.username
-        else:
+        # CA can delete NA/BA/Partner/Loader
+        # NA can delete BA/Partner/Loader
+
+        if ((user_profile.user.is_superuser and user_profile.user.is_staff) and (not user.is_superuser)) or \
+                (user_profile.user.is_staff and (not user.is_staff)):
             user.delete()
-            message = '%s successfully deleted' % user.username
+            message = '%s deleted successfully!' % user.username
+        else:
+            message = '%s cannot be deleted!' % user.username
 
         messages.success(request, message)
         return HttpResponse(message)
@@ -1101,25 +1103,32 @@ class UserBlockUnblock(ProtectedView):
     def get(self, request, *args, **kwargs):
 
         user_profile = UserProfile.objects.get(user=request.user)
-        all_blocked_users = User.objects.all().exclude(is_active=True)
         query = request.GET.get('query', None)
 
         if query:
             # Exclude Super/Django Admin
-            all_users = (
-                User.objects.filter(username__icontains=query))
+            query_users = (
+                User.objects.filter(username__icontains=query)).exclude(is_superuser=True)
+            if not user_profile.user.is_superuser:
+                query_users = query_users.exclude(is_staff=True)
+
         else:
-            # Display all blocked users.
-            all_users = all_blocked_users.exclude(is_active=True)
+            # Display all blocked users for CA and exclude CA for Network Admin.
+            query_users = User.objects.all().exclude(is_active=True)
+            if not user_profile.user.is_superuser:
+                query_users = query_users.exclude(is_superuser=True)
+
+        # Cannot Block/Unblock itself so exclude it
+        query_users = query_users.exclude(username=user_profile.user.username)
 
         # Setup the subscriber table.
-        user_table = django_tables.BlockedUserTable(list(all_users))
+        user_table = django_tables.BlockedUserTable(list(query_users))
         tables.RequestConfig(request, paginate={'per_page': 10}).configure(
             user_table)
 
         context = {
             'search': dform.UserSearchForm({'query': query}),
-            'users_found': len(all_users),
+            'users_found': len(query_users),
             'user_table': user_table,
             'user_profile': user_profile,
             'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
@@ -1133,26 +1142,33 @@ class UserBlockUnblock(ProtectedView):
     def post(self, request, *args, **kwargs):
         """Handles POST requests to block/unblock User.
         """
+        user_profile = UserProfile.objects.get(user=request.user)
         try:
             user = User.objects.get(id=request.GET['user'])
         except User.DoesNotExist:
             return HttpResponseBadRequest()
 
-        if user.is_superuser:
-            message = 'Cannot Block/Unblock Admin %s' % user.username
-            messages.warning(request, message)
+        if user.is_active:
+            current_status = 'Unblocked'
+        else:
+            current_status = 'Blocked'
+
+        if ((user_profile.user.is_superuser and user_profile.user.is_staff) and (not user.is_superuser)) or \
+                (user_profile.user.is_staff and (not user.is_staff)):
+
+            if user.is_active:
+                user.is_active = False
+                message = '%s is Blocked!' % user.username
+            else:
+                user.is_active = True
+                message = '%s is Unblocked!' % user.username
+
+            user.save()
+            messages.success(request, message)
             return HttpResponse(message)
 
-        elif user.is_active:
-            user.is_active = False
-            message = '%s is Blocked!' % user.username
-
-        else:
-            user.is_active = True
-            message = '%s is Unblocked!' % user.username
-
-        user.save()
-        messages.success(request, message)
+        message = 'Cannot %s %s' % (current_status, user.username)
+        messages.INFO(request, message)
         return HttpResponse(message)
 
 
@@ -1227,4 +1243,3 @@ class SubscriberCategoryUpdate(ProtectedView):
             return JsonResponse({'message': 'IMSI category updated successfully'})
         else:
             return JsonResponse({'message': 'IMSI category update cannot happen'})
-

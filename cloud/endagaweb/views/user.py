@@ -230,7 +230,7 @@ def update_notify_numbers(request):
 
 
 @login_required(login_url='/login/')
-def check_username(request):
+def check_user(request):
     if request.method == 'GET':
         context = {}
         if 'email' in request.GET:
@@ -238,6 +238,12 @@ def check_username(request):
                 context['email_available'] = False
             else:
                 context['email_available'] = True
+        elif 'username' in request.GET:
+            if User.objects.filter(username=request.GET['username']).exists():
+                context['username_available'] = False
+            else:
+                context['username_available'] = True
+
         return JsonResponse(context)
     return HttpResponseBadRequest()
 
