@@ -114,6 +114,11 @@ def auth_and_login(request):
         next_url = '/dashboard'
         if 'next' in request.POST and request.POST['next']:
             next_url = request.POST['next']
+
+        # Notification, if blocked user is trying to log in
+        if not user.is_active:
+            text = "This user is blocked. Please contact admin."
+            messages.error(request, text)
         return redirect(next_url)
     else:
         text = "Sorry, that email / password combination is not valid."
