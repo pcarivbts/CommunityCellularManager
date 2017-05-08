@@ -1042,7 +1042,7 @@ class UserManagement(ProtectedView):
         except IntegrityError:
             message = "User with email %s already exists!" % email
             post_save.connect(UserProfile.new_user_hook, sender=User)
-            messages.warning(request, message)
+            messages.error(request, message,extra_tags="alert alert-danger")
             # Re-connect the signal before return if it reaches exception
             post_save.connect(UserProfile.new_user_hook, sender=User)
             return redirect(urlresolvers.reverse('user-management'))
