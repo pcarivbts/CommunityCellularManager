@@ -8,34 +8,31 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 {% endcomment %}
 
-{% load apptags %}
-
-
-{% block title %} {% tmpl_const "SITENAME" %} | Dashboard {% endblock %}
-
-
+{% load account socialaccount %}
 {% block pagestyle %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
-
 <style>
-  .timezone-notice {
-    display: none;
-  }
+      .form-check-label {
+            font-weight: unset;
+      }
+    
 </style>
 {% endblock %}
 
-
-{% block content %}
-
-<div class="row">
-  <div class="col-xs-12 page-header">
-    <h3>Permission denied</h3>
-  </div>
-</div>
+{% block headerclass %}
+<body id="add_user">
+<header class="navbar navbar-inverse normal" role="banner">
+    {% endblock %}
+    {% block content %}
 
 
+    <div class="row">
+        <div class="col-xs-12 col-sm-12 page-header">
+            <h3>Permission denied</h3>
+        </div>
+    </div>
 
-<p>Please contact administrator to get access for this page.</p>
-
+    <p>Please contact administrator to get access for this page.</p>
+</header>
 {% endblock %}
+
+

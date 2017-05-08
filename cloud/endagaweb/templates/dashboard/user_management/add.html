@@ -55,7 +55,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                             <div class="input-group-addon">
                                 <i class="glyphicon glyphicon-user"></i>
                             </div>
-                        <select name="role" class="form-control" onchange="changeRole(this)" required>
+                        <select name="role" id="role" class="form-control" onchange="changeRole(this)" required>
                             <option value="">-Select role-</option>
                             {% for values in roles %}
                             <option value="{{ values }}">{{ values }}</option>
@@ -82,12 +82,12 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <!--Password-->
                 <div class="form-group row">
                     <div class="col-xs-5">
-                        <label for="InputPassword1">Password</label>
+                        <label for="password">Password</label>
                         <div class="input-group col-xs-8">
                             <div class="input-group-addon">
                                 <i class="glyphicon glyphicon-lock"></i>
                             </div>
-                            <input type="password" class="form-control" id="InputPassword1" name="password" placeholder="Password" required />
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Password" required />
                         </div>
                     </div>
                 </div><!--Password Ends-->
@@ -273,7 +273,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <div class="row">&nbsp;</div>
 
                 <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
-                    <input type="submit" id="submit" class="btn btn-primary" value="Submit" />
+                    <input type="button" id="submit" class="btn btn-primary" value="Submit" />
                 </div>                
             </form>
             
@@ -332,7 +332,7 @@ of patent rights can be found in the PATENTS file in the same directory.
         $('#user_form').validator().on('submit', function (e) {
             $('#permissions_right option').attr('selected','selected');
             return true;
-        })
+        });
 
         $('#lstview_rightSelected').click(function () {
             moveItems('#permissions_left', '#permissions_right');
@@ -374,50 +374,33 @@ of patent rights can be found in the PATENTS file in the same directory.
                 });
             }, 2000);
         });
+
+
+        $('#submit').click(function(){
+            var permissions = [];
+            $.each($('#permissions_right option'), function(key, val) {
+                permissions.push($(val).val());
+            });            
+            $.ajax({
+                url: "/dashboard/user/management",
+                type: 'POST',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                },
+                data:{
+                    role: $('#role').val(),
+                    email: $('#email').val(),
+                    password: $('#password').val(),
+                    network: $('#network').val(),
+                    permissions: $('#permissions_right').val()
+                }
+            }).done(function(response) {
+                //window.location.href = '/dashboard/user/management';
+            });
+        });
   });
 
-/*
-  $(document).ready(function() {
-    $('#user_form').bootstrapValidator({
-        // To use feedback icons, ensure that you use Bootstrap v3.1.0 or later
-        feedbackIcons: {
-            valid: 'glyphicon glyphicon-ok',
-            invalid: 'glyphicon glyphicon-remove',
-            validating: 'glyphicon glyphicon-refresh'
-        },
-        fields: {
-            email: {
-                validators: {
-                    emailAddress: {
-                        message: 'The value is not a valid email address'
-                        },
-                        regexp: {
-                            regexp: '^[^@\\s]+@([^@\\s]+\\.)+[^@\\s]+$',
-                            message: 'The value is not a valid email address'
-                        }
-                    }
-                }
-            }
-        })
-        .on('err.validator.fv', function(e, data) {
-            // data.bv        --> The FormValidation.Base instance
-            // data.field     --> The field name
-            // data.element   --> The field element
-            // data.validator --> The current validator name
 
-            if (data.field === 'email') {
-            console.log(data)
-                // The email field is not valid
-                data.element
-                    .data('fv.messages')
-                    // Hide all the messages
-                    .find('.help-block[data-fv-for="' + data.field + '"]').hide()
-                    // Show only message associated with current validator
-                    .filter('[data-fv-validator="' + data.validator + '"]').show();
-            }
-        });
-});
-*/
 </script>
 
 {% endblock %}
