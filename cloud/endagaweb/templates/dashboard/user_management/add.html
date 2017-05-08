@@ -50,7 +50,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
                 <!--Role-->
                 <div class="form-group row" data-toggle="tooltip" title="Select the user role" required>
-                    <div class="col-xs-3" >
+                    <div class="col-xs-5">
                         <label>Role</label>
                         <div class="input-group col-xs-8">
                             <div class="input-group-addon">
@@ -84,27 +84,27 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <div class="form-group row">
                     <div class="col-xs-5">
                         <label for="InputPassword1">Password</label>
-                        <div class="input-group col-xs-10">
+                        <div class="input-group col-xs-8">
                             <div class="input-group-addon">
                                 <i class="glyphicon glyphicon-lock"></i>
                             </div>
-                                <input type="password" class="form-control" id="InputPassword1" name="password"
-                                   placeholder="Password" required />
+                            <input type="password" class="form-control" id="InputPassword1" name="password" placeholder="Password" required />
                         </div>
                     </div>
                 </div><!--Password Ends-->
 
                 <!--Network-->
                 <div class="form-group row">
-                    <div class="col-xs-3" data-toggle="tooltip" data-placement="left"
+                    <div class="col-xs-5" data-toggle="tooltip" data-placement="left"
                          title="Multiple Networks to Network Admin or Cloud Admin only">
                         <label><i class="glyphicon glyphicon-signal"></i> Network</label>
-                        <select name='network' id="network" class="form-control" multiple="multiple" size="5"
-                                required="required">
-                            {% for network in networks %}
-                            <option value="{{ network.id }}">{{ network.name }}</option>
-                            {% endfor %}
-                        </select>
+                        <div class="input-group col-xs-8">
+                            <select name='network' id="network" class="form-control" multiple="multiple" size="5" required="required">
+                                {% for network in networks %}
+                                <option value="{{ network.id }}">{{ network.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
                 </div>  <!-- Network Ends -->
 
