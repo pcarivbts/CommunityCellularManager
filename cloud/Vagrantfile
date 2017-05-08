@@ -52,60 +52,60 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.cpus = 1
     end
   end
-
-  config.vm.define :rmq do |rmq|
-    rmq.vm.hostname = "endaga-rmq"
-    rmq.vm.network "forwarded_port", guest: 5555, host: 5555
-    rmq.vm.network "private_network", ip: "192.168.40.30"
-    rmq.vm.provision "ansible" do |ansible|
-        ansible.playbook = "ansible/rabbitmq.dev.yml"
-        ansible.verbose = true
-    end
-    rmq.vm.provision "shell",
-    run: "always",
-    inline: "route add -net 10.64.0.0 netmask 255.255.0.0 gw 192.168.40.60 || true"
-    config.vm.provider "virtualbox" do |v|
-      v.memory = 512
-      v.cpus = 1
-    end
-  end
-
-  config.vm.define :cert do |cert|
-    cert.vm.hostname = "endaga-cert"
-    cert.vm.network "private_network", ip: "192.168.40.40"
-    cert.vm.provision "ansible" do |ansible|
-        ansible.playbook = "ansible/certifier.dev.yml"
-        ansible.verbose = true
-    end
-    config.vm.provider "virtualbox" do |v|
-      v.memory = 512
-      v.cpus = 1
-    end
-  end
-
-  config.vm.define :smpp, autostart: false do |smpp|
-    smpp.vm.hostname = "endaga-smpp"
-    smpp.vm.network "private_network", ip: "192.168.40.50"
-    smpp.vm.provision "ansible" do |ansible|
-        ansible.playbook = "ansible/smpp.dev.yml"
-        ansible.verbose = true
-    end
-    config.vm.provider "virtualbox" do |v|
-      v.memory = 512
-      v.cpus = 1
-    end
-  end
-
-  config.vm.define :vpn do |vpn|
-    vpn.vm.hostname = "endaga-vpn"
-    vpn.vm.network "private_network", ip: "192.168.40.60"
-    vpn.vm.provision "ansible" do |ansible|
-        ansible.playbook = "ansible/vpn.dev.yml"
-        ansible.verbose = true
-    end
-    config.vm.provider "virtualbox" do |v|
-      v.memory = 512
-      v.cpus = 1
-    end
-  end
+#
+#  config.vm.define :rmq do |rmq|
+#    rmq.vm.hostname = "endaga-rmq"
+#    rmq.vm.network "forwarded_port", guest: 5555, host: 5555
+#    rmq.vm.network "private_network", ip: "192.168.40.30"
+#    rmq.vm.provision "ansible" do |ansible|
+#        ansible.playbook = "ansible/rabbitmq.dev.yml"
+#        ansible.verbose = true
+#    end
+#    rmq.vm.provision "shell",
+#    run: "always",
+#    inline: "route add -net 10.64.0.0 netmask 255.255.0.0 gw 192.168.40.60 || true"
+#    config.vm.provider "virtualbox" do |v|
+#      v.memory = 512
+#      v.cpus = 1
+#    end
+#  end
+#
+#  config.vm.define :cert do |cert|
+#    cert.vm.hostname = "endaga-cert"
+#    cert.vm.network "private_network", ip: "192.168.40.40"
+#    cert.vm.provision "ansible" do |ansible|
+#        ansible.playbook = "ansible/certifier.dev.yml"
+#        ansible.verbose = true
+#    end
+#    config.vm.provider "virtualbox" do |v|
+#      v.memory = 512
+#      v.cpus = 1
+#    end
+#  end
+#
+#  config.vm.define :smpp, autostart: false do |smpp|
+#    smpp.vm.hostname = "endaga-smpp"
+#    smpp.vm.network "private_network", ip: "192.168.40.50"
+#    smpp.vm.provision "ansible" do |ansible|
+#        ansible.playbook = "ansible/smpp.dev.yml"
+#        ansible.verbose = true
+#    end
+#    config.vm.provider "virtualbox" do |v|
+#      v.memory = 512
+#      v.cpus = 1
+#    end
+#  end
+#
+#  config.vm.define :vpn do |vpn|
+#    vpn.vm.hostname = "endaga-vpn"
+#    vpn.vm.network "private_network", ip: "192.168.40.60"
+#    vpn.vm.provision "ansible" do |ansible|
+#        ansible.playbook = "ansible/vpn.dev.yml"
+#        ansible.verbose = true
+#    end
+#    config.vm.provider "virtualbox" do |v|
+#      v.memory = 512
+#      v.cpus = 1
+#    end
+#  end
 end
