@@ -1191,9 +1191,11 @@ class SubscriberCategoryEdit(ProtectedView):
         network = user_profile.network
         all_subscribers = Subscriber.objects.filter(network=network)
         if request.method == "POST":
-            query = request.POST.get('keyword', None)
+            query = request.POST.get('keyword', '')
+            sort_by = request.POST.get('sort', 'id')
         elif request.method == "GET":
-            query = None
+            query = request.GET.get('keyword', '')
+            sort_by = request.GET.get('sort', 'id')
         else:
             return HttpResponseBadRequest()
         show_table = "false"
@@ -1219,6 +1221,8 @@ class SubscriberCategoryEdit(ProtectedView):
         tables.RequestConfig(request, paginate={'per_page': 15}).configure(
             subscriber_table)
 
+        query_subscribers = query_subscribers.order_by(sort_by)
+
         # Render the response with context.
         context = {
             'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
@@ -1228,7 +1232,8 @@ class SubscriberCategoryEdit(ProtectedView):
             'number_of_filtered_subscribers': len(query_subscribers),
             'query_subscribers': query_subscribers,
             'subscriber_table': subscriber_table,
-            'show_table': show_table
+            'show_table': show_table,
+            'keyword': query
         }
         template = get_template('dashboard/subscriber_management/subscribers.html')
         html = template.render(context, request)
