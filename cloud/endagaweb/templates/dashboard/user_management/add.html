@@ -351,31 +351,31 @@ of patent rights can be found in the PATENTS file in the same directory.
             moveAllItems('#permissions_left', '#permissions_right');
         });
 
-//        var _changeInterval = null;
-//        $("#email").keyup(function() {
-//            clearInterval(_changeInterval);
-//            _changeInterval = setInterval(function() {
-//                clearInterval(_changeInterval)
-//                console.log("now search");
-//                $.ajax({
-//                    url: "/dashboard/user/management/checkuser?email=" + $('#email').val(),
-//                    //beforeSend: function(xhr) {
-//                    // xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
-//                    //},
-//                }).done(function(response) {
-//                    $('#email').removeClass('form-control-success');
-//                    $('#email').removeClass('form-control-warning');
-//                    if(response.email_available) {
-//                        $('#email').parent().parent().addClass('has-success');
-//                        $('#email').addClass('form-control-success');
-//                    } else {
-//                        $('#email').parent().parent().addClass('has-warning');
-//                        $('#email').addClass('form-control-warning');
-//                    }
-//                });
-//            }, 2000);
-//        });
-    });
+        var _changeInterval = null;
+        $("#email").keyup(function() {
+            clearInterval(_changeInterval);
+            _changeInterval = setInterval(function() {
+                clearInterval(_changeInterval)
+                console.log("now search");
+                $.ajax({
+                    url: "/dashboard/user/management/checkuser?email=" + $('#email').val(),
+                    //beforeSend: function(xhr) {
+                    // xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                    //},
+                }).done(function(response) {
+                    $('#email').removeClass('form-control-success');
+                    $('#email').removeClass('form-control-warning');
+                    if(response.email_available) {
+                        $('#email').parent().parent().addClass('has-success');
+                        $('#email').addClass('form-control-success');
+                    } else {
+                        $('#email').parent().parent().addClass('has-warning');
+                        $('#email').addClass('form-control-warning');
+                    }
+                });
+            }, 2000);
+        });
+  });
 
   $(document).ready(function() {
     $('#user_form').bootstrapValidator({
