@@ -48,7 +48,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                         <input type="hidden" id="user" value=""/>
                         {% if users_found > 0 and show_all_users %}
                         {% render_table user_table %}
-                        {% else %}
+                        {% elif users_found == 0 %}
                         <h4>No user matched your search.</h4>
                         {% endif %}
                         </body>
