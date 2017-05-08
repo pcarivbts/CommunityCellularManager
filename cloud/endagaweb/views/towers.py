@@ -28,6 +28,8 @@ from guardian.shortcuts import get_objects_for_user
 from endagaweb import models
 from endagaweb.views.dashboard import ProtectedView
 from endagaweb.views import django_tables
+from django.template.loader import get_template
+from django.http import HttpResponse
 
 
 class TowerList(drf_views.APIView):
@@ -40,9 +42,9 @@ class TowerList(drf_views.APIView):
 
     def get(self, request):
         # Check logged in user permission for view bts
-        if request.user.has_perm('view_bts') is False:
-            html = get_template('dashboard/403.html').render({}, request)
-            return HttpResponse(html)
+        # if request.user.has_perm('view_bts') is False:
+        #     html = get_template('dashboard/403.html').render({}, request)
+        #     return HttpResponse(html)
 
 
         """"Handles GET requests."""
@@ -68,9 +70,13 @@ class TowerList(drf_views.APIView):
             'tower_table': tower_table,
             'suggested_nickname': suggested_nickname,
         }
-        # Render template.
-        towers_template = template.loader.get_template('dashboard/towers.html')
-        html = towers_template.render(context, request)
+        if request.user.has_perm('view_bts') is False:
+            html = get_template('dashboard/403.html').render(context, request)
+        else:
+            # Render template.
+            towers_template = template.loader.get_template('dashboard/towers.html')
+            html = towers_template.render(context, request)
+
         return http.HttpResponse(html)
 
     def post(self, request):
