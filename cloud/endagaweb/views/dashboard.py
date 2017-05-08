@@ -1002,7 +1002,8 @@ class UserManagement(ProtectedView):
         permissions = request.POST.getlist('permissions')
 
         if len(permissions) < 1:
-            messages.warning(request, "User must have assigned some permissions.")
+            messages.error(request, "Minimum one permission is required to create user.",
+                           extra_tags="alert alert-danger")
             return redirect(urlresolvers.reverse('user-management'))
 
         # Disconnect the signal only to create user,set network,role and group
