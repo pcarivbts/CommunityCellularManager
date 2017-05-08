@@ -26,15 +26,14 @@ of patent rights can be found in the PATENTS file in the same directory.
     <div class='row'>
         {% if total_number_of_subscribers %}
 
-        <form action="/dashboard/subscriber_management/subscriber" class="form-horizontal" method="post" role="form">
-            {% csrf_token %}
+        <form action="/dashboard/subscriber_management/subscriber" class="form-horizontal" method="get" role="form">
             <div class="col-md-6">
                 <div class="input-group">
                     <input type="text" class="form-control" name="keyword"
                            placeholder="Search subscribers by name, IMSI or number"
-                           value="{{ eventfilter.keyword|default_if_none:''}}"/>
+                           value="{{ keyword }}"/>
                     <span class="input-group-btn">
-                <button class="btn btn-secondary" type="submit" name="submit">Search</button>
+                <button class="btn btn-secondary" type="submit">Search</button>
               </span>
                 </div>
             </div>
@@ -48,16 +47,16 @@ of patent rights can be found in the PATENTS file in the same directory.
         </div>
     </div>
     <div class='row' id="table_id">
-        <div class="col-xs-8">
+        <div class="col-xs-12 col-md-12">
             {% if show_table == "true" and number_of_filtered_subscribers %}
             <table class="table table-striped" id="sub_table" name="sub_table">
                 <thead>
                 <tr>
-                    <th class="col-xs-3">Select</th>
-                    <th class="col-xs-3">IMSI/Name</th>
-                    <th class="col-xs-2">Number</th>
-                    <th class="col-xs-8">Active</th>
-                    <th class="col-xs-2">Role</th>
+                    <th class="col-xs-1">Select</th>
+                    <th class="col-xs-2"><a href="?keyword={{keyword}}&sort=imsi">IMSI/Name</a></th>
+                    <th class="col-xs-5"><a href="?keyword={{keyword}}&sort=number">Number</a></th>
+                    <th class="col-xs-3"><a href="?keyword={{keyword}}&sort=state">Active</a></th>
+                    <th class="col-xs-2"><a href="?keyword={{keyword}}&sort=role">Role</a></th>
                 </tr>
                 {% for event in query_subscribers %}
                 <tr>
