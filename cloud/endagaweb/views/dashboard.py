@@ -932,8 +932,13 @@ class ActivityView(ProtectedView):
             res_events |= events
         return res_events
 
+def check_permission(request, perm):
+    print "in check_permission"
+    if request.user.has_perm(perm) is False:
+        html = get_template('dashboard/403.html').render({}, request)
+        return HttpResponse(html)
 
-# sagar2.sharma@aricent.com
+
 class UserManagement(ProtectedView):
 
     def get(self, request, *args, **kwargs):

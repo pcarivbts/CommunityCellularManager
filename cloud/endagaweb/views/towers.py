@@ -39,6 +39,12 @@ class TowerList(drf_views.APIView):
                               authentication.TokenAuthentication)
 
     def get(self, request):
+        # Check logged in user permission for view bts
+        if request.user.has_perm('view_bts') is False:
+            html = get_template('dashboard/403.html').render({}, request)
+            return HttpResponse(html)
+
+
         """"Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
         towers = models.BTS.objects.filter(network=user_profile.network)
@@ -68,6 +74,11 @@ class TowerList(drf_views.APIView):
         return http.HttpResponse(html)
 
     def post(self, request):
+        # Check logged in user permission for view bts
+        if request.user.has_perm('add_bts') is False:
+            html = get_template('dashboard/403.html').render({}, request)
+            return HttpResponse(html)
+
         """Handles POST requests to add towers."""
         user_profile = models.UserProfile.objects.get(user=request.user)
         uuid = request.POST.get('uuid')
@@ -157,6 +168,11 @@ class TowerMonitor(ProtectedView):
     """View TimeseriesStats related to a single tower."""
 
     def get(self, request, uuid=None):
+        # Check logged in user permission for view bts
+        if request.user.has_perm('view_bts') is False:
+            html = get_template('dashboard/403.html').render({}, request)
+            return HttpResponse(html)
+        
         """Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
         try:
