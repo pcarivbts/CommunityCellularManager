@@ -1,0 +1,41 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+
+{% load apptags %}
+
+
+{% block title %} {% tmpl_const "SITENAME" %} | Dashboard {% endblock %}
+
+
+{% block pagestyle %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
+
+<style>
+  .timezone-notice {
+    display: none;
+  }
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="row">
+  <div class="col-xs-12 page-header">
+    <h3>Permission denied</h3>
+  </div>
+</div>
+
+
+
+<p>Please contact to administrator to get access for this page.</p>
+
+{% endblock %}

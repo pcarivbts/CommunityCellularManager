@@ -19,7 +19,7 @@ from django.template.loader import get_template
 from django.http import HttpResponse, HttpResponseBadRequest, QueryDict, JsonResponse
 
 from django.shortcuts import redirect, render
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.utils import timezone as django_utils_timezone
 from django.utils.decorators import method_decorator
 from django.contrib import messages
@@ -930,7 +930,13 @@ class ActivityView(ProtectedView):
 
 # sagar2.sharma@aricent.com
 class UserManagement(ProtectedView):
+
     def get(self, request, *args, **kwargs):
+        # Check logged in user permission for view user
+        if request.user.has_perm('view_subscriber') is False:
+            html = get_template('dashboard/403.html').render({}, request)
+            return HttpResponse(html)
+
         # Handles request from Network Admin or Cloud Admin
         user_profile = UserProfile.objects.get(user=request.user)
         user = User.objects.get(id=user_profile.user_id)
@@ -978,6 +984,9 @@ class UserManagement(ProtectedView):
         return HttpResponse(html)
 
     def post(self, request, *args, **kwargs):
+        if request.user.has_perm('view_subscriber') is False:
+            html = get_template('dashboard/403.html').render({}, request)
+            return HttpResponse(html)
 
         # setting email as username
         username = request.POST['email']
@@ -1039,6 +1048,11 @@ class UserManagement(ProtectedView):
 
 class UserDelete(ProtectedView):
     def get(self, request, *args, **kwargs):
+        # Check logged in user permission for delete user
+        if request.user.has_perm('view_subscriber') is False:
+            html = get_template('dashboard/403.html').render({}, request)
+            return HttpResponse(html)
+
         # Use render_table to hide/unhide users on search page.
         user_profile = UserProfile.objects.get(user=request.user)
         # exclude cloud admin for every scenario
@@ -1101,6 +1115,10 @@ class UserDelete(ProtectedView):
 
 class UserBlockUnblock(ProtectedView):
     def get(self, request, *args, **kwargs):
+        # Check logged in user permission for block user
+        if request.user.has_perm('view_subscriber') is False:
+            html = get_template('dashboard/403.html').render({}, request)
+            return HttpResponse(html)
 
         user_profile = UserProfile.objects.get(user=request.user)
         query = request.GET.get('query', None)
