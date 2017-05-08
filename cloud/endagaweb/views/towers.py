@@ -28,6 +28,8 @@ from guardian.shortcuts import get_objects_for_user
 from endagaweb import models
 from endagaweb.views.dashboard import ProtectedView
 from endagaweb.views import django_tables
+from django.template.loader import get_template
+from django.http import HttpResponse
 
 
 class TowerList(drf_views.APIView):
