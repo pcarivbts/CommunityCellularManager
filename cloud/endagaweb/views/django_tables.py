@@ -321,8 +321,8 @@ def render_username(record, **kwargs):
     sender: name for the sender to change on click behaviour"""
 
     if kwargs.get('sender')=='blocking':
-        element = "<a href='javascript:void(0)' id='user_"+str(record.id)+"' onclick='block(\"%s\");' data-target='#block-user-modal' data-toggle='modal'>%s</a>" \
-                  % (record.id, html_utils.escape(record.username))
+        element = "<a href='javascript:void(0)' id='user_"+str(record.id)+"' onclick='block(\"%s\",\"%s\");' data-target='#block-user-modal' data-toggle='modal'>%s</a>" \
+                  % (record.id,record.is_active, html_utils.escape(record.username))
 
     elif kwargs.get('sender') == 'delete':
         element = "<a href='javascript:void(0)' id='user_"+str(record.id)+"' onclick='remove(\"%s\");' data-target='#delete-user-modal' data-toggle='modal'>%s</a>" \
