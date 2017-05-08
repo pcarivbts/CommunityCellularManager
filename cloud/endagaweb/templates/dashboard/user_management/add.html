@@ -70,7 +70,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                             <div class="input-group-addon">
                                 <i class="glyphicon glyphicon-user"></i>
                             </div>
-                            <select name="role" class="form-control" onchange="changeRole(this)" required>
+                            <select name="role" id="role" class="form-control" onchange="changeRole(this)" required>
                                 <option value="">-Select role-</option>
                                 {% for values in roles %}
                                 <option value="{{ values }}">{{ values }}</option>
@@ -310,6 +310,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endblock %}
 {% block js %}
 <script src="/static/js/dashboard/validator.js"></script>
+
 <script>
 
     function changeRole(role) {
@@ -375,13 +376,18 @@ of patent rights can be found in the PATENTS file in the same directory.
         // Email validation
 
         $('form input[name="email"]').blur(function () {
+        $('#email').removeClass('form-control-success');
+        $('#email').removeClass('form-control-warning');
         var email = $(this).val();
         var _changeInterval = null;
         var re = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}/igm;
         if (re.test(email)) {
+
             $('.msg').hide();
             $('.success').show();
             $('.exists').hide();
+            $('#email').parent().parent().removeClass('has-success');
+            $('#email').parent().parent().removeClass('has-warning');
 
             // Check if email exists...
 
@@ -420,7 +426,8 @@ of patent rights can be found in the PATENTS file in the same directory.
 
         $('#user_form').validator();
         $('#submit').click(function(){
-            if($('#role').val() && $('#email').val() && $('#password').val() && $('#permissions_right option').length && $('#network option:selected').length){
+            if($('#role').val() && $('#valid_email').val() != 0 && $('#password').val()
+            && $('#permissions_right option').length && $('#network option:selected').length){
                 var permissions = [];
                 $.each($('#permissions_right option'), function(key, val) {
                     permissions.push($(val).val());
@@ -445,7 +452,9 @@ of patent rights can be found in the PATENTS file in the same directory.
                 }).done(function(response) {
                     window.location.href = '/dashboard/user/management';
                 });
-            } 
+            } else {
+                console.log("form invalid");
+            }
         });
   });
 
