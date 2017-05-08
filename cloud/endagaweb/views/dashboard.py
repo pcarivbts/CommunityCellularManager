@@ -1007,7 +1007,8 @@ class UserManagement(ProtectedView):
         permissions = request.POST.getlist('permissions')
 
         if len(permissions) < 1:
-            messages.warning(request, "User must have assigned some permissions.")
+            messages.error(request, "Minimum one permission is required to create user.",
+                           extra_tags="alert alert-danger")
             return redirect(urlresolvers.reverse('user-management'))
 
         # Disconnect the signal only to create user,set network,role and group
@@ -1047,7 +1048,7 @@ class UserManagement(ProtectedView):
         except IntegrityError:
             message = "User with email %s already exists!" % email
             post_save.connect(UserProfile.new_user_hook, sender=User)
-            messages.warning(request, message)
+            messages.error(request, message,extra_tags="alert alert-danger")
             # Re-connect the signal before return if it reaches exception
             post_save.connect(UserProfile.new_user_hook, sender=User)
             return redirect(urlresolvers.reverse('user-management'))
