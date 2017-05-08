@@ -942,18 +942,19 @@ def check_permission(request, perm):
 class UserManagement(ProtectedView):
 
     def get(self, request, *args, **kwargs):
-        # Check logged in user permission for view user
-        if request.user.has_perm('view_subscriber') is False:
-            html = get_template('dashboard/403.html').render({}, request)
-            return HttpResponse(html)
-
-        # Handles request from Network Admin or Cloud Admin
+                # Handles request from Network Admin or Cloud Admin
         user_profile = UserProfile.objects.get(user=request.user)
         user = User.objects.get(id=user_profile.user_id)
         permission_set = ["credit", "graph", "report", "smsbroadcast", "tower", "bts", "subscriber", "network",
                           "notification", "usageevent"]
         role = USER_ROLES
         restricted_perms = []
+
+        # Check logged in user permission for view user
+        if user_profile.role != 'network_admin':
+            if request.user.has_perm('view_subscriber') is False:
+                html = get_template('dashboard/403.html').render({}, request)
+                return HttpResponse(html)
 
         if not user_profile.user.is_superuser:
             role = USER_ROLES[0:len(USER_ROLES) - 1]
