@@ -8,46 +8,45 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 """
 
+import csv
 import datetime
 import logging
+import operator
 import time
 import urllib
 import uuid
-import operator
-
-from django.template.loader import get_template
-from django.http import HttpResponse, HttpResponseBadRequest, QueryDict, JsonResponse
-
-from django.shortcuts import redirect, render
-from django.contrib.auth.decorators import login_required
-from django.utils import timezone as django_utils_timezone
-from django.utils.decorators import method_decorator
-from django.contrib import messages
-from django.conf import settings
-from django.core import urlresolvers
-from django.views.generic import View
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q
 
 import django_tables2 as tables
-import csv
 import humanize
 import pytz
-from rest_framework.authtoken.models import Token
 import stripe
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User, Permission, ContentType, Group
+from django.core import urlresolvers
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db import transaction
+from django.db.models import Q
+from django.db.models.signals import post_save
+from django.http import HttpResponse, HttpResponseBadRequest, QueryDict, JsonResponse
+from django.shortcuts import redirect
+from django.template.loader import get_template
+from django.utils import timezone as django_utils_timezone
+from django.utils.decorators import method_decorator
+from django.views.generic import View
+from guardian.shortcuts import (get_objects_for_user)
+from rest_framework.authtoken.models import Token
+
 from ccm.common.currency import parse_credits, humanize_credits, \
-    CURRENCIES, Money
-from endagaweb.models import (UserProfile, Ledger, Subscriber, UsageEvent,
+    CURRENCIES
+from endagaweb import tasks
+from endagaweb.forms import dashboard_forms as dform
+from endagaweb.models import (UserProfile, Subscriber, UsageEvent,
                               Network, PendingCreditUpdate, Number)
 from endagaweb.util.currency import cents2mc
-from endagaweb.forms import dashboard_forms as dform
-from endagaweb import tasks
 from endagaweb.views import django_tables
-from guardian.shortcuts import (assign_perm, get_objects_for_user,
-                                get_users_with_perms)
-from django.contrib.auth.models import User, Permission, ContentType, Group
-from django.db.models.signals import post_save
-from django.db import transaction
+from django.db import IntegrityError
 
 
 class ProtectedView(View):
@@ -1025,12 +1024,15 @@ class UserManagement(ProtectedView):
                     permission = Permission.objects.get(id=permission_id)
                     user.user_permissions.add(permission)
 
-        except Exception as err:
+        except IntegrityError:
+            message = "User with email %s already exists!" % email
+            post_save.connect(UserProfile.new_user_hook, sender=User)
+            messages.warning(request, message)
             # Re-connect the signal before return if it reaches exception
             post_save.connect(UserProfile.new_user_hook, sender=User)
-            messages.warning(request, err)
             return redirect(urlresolvers.reverse('user-management'))
 
+        # Re-connect the signal before return if it reaches exception
         post_save.connect(UserProfile.new_user_hook, sender=User)
         messages.success(request, 'User added successfully!')
 
