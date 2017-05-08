@@ -109,7 +109,10 @@ class UserProfile(models.Model):
         """
         if created and instance.username != settings.ANONYMOUS_USER_NAME:
             profile = UserProfile.objects.create(user=instance)
-            network = Network.objects.create()
+
+            # To avoid duplicate names while running setup_test_db
+            # network = Network.objects.create()
+            network = Network.objects.create(name='Network_%s' % instance.pk )
             network.auth_group.user_set.add(instance)
             network.save()
             # Make this the users currently selected network
