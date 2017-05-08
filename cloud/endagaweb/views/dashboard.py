@@ -1004,13 +1004,14 @@ class UserManagement(ProtectedView):
         email = request.POST['email']
         password = request.POST['password']
         user_role = str(request.POST['role']).lower().replace(' ', '_')
-        networks = request.POST.getlist('network')
-        permissions = request.POST.getlist('permissions')
-
+        networks = str(request.POST.get('networks')).split(',')
+        permissions = str(request.POST.get('permissions')).split(',')
+        
         if len(permissions) < 1:
-            messages.error(request, "Minimum one permission is required to create user.",
-                           extra_tags="alert alert-danger")
-            return redirect(urlresolvers.reverse('user-management'))
+            message = "Minimum one permission is required to create user."
+            messages.error(request, message, extra_tags="alert alert-danger")
+            return JsonResponse({'status':'error', 'message': message})
+            #return redirect(urlresolvers.reverse('user-management'))
 
         # Disconnect the signal only to create user,set network,role and group
         post_save.disconnect(UserProfile.new_user_hook, sender=User)
@@ -1052,13 +1053,15 @@ class UserManagement(ProtectedView):
             messages.error(request, message,extra_tags="alert alert-danger")
             # Re-connect the signal before return if it reaches exception
             post_save.connect(UserProfile.new_user_hook, sender=User)
-            return redirect(urlresolvers.reverse('user-management'))
+            return JsonResponse({'status':'error', 'message': message})
+            #return redirect(urlresolvers.reverse('user-management'))
 
         # Re-connect the signal before return if it reaches exception
         post_save.connect(UserProfile.new_user_hook, sender=User)
         messages.success(request, 'User added successfully!')
 
-        return redirect(urlresolvers.reverse('user-management'))
+        return JsonResponse({'status':'success', 'message': 'User added successfully'})
+        #return redirect(urlresolvers.reverse('user-management'))
 
 
 class UserDelete(ProtectedView):
