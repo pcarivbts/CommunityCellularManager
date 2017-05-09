@@ -361,4 +361,4 @@ class BlockedUserTable(tables.Table):
     is_active = tables.BooleanColumn(yesno=u'Active, Blocked', verbose_name='Status', orderable=True)
 
     def render_username(self, record):
-        return render_username(record,sender='blocking')
+        return render_username(record, sender='blocking')

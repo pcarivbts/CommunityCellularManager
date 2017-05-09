@@ -60,7 +60,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             {% endfor %}
 
             <form action="/dashboard/user/management" id="user_form" name="user_form" method="POST"
-                  data-toggle="validator" onsubmit="return createUser();"> {% csrf_token %}
+                  data-toggle="validator"> {% csrf_token %}
 
                 <!--Role-->
                 <div class="form-group row" data-toggle="tooltip" title="Select the user role" required>
@@ -297,7 +297,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <div class="row">&nbsp;</div>
 
                 <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
-                    <input type="submit" id="submit" class="btn btn-primary" value="Submit" />
+                    <input type="button" id="submit" class="btn btn-primary" value="Submit" />
                 </div>                
             </form>
 
@@ -309,9 +309,10 @@ of patent rights can be found in the PATENTS file in the same directory.
 </header>
 {% endblock %}
 {% block js %}
-<!--script src="/static/js/dashboard/validator.js"></script-->
-<script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
+<script src="/static/js/dashboard/validator.js"></script>
+
 <script>
+
     function changeRole(role) {
         if(role.value=='Network Admin'){
             document.getElementById('network').multiple = true;
@@ -411,13 +412,11 @@ of patent rights can be found in the PATENTS file in the same directory.
                     });
                 }, 2000);
 
-            } else {
-                $('.msg').hide();
-                $('.error').show();
-                $('.exists').hide();
-                $('#email').parent().parent().removeClass('has-success');
-                $('#email').parent().parent().removeClass('has-warning');
-            }
+        } else {
+            $('.msg').hide();
+            $('.error').show();
+            $('.exists').hide();
+        }
 
         });
 
@@ -439,7 +438,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 }
             }
         });
-        
+
   });
     //$('#submit').click(function(){
     function createUser() {

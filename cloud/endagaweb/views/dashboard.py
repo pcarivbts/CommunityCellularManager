@@ -52,7 +52,8 @@ from endagaweb.models import (UserProfile, Subscriber, UsageEvent,
 from endagaweb.util.currency import cents2mc
 from endagaweb.views import django_tables
 from django.db import IntegrityError
-
+from django.contrib.auth.views import password_reset
+from django.core.urlresolvers import reverse
 
 class ProtectedView(View):
     """ A class-based view that requires a login. """
@@ -939,11 +940,7 @@ class ActivityView(ProtectedView):
         return res_events
 
 
-def check_permission(request, perm):
-    print "in check_permission"
-    if request.user.has_perm(perm) is False:
-        html = get_template('dashboard/403.html').render({}, request)
-        return HttpResponse(html)
+
 
 
 class UserManagement(ProtectedView):
@@ -977,7 +974,7 @@ class UserManagement(ProtectedView):
         context = {
             'user_profile': user_profile,
             'networks': get_objects_for_user(request.user,
-                                         'view_network', klass=Network),
+                                             'view_network', klass=Network),
             'permissions': permission,
             'staff': user.is_staff,
             'roles': role
@@ -1050,6 +1047,8 @@ class UserManagement(ProtectedView):
             post_save.connect(UserProfile.new_user_hook, sender=User)
             return JsonResponse({'status': 'error', 'message': message})
 
+        # Sending email now to reset password
+        self._send_reset_link(request)
         # Re-connect the signal before return if it reaches exception
         post_save.connect(UserProfile.new_user_hook, sender=User)
         messages.success(request, 'User added successfully!')
@@ -1057,8 +1056,14 @@ class UserManagement(ProtectedView):
         return JsonResponse({'status': 'success', 'message': 'User added successfully'})
 
 
-class UserDelete(ProtectedView):
+    # @staticmethod
+    def _send_reset_link(self,request):
+        return password_reset(request,# email_template_name='dashboard/user_management/reset_email.html',
+                              # subject_template_name='dashboard/user_management/reset_subject.txt',
+                              post_reset_redirect=reverse('user-management'))
 
+
+class UserDelete(ProtectedView):
     def get(self, request, *args, **kwargs):
 
         # Use render_table to hide/unhide users on search page.
@@ -1136,7 +1141,6 @@ class UserBlockUnblock(ProtectedView):
         user_profile = UserProfile.objects.get(user=request.user)
         query = request.GET.get('query', None)
 
-        
         if query:
             # Exclude Super/Django Admin
             query_users = (

@@ -1,60 +1,72 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <!-- Link to the Bootstrap CSS from a CDN -->
-    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css"
-          rel="stylesheet">
-  </head>
-  <body>
-    <div class="container">
-      <div class="header">
-        <h3 class="text-muted">Password reset confirm</h3>
-      </div>
-       <div class="row" style="padding:20px;">
-          {% if validlink %} <!-- If the link is valid, display a confirmation page, else display an error message -->
-          <form role="form" action="." method="post">
-           {% csrf_token %} <!-- CSRF token is rendered by Django in forms to avoid CSRF attacks -->
+{% extends "home/layout.html" %}
+{% load account socialaccount %}
+{% block pagestyle %}
 
-           <!-- If there are non-field errors in the form,
-                iterate over them one by one and display them.
-            -->
-           {% if form.non_field_errors %}
-            <p class="error">
-              {% for error in form.non_field_errors %}
-		            {{ error }}
-		          {% endfor %}
-            </p>
-           {% endif %}
-           <!-- Iterate over the fields in a form and render them  -->
-           {% for field in form %}
-            <div class="form-group">
-              <!-- Render the field label tag -->
-		          {{ field.label_tag }}
-              <!-- If the field is required, display a * next to the field label -->
-              {% if field.field.required %}
-              *
-              {% endif %}
-              <br/>
-              <!-- Render the input field -->
-		          {{ field }}
-		        <!-- Iterate over the field's errors, if any and display
-                 them one by one in a error alert
-            -->
-		        {% if field.errors %}
-		          <p class="error">
-		          {% for error in field.errors %}
-		            {{ error }}
-		          {% endfor %}
-		          </p>
-		        {% endif %}
+<style>
+  #login-button {
+    margin-bottom: 30px;
+  }
+
+</style>
+{% endblock %}
+
+{% block headerclass %}
+<body id="reset_password">
+<header class="navbar navbar-inverse normal" role="banner">
+
+    {% endblock %}
+    {% block content %}
+    <div class="container">
+        <div class="row header">
+            <div class="col-md-12">
+            </br>
+                <img class="img-responsive" src="/static/img/papua.jpg" alt="Papua"/>
             </div>
-          {% endfor %}
-    		<input type="submit" class="btn btn-default" value="Submit" />
-   	  </form>
-       {% else %} <!-- Since the confirmatino link is invalid, display an error message -->
-       Invalid password reset link
-       {% endif %}
-      </div>
+        </div>
+        <div class="row">
+            <div class="container">
+
+                <div class="row" style="padding:20px;">
+                    {% if validlink %}
+                    <h4>Please reset your password.</h4>
+                    <!-- If the link is valid, display a confirmation page, else display an error message -->
+                    <form role="form" action="." method="post">
+                        {% csrf_token %}
+                        <!-- CSRF token is rendered by Django in forms to avoid CSRF attacks -->
+
+                        {% if form.non_field_errors %}
+                        <p class="error">
+                            {% for error in form.non_field_errors %}
+                            <span class="help-inline">{{ error }}</span>
+                            {% endfor %}
+                        </p>
+                        {% endif %}
+                        {% for field in form %}
+                        <div class="form-group">
+                            <label class="control-label">{{ field.label_tag }}</label>
+                            <div></div>
+                            {{ field }}
+                            {% if field.errors %}
+                            <p class="error">
+                                {% for error in field.errors %}
+                                <span class="help-inline">{{ error }}</span>
+                                {% endfor %}
+                            </p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        <input type="submit" class="btn btn-default" value="Submit"/>
+                    </form>
+                    {% else %} <!-- Since the confirmation link is invalid, display an error message -->
+                        <h4> Invalid password reset link</h4>
+                    {% endif %}
+                    <div class="header">
+                        <h4 class="text-muted">{{ form.user }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </body>
-</html>
+</header>
+</body>
+{% endblock %}

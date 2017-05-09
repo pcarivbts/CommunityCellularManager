@@ -153,13 +153,14 @@ urlpatterns = [
         endagaweb.views.dashboard.SubscriberSendSMS.as_view(),
         name='broadcast-sms'),
 
-    url(r'^reset', endagaweb.views.user.reset),
+    url(r'^reset$', endagaweb.views.user.reset),
 
-    url(r'^reset/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',
+    url(r'^reset/(?P<token>[A-Za-z0-9-]+)/(?P<uidb64>[0-9A-Za-z_\-]+)/$',
         endagaweb.views.user.reset_confirm,
         name='password_reset_confirm'),
 
     url(r'^success/$', endagaweb.views.user.success, name='success'),
+
     # sagar2.sharma@aricent.com _ends_
 
     url(r'^dashboard/subscriber_management/subscriber$', endagaweb.views.dashboard.SubscriberCategoryEdit.as_view(),
