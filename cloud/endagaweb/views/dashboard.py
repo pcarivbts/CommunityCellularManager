@@ -1136,12 +1136,7 @@ class UserBlockUnblock(ProtectedView):
         user_profile = UserProfile.objects.get(user=request.user)
         query = request.GET.get('query', None)
 
-        # Check logged in user permission for block user
-        if not user_profile.user.is_staff:
-            info_template = get_template('dashboard/403.html')
-            html = info_template.render({}, request)
-            return HttpResponse(html)
-
+        
         if query:
             # Exclude Super/Django Admin
             query_users = (
@@ -1171,8 +1166,12 @@ class UserBlockUnblock(ProtectedView):
             'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
         }
 
-        # Render template.
-        info_template = get_template('dashboard/user_management/delete.html')
+        # Check logged in user permission for block user
+        if not user_profile.user.is_staff:
+            info_template = get_template('dashboard/403.html')
+        else:
+            #Render template.
+            info_template = get_template('dashboard/user_management/block-unblock.html')
 
         html = info_template.render(context, request)
         return HttpResponse(html)
