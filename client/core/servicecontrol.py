@@ -76,7 +76,7 @@ class SupervisorControl(BaseServiceControl):
     """
 
     def __init__(self):
-        t = SupervisorTransport(None, None, "unix:///var/run/supervisor.sock")
+        t = SupervisorTransport(None, None, "unix:///var/run/supervisor/supervisor.sock")
         self.server = xmlrpclib.ServerProxy("http://127.0.0.1", transport=t)
 
     def stopProcess(self, name):
