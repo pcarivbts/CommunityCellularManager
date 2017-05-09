@@ -60,7 +60,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             {% endfor %}
 
             <form action="/dashboard/user/management" id="user_form" name="user_form" method="POST"
-                  data-toggle="validator"> {% csrf_token %}
+                  data-toggle="validator" onsubmit="return createUser();"> {% csrf_token %}
 
                 <!--Role-->
                 <div class="form-group row" data-toggle="tooltip" title="Select the user role" required>
@@ -297,7 +297,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <div class="row">&nbsp;</div>
 
                 <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
-                    <input type="button" id="submit" class="btn btn-primary" value="Submit" />
+                    <input type="submit" id="submit" class="btn btn-primary" value="Submit" />
                 </div>                
             </form>
 
@@ -309,10 +309,9 @@ of patent rights can be found in the PATENTS file in the same directory.
 </header>
 {% endblock %}
 {% block js %}
-<script src="/static/js/dashboard/validator.js"></script>
-
+<!--script src="/static/js/dashboard/validator.js"></script-->
+<script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
 <script>
-
     function changeRole(role) {
         if(role.value=='Network Admin'){
             document.getElementById('network').multiple = true;
@@ -424,41 +423,57 @@ of patent rights can be found in the PATENTS file in the same directory.
 
         });
 
-        $('#user_form').validator();
-        $('#submit').click(function(){
-            if($('#role').val() && $('#valid_email').val() != 0 && $('#password').val()
-            && $('#permissions_right option').length && $('#network option:selected').length){
-                var permissions = [];
-                $.each($('#permissions_right option'), function(key, val) {
-                    permissions.push($(val).val());
-                });
-                var networks = [];
-                $.each($('#network option:selected'), function(key, val) {
-                    networks.push($(val).val());
-                });
-                $.ajax({
-                    url: "/dashboard/user/management",
-                    type: 'POST',
-                    beforeSend: function(xhr) {
-                        xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
-                    },
-                    data:{
-                        role: $('#role').val(),
-                        email: $('#email').val(),
-                        password: $('#password').val(),
-                        networks: networks.join(","),
-                        permissions: permissions.join(",")
-                    }
-                }).done(function(response) {
-                    window.location.href = '/dashboard/user/management';
-                });
-            } else {
-                console.log("form invalid");
+        //$('#user_form').validator();
+        $('#user_form').validate({
+            highlight: function(element) {
+                $(element).closest('.form-group').addClass('has-error');
+            },
+            unhighlight: function(element) {
+                $(element).closest('.form-group').removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'help-block',
+            errorPlacement: function(error, element) {
+                if(element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
             }
         });
+        
   });
-
-
+    //$('#submit').click(function(){
+    function createUser() {
+        if($('#role').val() && $('#valid_email').val() != 0 && $('#password').val()
+        && $('#permissions_right option').length && $('#network option:selected').length){
+            var permissions = [];
+            $.each($('#permissions_right option'), function(key, val) {
+                permissions.push($(val).val());
+            });
+            var networks = [];
+            $.each($('#network option:selected'), function(key, val) {
+                networks.push($(val).val());
+            });
+            $.ajax({
+                url: "/dashboard/user/management",
+                type: 'POST',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                },
+                data:{
+                    role: $('#role').val(),
+                    email: $('#email').val(),
+                    password: $('#password').val(),
+                    networks: networks.join(","),
+                    permissions: permissions.join(",")
+                }
+            }).done(function(response) {
+                window.location.href = '/dashboard/user/management';
+            });
+        }
+        return false;
+    }
 </script>
 
 {% endblock %}
