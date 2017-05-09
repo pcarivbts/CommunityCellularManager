@@ -352,10 +352,6 @@ of patent rights can be found in the PATENTS file in the same directory.
         $("#permissions_row tr:odd").css("background", "#DAE4F0");
         $("#permissions_row tr:even").css("background", "#eee");
 
-        // $('#user_form').validator().on('submit', function (e) {
-            
-        // });
-
         $('#lstview_rightSelected').click(function () {
             moveItems('#permissions_left', '#permissions_right');
         });
@@ -375,51 +371,53 @@ of patent rights can be found in the PATENTS file in the same directory.
         // Email validation
 
         $('form input[name="email"]').blur(function () {
-        $('#email').removeClass('form-control-success');
-        $('#email').removeClass('form-control-warning');
-        var email = $(this).val();
-        var _changeInterval = null;
-        var re = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}/igm;
-        if (re.test(email)) {
+            $('#email').removeClass('form-control-success');
+            $('#email').removeClass('form-control-warning');
+            var email = $(this).val();
+            var _changeInterval = null;
+            var re = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}/igm;
+            if (re.test(email)) {
 
-            $('.msg').hide();
-            $('.success').show();
-            $('.exists').hide();
-            $('#email').parent().parent().removeClass('has-success');
-            $('#email').parent().parent().removeClass('has-warning');
+                $('.msg').hide();
+                $('.success').show();
+                $('.exists').hide();
+                $('#email').parent().parent().removeClass('has-success');
+                $('#email').parent().parent().removeClass('has-warning');
 
-            // Check if email exists...
+                // Check if email exists...
 
-            clearInterval(_changeInterval);
-            _changeInterval = setInterval(function() {
-                clearInterval(_changeInterval)
-                console.log("checking if email exists...");
-                $.ajax({
-                    url: "/dashboard/user/management/checkuser?email=" + $('#email').val(),
-                    //beforeSend: function(xhr) {
-                    // xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
-                    //},
-                }).done(function(response) {
-                    $('#email').removeClass('form-control-success');
-                    $('#email').removeClass('form-control-warning');
-                    if(response.email_available) {
-                        $('#valid_email').val(1);
-                        $('#email').parent().parent().addClass('has-success');
-                        $('#email').addClass('form-control-success');
-                    } else {
-                        $('#valid_email').val(0);
-                        $('#email').parent().parent().addClass('has-warning');
-                        $('#email').addClass('form-control-warning');
-                        $('.exists').show();
-                    }
-                });
-            }, 2000);
+                clearInterval(_changeInterval);
+                _changeInterval = setInterval(function() {
+                    clearInterval(_changeInterval)
+                    console.log("checking if email exists...");
+                    $.ajax({
+                        url: "/dashboard/user/management/checkuser?email=" + $('#email').val(),
+                        //beforeSend: function(xhr) {
+                        // xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                        //},
+                    }).done(function(response) {
+                        $('#email').removeClass('form-control-success');
+                        $('#email').removeClass('form-control-warning');
+                        if(response.email_available) {
+                            $('#valid_email').val(1);
+                            $('#email').parent().parent().addClass('has-success');
+                            $('#email').addClass('form-control-success');
+                        } else {
+                            $('#valid_email').val(0);
+                            $('#email').parent().parent().addClass('has-warning');
+                            $('#email').addClass('form-control-warning');
+                            $('.exists').show();
+                        }
+                    });
+                }, 2000);
 
-        } else {
-            $('.msg').hide();
-            $('.error').show();
-            $('.exists').hide();
-        }
+            } else {
+                $('.msg').hide();
+                $('.error').show();
+                $('.exists').hide();
+                $('#email').parent().parent().removeClass('has-success');
+                $('#email').parent().parent().removeClass('has-warning');
+            }
 
         });
 
