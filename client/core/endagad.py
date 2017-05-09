@@ -129,8 +129,9 @@ class EndagaD(object):
 
             # Upgrade the endaga metapackage, when appropriate and only if that
             # feature is enabled.
-            logger.notice("Performing autoupgrade")
-            system_utilities.try_to_autoupgrade()
+            # We dont need this because upgrade shouble be done via opkg
+            #logger.notice("Performing autoupgrade")
+            #system_utilities.try_to_autoupgrade()
 
             # Sleep for some amount of time before retrying
             logger.notice("Performing sleep")
