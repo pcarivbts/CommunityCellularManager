@@ -1050,11 +1050,8 @@ class UserManagement(ProtectedView):
 
 
 class UserDelete(ProtectedView):
+
     def get(self, request, *args, **kwargs):
-        # Check logged in user permission for delete user
-        if request.user.has_perm('view_subscriber') is False:
-            html = get_template('dashboard/403.html').render({}, request)
-            return HttpResponse(html)
 
         # Use render_table to hide/unhide users on search page.
         user_profile = UserProfile.objects.get(user=request.user)
@@ -1088,9 +1085,14 @@ class UserDelete(ProtectedView):
             'user_profile': user_profile,
             'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
         }
-        # Render template.
-        info_template = get_template(
-            'dashboard/user_management/delete.html')
+        # Check logged in user permission for delete user
+        if request.user.has_perm('view_subscriber') is False:
+            info_template=get_template('dashboard/403.html')
+        else:
+            # Render template.
+            info_template = get_template(
+                'dashboard/user_management/delete.html')
+
         html = info_template.render(context, request)
         return HttpResponse(html)
 
@@ -1154,9 +1156,15 @@ class UserBlockUnblock(ProtectedView):
             'user_profile': user_profile,
             'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
         }
-        # Render template.
-        info_template = get_template(
-            'dashboard/user_management/block-unblock.html')
+
+        # Check logged in user permission for delete user
+        if request.user.has_perm('view_subscriber') is False:
+            info_template = get_template('dashboard/403.html')
+        else:
+            # Render template.
+            info_template = get_template(
+                'dashboard/user_management/delete.html')
+
         html = info_template.render(context, request)
         return HttpResponse(html)
 
