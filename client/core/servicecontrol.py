@@ -147,9 +147,9 @@ class SystemControl(BaseServiceControl):
                 self.cmd = "service"
 
         if self.cmd == "systemctl":
-            r = envoy.run("sudo systemctl %s %s" % (command, name))
+            r = envoy.run("systemctl %s %s" % (command, name))
         else:
-            r = envoy.run("sudo service %s %s" % (name, command))
+            r = envoy.run("service %s %s" % (name, command))
         result = r.status_code == 0
         return result
 
