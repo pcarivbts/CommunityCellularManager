@@ -73,12 +73,12 @@ class TowerList(drf_views.APIView):
             'suggested_nickname': suggested_nickname,
         }
 
-        if 'view_bts' not in permissions:
-            html = get_template('dashboard/403.html').render(context, request)
-        else:
+        #if 'view_bts' not in permissions:
+        #    html = get_template('dashboard/403.html').render(context, request)
+        #else:
             # Render template.
-            towers_template = template.loader.get_template('dashboard/towers.html')
-            html = towers_template.render(context, request)
+        towers_template = template.loader.get_template('dashboard/towers.html')
+        html = towers_template.render(context, request)
 
         return http.HttpResponse(html)
 
@@ -180,10 +180,6 @@ class TowerMonitor(ProtectedView):
     """View TimeseriesStats related to a single tower."""
 
     def get(self, request, uuid=None):
-        # Check logged in user permission for view bts
-        if request.user.has_perm('view_bts') is False:
-            html = get_template('dashboard/403.html').render({}, request)
-            return HttpResponse(html)
         
         """Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)

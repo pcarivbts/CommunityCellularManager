@@ -57,9 +57,16 @@ from django.db import IntegrityError
 class ProtectedView(View):
     """ A class-based view that requires a login. """
 
+    #title = ""
+
     @method_decorator(login_required)
-    def dispatch(self, *args, **kwargs):
-        return super(ProtectedView, self).dispatch(*args, **kwargs)
+    def dispatch(self, request, *args, **kwargs):
+        #print "in ProtectedView dispatch() - "
+        #print self
+        #print request.method
+        #print self.title
+        #print "--------------------------"
+        return super(ProtectedView, self).dispatch(request, *args, **kwargs)
 
 
 """
@@ -941,6 +948,7 @@ def check_permission(request, perm):
 
 class UserManagement(ProtectedView):
     def get(self, request, *args, **kwargs):
+        self.title = "shiv here again"
         # Handles request from Network Admin or Cloud Admin
         user_profile = UserProfile.objects.get(user=request.user)
         user = User.objects.get(id=user_profile.user_id)
@@ -1086,8 +1094,9 @@ class UserDelete(ProtectedView):
             'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
         }
         # Check logged in user permission for delete user
-        if request.user.has_perm('view_subscriber') is False:
-            info_template=get_template('dashboard/403.html')
+
+        if not user_profile.user.is_staff:
+            info_template = get_template('dashboard/403.html')
         else:
             # Render template.
             info_template = get_template(
@@ -1106,6 +1115,10 @@ class UserDelete(ProtectedView):
 
         # CA can delete NA/BA/Partner/Loader
         # NA can delete BA/Partner/Loader
+        if not user_profile.user.is_staff:
+            info_template = get_template('dashboard/403.html')
+            html = info_template.render({}, request)
+            return HttpResponse(html)
 
         if ((user_profile.user.is_superuser and user_profile.user.is_staff) and (not user.is_superuser)) or \
                 (user_profile.user.is_staff and (not user.is_staff)):
@@ -1120,13 +1133,14 @@ class UserDelete(ProtectedView):
 
 class UserBlockUnblock(ProtectedView):
     def get(self, request, *args, **kwargs):
-        # Check logged in user permission for block user
-        if request.user.has_perm('view_subscriber') is False:
-            html = get_template('dashboard/403.html').render({}, request)
-            return HttpResponse(html)
-
         user_profile = UserProfile.objects.get(user=request.user)
         query = request.GET.get('query', None)
+
+        # Check logged in user permission for block user
+        if not user_profile.user.is_staff:
+            info_template = get_template('dashboard/403.html')
+            html = info_template.render({}, request)
+            return HttpResponse(html)
 
         if query:
             # Exclude Super/Django Admin
@@ -1157,14 +1171,9 @@ class UserBlockUnblock(ProtectedView):
             'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
         }
 
-        # Check logged in user permission for delete user
-        if request.user.has_perm('view_subscriber') is False:
-            info_template = get_template('dashboard/403.html')
-        else:
-            # Render template.
-            info_template = get_template(
-                'dashboard/user_management/delete.html')
-
+        # Render template.
+        info_template = get_template('dashboard/user_management/delete.html')
+        
         html = info_template.render(context, request)
         return HttpResponse(html)
 
