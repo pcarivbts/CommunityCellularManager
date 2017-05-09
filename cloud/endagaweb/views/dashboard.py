@@ -16,7 +16,6 @@ import time
 import urllib
 import uuid
 
-
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required, permission_required
 from django.utils import timezone as django_utils_timezone
@@ -932,6 +931,7 @@ class ActivityView(ProtectedView):
             res_events |= events
         return res_events
 
+
 def check_permission(request, perm):
     print "in check_permission"
     if request.user.has_perm(perm) is False:
@@ -940,35 +940,22 @@ def check_permission(request, perm):
 
 
 class UserManagement(ProtectedView):
-
     def get(self, request, *args, **kwargs):
-                # Handles request from Network Admin or Cloud Admin
+        # Handles request from Network Admin or Cloud Admin
         user_profile = UserProfile.objects.get(user=request.user)
         user = User.objects.get(id=user_profile.user_id)
         permission_set = ["credit", "graph", "report", "smsbroadcast", "tower", "bts", "subscriber", "network",
                           "notification", "usageevent"]
-        role = USER_ROLES
-        restricted_perms = []
 
-        # Check logged in user permission for view user
-        if user_profile.role != 'network_admin':
-            if request.user.has_perm('view_subscriber') is False:
-                html = get_template('dashboard/403.html').render({}, request)
-                return HttpResponse(html)
+        # View network is restricted else giving this in permission will allow user to have all networks
+        restricted_perms = ['view_network']
 
-        if not user_profile.user.is_superuser:
+        if user.is_superuser:  # Cloud Admin
+            role = USER_ROLES
+        else:  # Network Admin
             role = USER_ROLES[0:len(USER_ROLES) - 1]
-
-        if user.is_staff:
-            networks = Network.objects.all()
-
-        else:
-            networks = [user_profile.network]
-            role = ('Business Analyst', 'Loader', 'Partner')
-
-        if user_profile.role == 'network_admin':
-            restricted_perms = ['add_bts', 'change_bts', 'deregister_bts', 'change_network', 'download_report',
-                                'download_graph', 'deactive_subscriber']
+            restricted_perms.extend(['add_bts', 'change_bts', 'deregister_bts', 'change_network', 'download_report',
+                                     'download_graph', 'deactive_subscriber'])
 
         # Set the context with various stats.
         content_type = ContentType.objects.filter(app_label='endagaweb',
@@ -981,23 +968,24 @@ class UserManagement(ProtectedView):
 
         context = {
             'user_profile': user_profile,
-            'networks': networks,
-            'network': user_profile.network,
+            'networks': get_objects_for_user(request.user,
+                                         'view_network', klass=Network),
             'permissions': permission,
             'staff': user.is_staff,
             'roles': role
-        }
+        }  # Check logged in user permission for view user
 
-        # Render template.
-        info_template = get_template(
-            'dashboard/user_management/add.html')
+        if not user_profile.user.is_staff:
+            info_template = get_template('dashboard/403.html')
+        else:
+            # Render template.
+            info_template = get_template(
+                'dashboard/user_management/add.html')
+
         html = info_template.render(context, request)
         return HttpResponse(html)
 
     def post(self, request, *args, **kwargs):
-        if request.user.has_perm('view_subscriber') is False:
-            html = get_template('dashboard/403.html').render({}, request)
-            return HttpResponse(html)
 
         # setting email as username
         username = request.POST['email']
@@ -1006,12 +994,11 @@ class UserManagement(ProtectedView):
         user_role = str(request.POST['role']).lower().replace(' ', '_')
         networks = str(request.POST.get('networks')).split(',')
         permissions = str(request.POST.get('permissions')).split(',')
-        
+
         if len(permissions) < 1:
             message = "Minimum one permission is required to create user."
             messages.error(request, message, extra_tags="alert alert-danger")
-            return JsonResponse({'status':'error', 'message': message})
-            #return redirect(urlresolvers.reverse('user-management'))
+            return JsonResponse({'status': 'error', 'message': message})
 
         # Disconnect the signal only to create user,set network,role and group
         post_save.disconnect(UserProfile.new_user_hook, sender=User)
@@ -1050,18 +1037,16 @@ class UserManagement(ProtectedView):
         except IntegrityError:
             message = "User with email %s already exists!" % email
             post_save.connect(UserProfile.new_user_hook, sender=User)
-            messages.error(request, message,extra_tags="alert alert-danger")
+            messages.error(request, message, extra_tags="alert alert-danger")
             # Re-connect the signal before return if it reaches exception
             post_save.connect(UserProfile.new_user_hook, sender=User)
-            return JsonResponse({'status':'error', 'message': message})
-            #return redirect(urlresolvers.reverse('user-management'))
+            return JsonResponse({'status': 'error', 'message': message})
 
         # Re-connect the signal before return if it reaches exception
         post_save.connect(UserProfile.new_user_hook, sender=User)
         messages.success(request, 'User added successfully!')
 
-        return JsonResponse({'status':'success', 'message': 'User added successfully'})
-        #return redirect(urlresolvers.reverse('user-management'))
+        return JsonResponse({'status': 'success', 'message': 'User added successfully'})
 
 
 class UserDelete(ProtectedView):
