@@ -956,7 +956,7 @@ class UserManagement(ProtectedView):
                           "notification", "usageevent"]
 
         # View network is restricted else giving this in permission will allow user to have all networks
-        restricted_perms = ['view_network']
+        restricted_perms = [] #['view_network']
 
         if user.is_superuser:  # Cloud Admin
             role = USER_ROLES
@@ -1173,7 +1173,7 @@ class UserBlockUnblock(ProtectedView):
 
         # Render template.
         info_template = get_template('dashboard/user_management/delete.html')
-        
+
         html = info_template.render(context, request)
         return HttpResponse(html)
 
