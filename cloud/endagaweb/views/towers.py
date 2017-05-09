@@ -30,7 +30,7 @@ from endagaweb.views.dashboard import ProtectedView
 from endagaweb.views import django_tables
 from django.template.loader import get_template
 from django.http import HttpResponse
-
+from django.contrib.auth.models import Permission
 
 class TowerList(drf_views.APIView):
     """View the list of towers."""
@@ -50,6 +50,8 @@ class TowerList(drf_views.APIView):
         """"Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
         towers = models.BTS.objects.filter(network=user_profile.network)
+        user_permissions = Permission.objects.filter(user=request.user)
+        permissions = [str(a.codename) for a in user_permissions]
         # Configure the table of towers.  Do not show any pagination controls
         # if the total number of towers is small.
         tower_table = django_tables.TowerTable(list(towers))
@@ -70,7 +72,8 @@ class TowerList(drf_views.APIView):
             'tower_table': tower_table,
             'suggested_nickname': suggested_nickname,
         }
-        if request.user.has_perm('view_bts') is False:
+
+        if 'view_bts' not in permissions:
             html = get_template('dashboard/403.html').render(context, request)
         else:
             # Render template.
@@ -81,7 +84,10 @@ class TowerList(drf_views.APIView):
 
     def post(self, request):
         # Check logged in user permission for view bts
-        if request.user.has_perm('add_bts') is False:
+        user_permissions = Permission.objects.filter(user=request.user)
+        permissions = [str(a.codename) for a in user_permissions]
+
+        if 'add_bts' not in permissions:
             html = get_template('dashboard/403.html').render({}, request)
             return HttpResponse(html)
 
