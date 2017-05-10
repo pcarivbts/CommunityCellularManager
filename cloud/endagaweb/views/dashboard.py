@@ -16,11 +16,7 @@ import time
 import urllib
 import uuid
 
-from django.shortcuts import redirect, render
-from django.contrib.auth.decorators import login_required, permission_required
-from django.utils import timezone as django_utils_timezone
-from django.utils.decorators import method_decorator
-from django.contrib import messages
+
 import django_tables2 as tables
 import humanize
 import pytz
@@ -31,10 +27,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Permission, ContentType, Group
 from django.core import urlresolvers
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.db.models import Q
 from django.db.models.signals import post_save
-from django.http import HttpResponse, HttpResponseBadRequest, QueryDict, JsonResponse
+from django.http import HttpResponse, HttpResponseBadRequest, QueryDict, \
+    JsonResponse
 from django.shortcuts import redirect
 from django.template.loader import get_template
 from django.utils import timezone as django_utils_timezone
@@ -51,22 +48,17 @@ from endagaweb.models import (UserProfile, Subscriber, UsageEvent,
                               Network, PendingCreditUpdate, Number)
 from endagaweb.util.currency import cents2mc
 from endagaweb.views import django_tables
-from django.db import IntegrityError
 from django.contrib.auth.views import password_reset
 from django.core.urlresolvers import reverse
+
 
 class ProtectedView(View):
     """ A class-based view that requires a login. """
 
-    #title = ""
+    # title = ""
 
     @method_decorator(login_required)
     def dispatch(self, request, *args, **kwargs):
-        #print "in ProtectedView dispatch() - "
-        #print self
-        #print request.method
-        #print self.title
-        #print "--------------------------"
         return super(ProtectedView, self).dispatch(request, *args, **kwargs)
 
 
@@ -74,7 +66,8 @@ class ProtectedView(View):
 Views for logged in users.
 """
 USER_ROLES = ('Business Analyst', 'Loader',
-              'Partner', 'Network Admin')  # Cloud Admin will only be available when created via createsuperuser
+              'Partner', 'Network Admin')
+# Cloud Admin will only be available when created via createsuperuser
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +209,8 @@ def billing_view(request):
     msgs = messages.get_messages(request)
     for m in msgs:
         if "billing_resp_code" in m.tags:
-            context[m.message] = True  # pass the message on to the template as-is
+            context[
+                m.message] = True  # pass the message on to the template as-is
 
     if network.stripe_card_type == "American Express":
         context['card_type'] = 'AmEx'
@@ -662,8 +656,8 @@ class SubscriberEdit(ProtectedView):
                                                 network=network)
         except Subscriber.DoesNotExist:
             return HttpResponseBadRequest()
-        if (request.POST.get('name') and
-                    subscriber.name != request.POST.get('name')):
+        if (request.POST.get('name') and subscriber.name != request.POST.get(
+                'name')):
             subscriber.name = request.POST.get('name')
             subscriber.save()
         if request.POST.get('prevent_automatic_deactivation'):
@@ -777,7 +771,7 @@ class ActivityView(ProtectedView):
             # TODO(shaddi): use a filename that captures the search terms?
             response['Content-Disposition'] = ('attachment;filename='
                                                '"etage-%s.csv"') \
-                                              % (datetime.datetime.now().date(),)
+               % (datetime.datetime.now().date(),)
             writer = csv.writer(response)
             writer.writerow(headers)
             # Forcibly limit to 7000 items.
@@ -930,8 +924,10 @@ class ActivityView(ProtectedView):
             # Get any numbers that match, and add their associated
             # subscribers' events to the results
             potential_subs = (
-                Number.objects.filter(number__icontains=query).values('subscriber')
-                    .filter(subscriber__network=network).distinct())
+                Number.objects.filter(number__icontains=query)
+                              .values('subscriber')
+                              .filter(subscriber__network=network)
+                              .distinct())
             if potential_subs:
                 events |= (UsageEvent.objects
                            .filter(subscriber__in=potential_subs))
@@ -940,34 +936,37 @@ class ActivityView(ProtectedView):
         return res_events
 
 
-
-
-
 class UserManagement(ProtectedView):
     def get(self, request, *args, **kwargs):
         # Handles request from Network Admin or Cloud Admin
         user_profile = UserProfile.objects.get(user=request.user)
         user = User.objects.get(id=user_profile.user_id)
-        permission_set = ["credit", "graph", "report", "smsbroadcast", "tower", "bts", "subscriber", "network",
+        permission_set = ["credit", "graph", "report", "smsbroadcast", "tower",
+                          "bts", "subscriber", "network",
                           "notification", "usageevent"]
 
-        # View network is restricted else giving this in permission will allow user to have all networks
+        # View network is restricted
+        #  else giving this in permission will allow user to have all networks
         restricted_perms = ['view_network']
 
         if user.is_superuser:  # Cloud Admin
             role = USER_ROLES
         else:  # Network Admin
             role = USER_ROLES[0:len(USER_ROLES) - 1]
-            restricted_perms.extend(['add_bts', 'change_bts', 'deregister_bts', 'change_network', 'download_report',
-                                     'download_graph', 'deactive_subscriber'])
+            restricted_perms.extend(
+                ['add_bts', 'change_bts', 'deregister_bts', 'change_network',
+                 'download_report',
+                 'download_graph', 'deactive_subscriber'])
 
         # Set the context with various stats.
         content_type = ContentType.objects.filter(app_label='endagaweb',
-                                                  model__in=permission_set).values_list('id', flat=True)
+                                                  model__in=
+                                                  permission_set).values_list('id', flat=True)
 
         permission = []
         for content in content_type:
-            permissions = Permission.objects.filter(content_type=content).exclude(codename__in=restricted_perms)
+            permissions = Permission.objects.filter(
+                content_type=content).exclude(codename__in=restricted_perms)
             permission.append(permissions)
 
         context = {
@@ -1025,7 +1024,8 @@ class UserManagement(ProtectedView):
 
                 for network in networks:
                     user_network = Network.objects.get(id=network)
-                    auth_group = Group.objects.get(id=user_network.auth_group_id)
+                    auth_group = Group.objects.get(
+                        id=user_network.auth_group_id)
                     auth_group.user_set.add(user)
 
                 # Set last network as default network for User
@@ -1058,12 +1058,17 @@ class UserManagement(ProtectedView):
             messages.warning(request, mail_info,extra_tags="alert alert-danger")
         # Re-connect the signal before return if it reaches exception
         post_save.connect(UserProfile.new_user_hook, sender=User)
-        return JsonResponse({'status': 'success', 'message': 'User added successfully'})
+
+        messages.success(request, 'User added successfully!')
+
+        return JsonResponse(
+            {'status': 'success', 'message': 'User added successfully'})
 
 
     # @staticmethod
-    def _send_reset_link(self,request):
-        return password_reset(request,# email_template_name='dashboard/user_management/reset_email.html',
+    def _send_reset_link(self, request):
+        return password_reset(request,
+                              # email_template_name='dashboard/user_management/reset_email.html',
                               # subject_template_name='dashboard/user_management/reset_subject.txt',
                               post_reset_redirect=reverse('user-management'))
 
@@ -1101,7 +1106,8 @@ class UserDelete(ProtectedView):
             'user_table': user_table,
             'show_all_users': render_table,
             'user_profile': user_profile,
-            'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=Network),
         }
         # Check logged in user permission for delete user
 
@@ -1130,7 +1136,8 @@ class UserDelete(ProtectedView):
             html = info_template.render({}, request)
             return HttpResponse(html)
 
-        if ((user_profile.user.is_superuser and user_profile.user.is_staff) and (not user.is_superuser)) or \
+        if ((
+                user_profile.user.is_superuser and user_profile.user.is_staff) and (not user.is_superuser)) or \
                 (user_profile.user.is_staff and (not user.is_staff)):
             user.delete()
             message = '%s deleted successfully!' % user.username
@@ -1172,15 +1179,17 @@ class UserBlockUnblock(ProtectedView):
             'users_found': len(query_users),
             'user_table': user_table,
             'user_profile': user_profile,
-            'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=Network),
         }
 
         # Check logged in user permission for block user
         if not user_profile.user.is_staff:
             info_template = get_template('dashboard/403.html')
         else:
-            #Render template.
-            info_template = get_template('dashboard/user_management/block-unblock.html')
+            # Render template.
+            info_template = get_template(
+                'dashboard/user_management/block-unblock.html')
 
         html = info_template.render(context, request)
         return HttpResponse(html)
@@ -1199,8 +1208,10 @@ class UserBlockUnblock(ProtectedView):
         else:
             current_status = 'Blocked'
 
-        if ((user_profile.user.is_superuser and user_profile.user.is_staff) and (not user.is_superuser)) or \
-                (user_profile.user.is_staff and (not user.is_staff)):
+        if ((
+                user_profile.user.is_superuser and user_profile.user.is_staff)
+                and (not user.is_superuser))\
+                or (user_profile.user.is_staff and (not user.is_staff)):
 
             if user.is_active:
                 user.is_active = False
@@ -1258,7 +1269,8 @@ class SubscriberCategoryEdit(ProtectedView):
             # Display all subscribers.
             query_subscribers = all_subscribers
             show_table = "false"
-        subscriber_table = django_tables.SubscriberTable(list(query_subscribers))
+        subscriber_table = django_tables.SubscriberTable(
+            list(query_subscribers))
         tables.RequestConfig(request, paginate={'per_page': 15}).configure(
             subscriber_table)
 
@@ -1266,7 +1278,8 @@ class SubscriberCategoryEdit(ProtectedView):
 
         # Render the response with context.
         context = {
-            'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=Network),
             'currency': CURRENCIES[network.subscriber_currency],
             'user_profile': user_profile,
             'total_number_of_subscribers': len(all_subscribers),
@@ -1276,7 +1289,8 @@ class SubscriberCategoryEdit(ProtectedView):
             'show_table': show_table,
             'keyword': query
         }
-        template = get_template('dashboard/subscriber_management/subscribers.html')
+        template = get_template(
+            'dashboard/subscriber_management/subscribers.html')
         html = template.render(context, request)
         return HttpResponse(html)
 
@@ -1289,8 +1303,11 @@ class SubscriberCategoryUpdate(ProtectedView):
         imsi = request.POST.getlist('imsi_val[]')
         category = request.POST.get('category')
         search_imsi = Subscriber.objects.filter(imsi__in=imsi)
-        update_imsi = Subscriber.objects.filter(imsi__in=imsi).update(role=category)
-        if (update_imsi > 0):
-            return JsonResponse({'message': 'IMSI category updated successfully'})
+        update_imsi = Subscriber.objects.filter(imsi__in=imsi).update(
+            role=category)
+        if update_imsi > 0:
+            return JsonResponse(
+                {'message': 'IMSI category updated successfully'})
         else:
-            return JsonResponse({'message': 'IMSI category update cannot happen'})
+            return JsonResponse(
+                {'message': 'IMSI category update cannot happen'})
