@@ -948,7 +948,6 @@ def check_permission(request, perm):
 
 class UserManagement(ProtectedView):
     def get(self, request, *args, **kwargs):
-        self.title = "shiv here again"
         # Handles request from Network Admin or Cloud Admin
         user_profile = UserProfile.objects.get(user=request.user)
         user = User.objects.get(id=user_profile.user_id)
