@@ -288,8 +288,7 @@ def role_default_permissions(request):
                           "notification", "usageevent"]
 
         business_analyst = ['view_graph', 'view_report', 'view_bts',
-                            'view_subscriber', 'view_network',
-                            'download_graph']
+                            'view_subscriber', 'view_network', 'add_credit']
 
         loader = ['view_graph', 'view_report', 'view_bts', 'view_subscriber',
                   'view_network', 'change_subscriber', 'change_network',

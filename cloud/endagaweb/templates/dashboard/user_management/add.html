@@ -19,14 +19,17 @@ of patent rights can be found in the PATENTS file in the same directory.
         display: none;
     }
     .error {
-        color: red;
+        color: #a94442;
     }
     .success {
         color: green;
     }
     .exists {
         display:none;
-        color:red;
+        color:#a94442;
+    }
+    .no_perm_error {
+        color: #a94442;
     }
 
 
@@ -162,6 +165,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                             <div class="col-xs-5">
                                 <select name="permissions" id="permissions_right" class="form-control" size="10"
                                         multiple="multiple"></select>
+                                <span class="msg no_perm_error">Please assign atleast one permission.</span>
                             </div>
                         </div>
                     </div>
@@ -297,9 +301,8 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <div class="row">&nbsp;</div>
 
                 <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
-                    <input type="submit" id="submit" class="btn btn-primary"
-                           value="Submit" />
-                </div>                
+                    <input type="submit" id="submit" class="btn btn-primary" value="Submit" />
+                </div>
             </form>
 
         </div>
@@ -332,9 +335,6 @@ of patent rights can be found in the PATENTS file in the same directory.
                     var left = $('#permissions_left option[value="'+val+'"]');
                     $('#permissions_right').append(left);
 
-                    //var option_str = "<option value='"+val.id+"'>"+val.codename+"</option>";
-                    //$('#permissions_right').append(option_str);
-
                 });
             });
         } else {
@@ -344,10 +344,14 @@ of patent rights can be found in the PATENTS file in the same directory.
 
     function moveItems(origin, dest) {
         $(origin).find(':selected').appendTo(dest);
+        $('.no_perm_error').hide();
+        $('.no_perm_error').parent().removeClass('has-warning');
     }
 
     function moveAllItems(origin, dest) {
         $(origin).children().appendTo(dest);
+        $('.no_perm_error').hide();
+        $('.no_perm_error').parent().removeClass('has-warning');
     }
 
     $(document).ready(function() {
@@ -443,6 +447,10 @@ of patent rights can be found in the PATENTS file in the same directory.
   });
     //$('#submit').click(function(){
     function createUser() {
+        if ($('#permissions_right option').length == 0) {
+            $('.no_perm_error').show();
+            $('.no_perm_error').parent().addClass('has-warning');
+        }
         if($('#role').val() && $('#valid_email').val() != 0 && $('#password').val()
         && $('#permissions_right option').length && $('#network option:selected').length){
             var permissions = [];
