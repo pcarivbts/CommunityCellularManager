@@ -1047,13 +1047,23 @@ class UserManagement(ProtectedView):
             return JsonResponse({'status': 'error', 'message': message})
 
         # Sending email now to reset password
-        self._send_reset_link(request)
+        try:
+            self._send_reset_link(request)
+            mail_info = 'Password reset Mail has been sent to %s'% email
+            messages.success(request,
+                             'User added successfully and ' + mail_info)
+        except Exception as e:
+            mail_info = '\n Pleas configure email to send password reset ' \
+                        'link to user'
+            messages.warning(request, mail_info,extra_tags="alert alert-danger")
         # Re-connect the signal before return if it reaches exception
         post_save.connect(UserProfile.new_user_hook, sender=User)
+
         messages.success(request, 'User added successfully!')
 
         return JsonResponse(
             {'status': 'success', 'message': 'User added successfully'})
+
 
     # @staticmethod
     def _send_reset_link(self, request):

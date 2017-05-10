@@ -78,14 +78,6 @@ class TowerList(drf_views.APIView):
         return http.HttpResponse(html)
 
     def post(self, request):
-        # Check logged in user permission for view bts
-        user_permissions = Permission.objects.filter(user=request.user)
-        permissions = [str(a.codename) for a in user_permissions]
-
-        if 'add_bts' not in permissions:
-            html = get_template('dashboard/403.html').render({}, request)
-            return HttpResponse(html)
-
         """Handles POST requests to add towers."""
         user_profile = models.UserProfile.objects.get(user=request.user)
         uuid = request.POST.get('uuid')
