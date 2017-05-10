@@ -96,7 +96,9 @@ class EndagaD(object):
 
             # At this point, all services should be up, so we can perform
             # additional configuration.
-            self._reset_bts_config()
+            # We dont need this because osmocom or lc15bts client does nothing
+            # with this command
+            # self._reset_bts_config()
 
             # Update the inbound_url if the VPN is up.
             if system_utilities.get_vpn_ip() is not None:
