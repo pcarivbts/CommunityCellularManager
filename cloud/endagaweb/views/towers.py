@@ -32,6 +32,7 @@ from django.template.loader import get_template
 from django.http import HttpResponse
 from django.contrib.auth.models import Permission
 
+
 class TowerList(drf_views.APIView):
     """View the list of towers."""
 
@@ -41,12 +42,6 @@ class TowerList(drf_views.APIView):
                               authentication.TokenAuthentication)
 
     def get(self, request):
-        # Check logged in user permission for view bts
-        # if request.user.has_perm('view_bts') is False:
-        #     html = get_template('dashboard/403.html').render({}, request)
-        #     return HttpResponse(html)
-
-
         """"Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
         towers = models.BTS.objects.filter(network=user_profile.network)
@@ -180,7 +175,7 @@ class TowerMonitor(ProtectedView):
     """View TimeseriesStats related to a single tower."""
 
     def get(self, request, uuid=None):
-        
+
         """Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
         try:
@@ -336,7 +331,7 @@ class TowerEvents(drf_views.APIView):
     # Setup DRF permissions and auth.
     permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (authentication.SessionAuthentication,
-         authentication.TokenAuthentication)
+                              authentication.TokenAuthentication)
 
     def get(self, request, *args, **kwargs):
         return self._handle_request(request, *args, **kwargs)
@@ -357,7 +352,7 @@ class TowerEvents(drf_views.APIView):
 
         try:
             tower = models.BTS.objects.get(uuid=uuid,
-                              network=user_profile.network)
+                                           network=user_profile.network)
         except models.BTS.DoesNotExist:
             return http.HttpResponseBadRequest()
         endaga_version = json.loads(tower.package_versions)['endaga_version']

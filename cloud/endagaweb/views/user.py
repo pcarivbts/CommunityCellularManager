@@ -253,28 +253,20 @@ def check_user(request):
     return HttpResponseBadRequest()
 
 
-# This view handles the password reset form URL /.
+# This view handles the password reset.
 def reset(request):
-    # Wrap the built-in password reset view and pass it the arguments
-    # like the template name, email template name, subject template name
-    # and the url to redirect after the password reset is initiated.
     return password_reset(request,  # template_name='dashboard/user_management/reset.html',
                           email_template_name='dashboard/user_management/reset_email.html',
                           subject_template_name='dashboard/user_management/reset_subject.txt',
-                          post_reset_redirect=reverse('success'))
+                          post_reset_redirect=reverse('user-management'))
 
 
-# This view handles password reset confirmation links. See urls.py file for the mapping.
-# This view is not used here because the password reset emails with confirmation links
-# cannot be sent from this application.
+# This view handles the changing password to reset.
 def reset_confirm(request, uidb64=None, token=None):
-    # Wrap the built-in reset confirmation view and pass to it all the captured parameters like uidb64, token
-    # and template name, url to redirect after password reset is confirmed.
-    return password_reset_confirm(request,  # template_name='dashboard/user_management/reset_confirm.html',
+    return password_reset_confirm(request, uidb64=uidb64, template_name='dashboard/user_management/reset_confirm.html',
                                   token=token, post_reset_redirect=reverse('success'))
 
 
-# This view renders a page with success message.
 def success(request):
     return render(request, "dashboard/user_management/success.html")
 
@@ -287,7 +279,7 @@ def role_default_permissions(request):
                           "notification", "usageevent"]
 
         business_analyst = ['view_graph', 'view_report', 'view_bts',
-                            'view_subscriber', 'view_network', 'add_credit']
+                            'view_subscriber', 'view_network', 'download_graph']
 
         loader = ['view_graph', 'view_report', 'view_bts', 'view_subscriber',
                   'view_network', 'change_subscriber', 'change_network',
@@ -297,7 +289,8 @@ def role_default_permissions(request):
                    'view_network', 'edit_subscriber', 'edit_network',
                    'add_subscriber', 'add_sms', 'download_graph']
 
-        content_type = ContentType.objects.filter(app_label='endagaweb',model__in=permission_set).values_list('id', flat=True)
+        content_type = ContentType.objects.filter(app_label='endagaweb', model__in=permission_set).values_list('id',
+                                                                                                               flat=True)
         permission = Permission.objects.filter(content_type__in=content_type).values_list('id', flat=True)
         role_permission = []
         if role == 'Business Analyst':

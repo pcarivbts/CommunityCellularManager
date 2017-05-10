@@ -15,7 +15,6 @@ from __future__ import unicode_literals
 
 import calendar
 import datetime
-import decimal
 import json
 import logging
 import time
@@ -37,7 +36,6 @@ from rest_framework.authtoken.models import Token
 import django.utils.timezone
 import itsdangerous
 import pytz
-import requests
 import stripe
 
 from ccm.common import crdt, logger
@@ -46,7 +44,6 @@ from endagaweb.billing import tier_setup
 from endagaweb.celery import app as celery_app
 from endagaweb.notifications import bts_up
 from endagaweb.util import currency as util_currency
-from endagaweb.util.parse_destination import parse_destination
 from endagaweb.util import dbutils as dbutils
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -210,6 +207,7 @@ class Transaction(models.Model):
         ('local_sms', 'local_sms'),
         ('local_call', 'local_call'),
         ('local_recv_call', 'local_recv_call'),
+        ('local_recv_sms', 'local_recv_sms'),
         ('number.nexmo.monthly', 'number.nexmo.monthly'),
     )
     kind = models.CharField(max_length=100, choices=transaction_kinds)
@@ -309,8 +307,8 @@ class BTS(models.Model):
 
     class Meta:
         default_permissions = ()
-        permissions = ( 
-            ('view_bts', 'View BTS(Tower)'),  
+        permissions = (
+            ('view_bts', 'View BTS(Tower)'),
             ('add_bts', 'Add BTS(Tower)'),
             ('change_bts', 'Change BTS(Tower)'),
             ('deregister_bts', 'Deregister BTS(Tower)')
@@ -827,8 +825,8 @@ class UsageEvent(models.Model):
 
     class Meta:
         default_permissions = ()
-        permissions = ( 
-            ('view_usage', 'View usage activities'),  
+        permissions = (
+            ('view_usage', 'View usage activities'),
             ('download_usage', 'Download usage activities')
         )
 
@@ -1021,7 +1019,7 @@ class Network(models.Model):
 
     class Meta:
         default_permissions = ()
-        permissions = ( 
+        permissions = (
             ('view_network', 'View network'),
             ('change_network', 'Change network'),
         )
@@ -1849,9 +1847,9 @@ class SMSBroadcast(models.Model):
 
     class Meta:
         managed = False  # No database table creation or deletion operations \
-                         # will be performed for this model. 
+                         # will be performed for this model.
         default_permissions = ()
-        permissions = ( 
+        permissions = (
             ('add_sms', 'Add SMS broadcast'),
             ('send_sms', 'Send SMS broadcast from subscriber'),
         )
@@ -1862,7 +1860,7 @@ class Credit(models.Model):
     class Meta:
         managed = False
         default_permissions = ()
-        permissions = ( 
+        permissions = (
             ('add_credit', 'Add credit adjustment to subscriber'),
         )
 
@@ -1872,7 +1870,7 @@ class Notification(models.Model):
     class Meta:
         managed = False
         default_permissions = ()
-        permissions = ( 
+        permissions = (
             ('view_notification', 'View Notification'),
         )
 
@@ -1882,8 +1880,8 @@ class Report(models.Model):
     class Meta:
         managed = False
         default_permissions = ()
-        permissions = ( 
-            ('view_report', 'View reports'),  
+        permissions = (
+            ('view_report', 'View reports'),
             ('download_report', 'Download reports')
         )
 
@@ -1893,7 +1891,7 @@ class Graph(models.Model):
     class Meta:
         managed = False
         default_permissions = ()
-        permissions = ( 
-            ('view_graph', 'View graph'),  
+        permissions = (
+            ('view_graph', 'View graph'),
             ('download_graph', 'Download graph')
         )
