@@ -10,13 +10,14 @@ of patent rights can be found in the PATENTS file in the same directory.
   <ul class='nav nav-pills nav-stacked' id='sub-detail-nav'>
 
     {% if perms.endagaweb.view_network %}
+    {% endif %}
     <li role="presentation" class="{% if active_tab == 'info' %} active {% endif %}">
       <a href="
         {% if active_tab == 'info' %} #
         {% else %} {% url 'network-info' %}
         {% endif %} ">Info</a>
     </li>
-    {% endif %}
+    
 
     {% comment "2015dec11(shasan): Remove prices page to avoid confusion" %}
     {% if perms.endagaweb.view_network %}
