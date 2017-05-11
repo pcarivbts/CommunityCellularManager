@@ -1229,7 +1229,7 @@ class UserBlockUnblock(ProtectedView):
 
 
 class SubscriberCategoryEdit(ProtectedView):
-    """Search the Subscriber"""
+    """Search and update the category of the subscriber"""
 
     def get(self, request, *args, **kwargs):
         return self._handle_request(request)
@@ -1241,72 +1241,69 @@ class SubscriberCategoryEdit(ProtectedView):
         user_profile = UserProfile.objects.get(user=request.user)
         network = user_profile.network
         all_subscribers = Subscriber.objects.filter(network=network)
-        if request.method == "POST":
-            query = request.POST.get('keyword', '')
-            sort_by = request.POST.get('sort', 'id')
-        elif request.method == "GET":
-            query = request.GET.get('keyword', '')
-            sort_by = request.GET.get('sort', 'id')
+
+        if request.method == "GET":
+            query = request.GET.get('query', '')
+            show_table = False
+
+            if query:
+                # Get actual subs with partial IMSI matches or partial name
+                # matches.
+                query_subscribers = (
+                    network.subscriber_set.filter(imsi__icontains=query) |
+                    network.subscriber_set.filter(name__icontains=query))
+                # Get ids of subs with partial number matches.
+                sub_ids = network.number_set.filter(
+                    number__icontains=query
+                ).values_list('subscriber_id', flat=True)
+                # Or them together to get list of actual matching subscribers.
+                query_subscribers |= network.subscriber_set.filter(
+                    id__in=sub_ids)
+                show_table = True
+            else:
+                # Display all subscribers.
+                query_subscribers = all_subscribers
+
+            subscriber_table = django_tables.SubscriberManagementTable(
+                list(query_subscribers))
+
+            tables.RequestConfig(request, paginate={'per_page': 10}).configure(
+                subscriber_table)
+
+            # Render the response with context.
+            context = {
+                'networks': get_objects_for_user(request.user, 'view_network',
+                                                 klass=Network),
+                'currency': CURRENCIES[network.subscriber_currency],
+                'user_profile': user_profile,
+                'total_number_of_subscribers': len(all_subscribers),
+                'number_of_filtered_subscribers': len(query_subscribers),
+                'query_subscribers': query_subscribers,
+                'subscriber_table': subscriber_table,
+                'show_table': show_table,
+                'query': query
+            }
+            template = get_template(
+                'dashboard/subscriber_management/subscribers.html')
+            html = template.render(context, request)
+            return HttpResponse(html)
+
+        elif request.method == "POST":
+            imsi = request.POST.getlist('imsi_val[]')
+            category = request.POST.get('category')
+
+            try:
+                update_imsi = Subscriber.objects.filter(imsi__in=imsi)
+                update_imsi.update(role=category)
+                message = "IMSI category updated successfully"
+                messages.success(request, message,
+                                 extra_tags="alert alert-success" )
+            except Exception as e:
+                message = "IMSI category update cannot happen"
+                messages.error(request, message,
+                               extra_tags="alert alert-danger")
+
+            return HttpResponse(message)
         else:
+
             return HttpResponseBadRequest()
-        show_table = "false"
-
-        if query:
-            # Get actual subs with partial IMSI matches or partial name matches.
-            query_subscribers = (
-                network.subscriber_set.filter(imsi__icontains=query) |
-                network.subscriber_set.filter(name__icontains=query))
-            # Get ids of subs with partial number matches.
-            sub_ids = network.number_set.filter(
-                number__icontains=query
-            ).values_list('subscriber_id', flat=True)
-            # Or them together to get list of actual matching subscribers.
-            query_subscribers |= network.subscriber_set.filter(
-                id__in=sub_ids)
-            show_table = "true"
-        else:
-            # Display all subscribers.
-            query_subscribers = all_subscribers
-            show_table = "false"
-        subscriber_table = django_tables.SubscriberTable(
-            list(query_subscribers))
-        tables.RequestConfig(request, paginate={'per_page': 15}).configure(
-            subscriber_table)
-
-        query_subscribers = query_subscribers.order_by(sort_by)
-
-        # Render the response with context.
-        context = {
-            'networks': get_objects_for_user(request.user, 'view_network',
-                                             klass=Network),
-            'currency': CURRENCIES[network.subscriber_currency],
-            'user_profile': user_profile,
-            'total_number_of_subscribers': len(all_subscribers),
-            'number_of_filtered_subscribers': len(query_subscribers),
-            'query_subscribers': query_subscribers,
-            'subscriber_table': subscriber_table,
-            'show_table': show_table,
-            'keyword': query
-        }
-        template = get_template(
-            'dashboard/subscriber_management/subscribers.html')
-        html = template.render(context, request)
-        return HttpResponse(html)
-
-
-class SubscriberCategoryUpdate(ProtectedView):
-    """Updating Subscriber category"""
-
-    def post(self, request, *args, **kwargs):
-        print("in subscriber update", request.POST)
-        imsi = request.POST.getlist('imsi_val[]')
-        category = request.POST.get('category')
-        search_imsi = Subscriber.objects.filter(imsi__in=imsi)
-        update_imsi = Subscriber.objects.filter(imsi__in=imsi).update(
-            role=category)
-        if update_imsi > 0:
-            return JsonResponse(
-                {'message': 'IMSI category updated successfully'})
-        else:
-            return JsonResponse(
-                {'message': 'IMSI category update cannot happen'})

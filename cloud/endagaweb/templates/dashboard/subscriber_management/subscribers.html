@@ -22,104 +22,88 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% block content %}
 {% include "dashboard/subscriber_management/header.html" with user=user %}
 {% include "dashboard/subscriber_management/nav.html" with active_tab='category'%}
+
+
 <div class='col-md-10'>
     <div class='row'>
         {% if total_number_of_subscribers %}
 
-        <form action="/dashboard/subscriber_management/subscriber" class="form-horizontal" method="get" role="form">
+        <form action="/dashboard/subscriber_management/subscriber"
+              class="form-horizontal" method="get" role="form">
             <div class="col-md-6">
                 <div class="input-group">
-                    <input type="text" class="form-control" name="keyword"
+                    <input type="text" class="form-control" name="query"
                            placeholder="Search subscribers by name, IMSI or number"
-                           value="{{ keyword }}"/>
+                           value="{{ query }}"/>
                     <span class="input-group-btn">
                 <button class="btn btn-secondary" type="submit">Search</button>
               </span>
+
                 </div>
             </div>
         </form>
         {% endif %}
     </div>
-    <div class='row'>&nbsp;</div>
+    <div class='row'>&nbsp;
+        {% for message in messages %}
+        <div class="message alert alert-{{message.tags}}">
+            <a href="#" class="close" data-dismiss="alert">&times;</a>
+            {{message}}
+        </div>
+        {% endfor %}
+    </div>
     <div class='row'>
         <div class="col-md-6 left">
             <div id='number-messages-container'></div>
         </div>
     </div>
+
     <div class='row' id="table_id">
         <div class="col-xs-12 col-md-12">
-            {% if show_table == "true" and number_of_filtered_subscribers %}
-            <table class="table table-striped" id="sub_table" name="sub_table">
-                <thead>
-                <tr>
-                    <th class="col-xs-1">Select</th>
-                    <th class="col-xs-2"><a href="?keyword={{keyword}}&sort=imsi">IMSI/Name</a></th>
-                    <th class="col-xs-5">Number</th>
-                    <th class="col-xs-3"><a href="?keyword={{keyword}}&sort=state">Active</a></th>
-                    <th class="col-xs-2"><a href="?keyword={{keyword}}&sort=role">Role</a></th>
-                </tr>
-                {% for event in query_subscribers %}
-                <tr>
-                    <td>
-                        <input type="checkbox" class="imsi_id" name="imsi[]" value="{{ event.imsi }}"
-                               id="imsi_id_{{ event.imsi }}" onchange="imsiSelected(this)"/>
-                    </td>
-                    <td for="sub_imsi" id="sub_imsi" class="sub_imsi" value="{{ event.imsi }}">
-                         {{ event.name }} ({{ event.imsi }})
-                    </td>
-                    <td>
-                        {{ event.numbers}}
-                    </td>
-                    <td>
-                        {{ event.last_active }}
-                    </td>
-                    <td>
-                        {{ event.role }}
-                    </td>
-                </tr>
-                {% endfor %}
+            {% if show_table and number_of_filtered_subscribers %}
+            {% render_table subscriber_table%}
 
-            </table>
-
-            {% elif show_table == "true" and total_number_of_subscribers > 0 %}
+            {% elif show_table and total_number_of_subscribers > 0 %}
             <h4>No subscribers matched your search.</h4>
 
-            {% elif show_table == "false" and total_number_of_subscribers > 0 %}
-            <h4></h4>
+            {% elif not show_table and total_number_of_subscribers > 0 %}
+
             {% else %}
             <p>
                 There are currently no subscribers registered on this network.
                 Go find some users!
             </p>
-
             {% endif %}
         </div>
-
     </div> <!-- /.row (subscribers) -->
     <div class='row'>
-        <div class="pull-left" class="container" id="container_id" style="display:none">
+        <div class="pull-left" class="container" id="container_id">
             <table class="table table">
                 <tr>
-                    <td>
-                        <label for="subType" id="subType">Subscriber</label>
-                        <input type="radio" class="sub_type" name="subscriberType" value="Subscriber"
-                               id="subscriber"/>
-                    </td>
-                    <td>
-                        <label for="subType">Retailer </label>
-                        <input type="radio" class="sub_type" name="subscriberType" value="Retailer"
-                               id="retailer"/>
-                    </td>
-                    <td>
-                        <label for="subType">Test SIM</label>
-                        <input type="radio" class="sub_type" name="subscriberType" value="TestSim"
-                               id="testsim"/>
-                    </td>
+                    <label class="radio-inline"><input type="radio"
+                                                       name="subscriberType"
+                                                       id="subscriber"
+                                                       value="Subscriber"><b>Subscriber</b>
+                    </label>
+
+                    <label class="radio-inline"><input type="radio"
+                                                       name="subscriberType"
+                                                       id="retailer"
+                                                       value="Retailer"><b>Retailer</b></label>
+
+                    <label class="radio-inline"><input type="radio"
+                                                       name="subscriberType"
+                                                       id="test_sim"
+                                                       value="Test Sim"><b>Test
+                        SIM</b></label>
                 </tr>
             </table>
             <div class='row'>
+
                 <div class="col-xs-6 col-md-4 col-xl-2 pull-left">
-                    <button class='btn btn-primary' id="update" type="Submit">Update</button>
+                    <button class='btn btn-primary' id="update" type="Submit">
+                        Update
+                    </button>
                 </div>
             </div>
         </div>
@@ -128,6 +112,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 {% endblock %}
 {% block js %}
+
 <script>
 $('.sub_type').click(function(){
   $('#number-messages-container').hide();
@@ -137,7 +122,7 @@ function imsiSelected(check){
     var imsi = $('.imsi_id:checked').length;
     var updateDiv = document.getElementById('container_id');
     if(imsi){
-          updateDiv.style.display = "block";
+        updateDiv.style.display = "block";
       }
       else{
         updateDiv.style.display = "none";
@@ -145,7 +130,6 @@ function imsiSelected(check){
 }
 imsiSelected();
 $('#update').click(function(){
-  console.log("update")
 
   if($('input[name="subscriberType"]:checked').length<=0){
     var html = "<div class='alert alert-danger'> Please select category</div>";
@@ -154,7 +138,7 @@ $('#update').click(function(){
   }
 
   category=document.querySelector('input[name="subscriberType"]:checked').value
-  console.log("category")
+
   var i=0;
   var imsi_val=[];
   var imsi_list = $('.imsi_id:checked');
@@ -167,20 +151,21 @@ $('#update').click(function(){
     imsi_val : imsi_val,
     csrfmiddlewaretoken: '{{ csrf_token }}',
   };
-  var url = '/dashboard/subscriber_management/categoryupdate';
+  console.log(data);
+  var url = '/dashboard/subscriber_management/subscriber';
   $.ajax({
         url: url,
         data: data,
-        dataType: "json",
-        type: "POST",
-        success: function(response) {
-          var html = "<div class='alert alert-success'>" + response.message + "</div>";
-          $('#number-messages-container').html(html).show();
-          document.getElementById('container_id').style.display = "none";
-          document.getElementById('table_id').style.display = "none";
-        },
+        type: "POST"
+    }).done(function(response) {
+        console.log("done");
+        window.location = "/dashboard/subscriber_management/subscriber";
+    }).fail(function(response) {
+        console.log(response);
     });
 });
+
+
 
 
 </script>
