@@ -1049,9 +1049,11 @@ class UserManagement(ProtectedView):
         try:
             self._send_reset_link(request)
             mail_info = 'Password reset Mail has been sent to %s'% email
-            messages.success(request,
-                             'User added successfully and ' + mail_info)
-        except Exception as e:
+            messages.success(request, mail_info)
+        except Exception as ex:
+            # Todo: proper handling of email
+            # Checking mail log on terminal
+            print ex
             mail_info = '\n Please configure email to send password reset ' \
                         'link to user'
             messages.warning(request, mail_info,extra_tags="alert alert-danger")
