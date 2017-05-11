@@ -10,21 +10,21 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 import datetime
 
-from django import forms
-from django.db.models import Value
-from django.db.models.functions import Coalesce
-from django.core import urlresolvers
+import pytz
+from crispy_forms.bootstrap import StrictButton, FieldWithButtons
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Field
-from crispy_forms.bootstrap import StrictButton, FieldWithButtons
-from django.contrib.auth.forms import PasswordChangeForm
-import pytz
+from django import forms
+from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm
+from django.contrib.auth.models import User
+from django.core import urlresolvers
+from django.db.models import Value
+from django.db.models.functions import Coalesce
 
 from ccm.common.currency import CURRENCIES
 from endagaweb import models
 from endagaweb.templatetags import apptags
-from django.utils.translation import ugettext_lazy as _
-from django.contrib.auth.models import User
+
 
 class UpdateContactForm(forms.Form):
     email = forms.EmailField(required=False, label="Email")
@@ -191,7 +191,7 @@ class NotifyNumbersForm(forms.Form):
         self.helper.form_class = 'profile-form'
         update_button = StrictButton('Update', css_class='btn-default',
                                      type='submit')
-        self.helper.layout =  Layout(FieldWithButtons('notify_numbers', update_button))
+        self.helper.layout = Layout(FieldWithButtons('notify_numbers', update_button))
 
 
 class SubVacuumForm(forms.Form):
@@ -375,7 +375,7 @@ class UserSearchForm(forms.Form):
     """Crispy search form on /dashboard/subscribers."""
     query = forms.CharField(required=False, label="Search Username")
 
-    def __init__(self,sender, *args, **kwargs):
+    def __init__(self, sender, *args, **kwargs):
         self.helper = FormHelper()
         self.helper.form_id = 'id-SearchForm'
         self.helper.form_method = 'get'
@@ -389,7 +389,7 @@ class UserSearchForm(forms.Form):
         self.helper.layout = Layout(FieldWithButtons('query', search_button))
         super(UserSearchForm, self).__init__(*args, **kwargs)
 
-from django.contrib.auth.forms import PasswordResetForm
+
 
 class PasswordResetRequestForm(PasswordResetForm):
     email = forms.CharField(label=("Email"), max_length=254)

@@ -28,9 +28,7 @@ from guardian.shortcuts import get_objects_for_user
 from endagaweb import models
 from endagaweb.views.dashboard import ProtectedView
 from endagaweb.views import django_tables
-from django.template.loader import get_template
-from django.http import HttpResponse
-from django.contrib.auth.models import Permission
+
 
 
 class TowerList(drf_views.APIView):
@@ -45,8 +43,6 @@ class TowerList(drf_views.APIView):
         """"Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
         towers = models.BTS.objects.filter(network=user_profile.network)
-        user_permissions = Permission.objects.filter(user=request.user)
-        permissions = [str(a.codename) for a in user_permissions]
         # Configure the table of towers.  Do not show any pagination controls
         # if the total number of towers is small.
         tower_table = django_tables.TowerTable(list(towers))
@@ -68,6 +64,8 @@ class TowerList(drf_views.APIView):
             'suggested_nickname': suggested_nickname,
         }
 
+        # user_permissions = Permission.objects.filter(user=request.user)
+        # permissions = [str(a.codename) for a in user_permissions]
         #if 'view_bts' not in permissions:
         #    html = get_template('dashboard/403.html').render(context, request)
         #else:
@@ -340,7 +338,7 @@ class TowerEvents(drf_views.APIView):
         elif request.method == "GET":
             page = request.GET.get('page', 1)
         else:
-            return HttpResponseBadRequest()
+            return http.HttpResponseBadRequest()
 
         try:
             tower = models.BTS.objects.get(uuid=uuid,

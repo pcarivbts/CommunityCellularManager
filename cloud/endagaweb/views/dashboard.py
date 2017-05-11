@@ -16,7 +16,6 @@ import time
 import urllib
 import uuid
 
-
 import django_tables2 as tables
 import humanize
 import pytz
@@ -25,8 +24,10 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Permission, ContentType, Group
+from django.contrib.auth.views import password_reset
 from django.core import urlresolvers
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.urlresolvers import reverse
 from django.db import transaction, IntegrityError
 from django.db.models import Q
 from django.db.models.signals import post_save
@@ -48,8 +49,6 @@ from endagaweb.models import (UserProfile, Subscriber, UsageEvent,
                               Network, PendingCreditUpdate, Number)
 from endagaweb.util.currency import cents2mc
 from endagaweb.views import django_tables
-from django.contrib.auth.views import password_reset
-from django.core.urlresolvers import reverse
 
 
 class ProtectedView(View):

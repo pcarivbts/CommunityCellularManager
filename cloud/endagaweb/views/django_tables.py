@@ -27,7 +27,7 @@ def render_user_profile(record):
     if not record.network:
         return None
     user_profiles = models.UserProfile.objects.filter(network=record.network)
-    network_names = [ user_profile.network.name+',' for user_profile in user_profiles ]
+    network_names = [user_profile.network.name+',' for user_profile in user_profiles]
     limit_names = 2
     if len(network_names) > limit_names:
         network_names = network_names[:limit_names]+['...']
@@ -320,12 +320,18 @@ def render_username(record, **kwargs):
     kwargs: 
     sender: name for the sender to change on click behaviour"""
 
-    if kwargs.get('sender')=='blocking':
-        element = "<a href='javascript:void(0)' id='user_"+str(record.id)+"' onclick='block(\"%s\",\"%s\");' data-target='#block-user-modal' data-toggle='modal'>%s</a>" \
-                  % (record.id,record.is_active, html_utils.escape(record.username))
+    if kwargs.get('sender') == 'blocking':
+        element = "<a href='javascript:void(0)' id='user_"+str(record.id)+"'" \
+                    " onclick='block(\"%s\",\"%s\");' " \
+                    "data-target='#block-user-modal' data-toggle='modal'>%s</a>" \
+                  % (record.id, record.is_active, html_utils.escape(
+                      record.username))
 
     elif kwargs.get('sender') == 'delete':
-        element = "<a href='javascript:void(0)' id='user_"+str(record.id)+"' onclick='remove(\"%s\");' data-target='#delete-user-modal' data-toggle='modal'>%s</a>" \
+        element = "<a href='javascript:void(0)' id='user_"+str(record.id)+"'" \
+                  " onclick='remove(\"%s\");' " \
+                  "data-target='#delete-user-modal' " \
+                  "data-toggle='modal'>%s</a>" \
                   % (record.id, html_utils.escape(record.username))
 
 # 'dashboard/user/management/?username=%s/delete
@@ -345,7 +351,7 @@ class UserTable(tables.Table):
     last_login = tables.DateTimeColumn(verbose_name='Last Login', short=True)
 
     def render_username(self, record):
-        return render_username(record,sender='delete')
+        return render_username(record, sender='delete')
 
 
 class BlockedUserTable(tables.Table):

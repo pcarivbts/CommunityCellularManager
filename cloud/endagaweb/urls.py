@@ -145,9 +145,11 @@ urlpatterns = [
         endagaweb.views.dashboard.UserBlockUnblock.as_view(),
         name='user-blocking'),
 
-    url(r'^dashboard/user/management/checkuser', endagaweb.views.user.check_user),
+    url(r'^dashboard/user/management/checkuser',
+        endagaweb.views.user.check_user),
 
-    url(r'^dashboard/user/management/permissions', endagaweb.views.user.role_default_permissions),
+    url(r'^dashboard/user/management/permissions',
+        endagaweb.views.user.role_default_permissions),
 
     url(r'^dashboard/network/broadcast_sms$',
         endagaweb.views.dashboard.SubscriberSendSMS.as_view(),
@@ -163,10 +165,12 @@ urlpatterns = [
 
     # sagar2.sharma@aricent.com _ends_
 
-    url(r'^dashboard/subscriber_management/subscriber$', endagaweb.views.dashboard.SubscriberCategoryEdit.as_view(),
+    url(r'^dashboard/subscriber_management/subscriber$',
+        endagaweb.views.dashboard.SubscriberCategoryEdit.as_view(),
         name='subscriber-category'),
     url(r'^dashboard/subscriber_management/categoryupdate$',
-        endagaweb.views.dashboard.SubscriberCategoryUpdate.as_view(), name='subscriber-categoryupdate'),
+        endagaweb.views.dashboard.SubscriberCategoryUpdate.as_view(),
+        name='subscriber-categoryupdate'),
 
     # Network views in the dashboard.
     # /network -- GET basic network info
