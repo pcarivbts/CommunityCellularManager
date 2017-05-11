@@ -1052,7 +1052,7 @@ class UserManagement(ProtectedView):
             messages.success(request,
                              'User added successfully and ' + mail_info)
         except Exception as e:
-            mail_info = '\n Pleas configure email to send password reset ' \
+            mail_info = '\n Please configure email to send password reset ' \
                         'link to user'
             messages.warning(request, mail_info,extra_tags="alert alert-danger")
         # Re-connect the signal before return if it reaches exception
