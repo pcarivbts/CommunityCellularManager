@@ -131,7 +131,7 @@ urlpatterns = [
         endagaweb.views.dashboard.SubscriberEdit.as_view(),
         name='subscriber-edit'),
 
-    # sagar2.sharma@aricent.com _start_
+
 
     url(r'^dashboard/user/management$',
         endagaweb.views.dashboard.UserManagement.as_view(),
@@ -163,7 +163,6 @@ urlpatterns = [
 
     url(r'^success/$', endagaweb.views.user.success, name='success'),
 
-    # sagar2.sharma@aricent.com _ends_
 
     url(r'^dashboard/subscriber_management/subscriber$',
         endagaweb.views.dashboard.SubscriberCategoryEdit.as_view(),
