@@ -30,14 +30,13 @@ of patent rights can be found in the PATENTS file in the same directory.
 
     <div class='row'>
         {% include "dashboard/user_management/nav.html" with active_tab='delete'%}
-        <div class="container">
+        <div class="container col-sm-10">
             {% for message in messages %}
             <div class="message alert alert-{{message.tags}}">
                 <a href="#" class="close" data-dismiss="alert">&times;</a>
                 {{message}}
             </div>
             {% endfor %}
-            <div class="row">
                 <form action="/dashboard/user/management/delete" method="GET" role="form">
                     {% crispy search %}
                     <div class="col-xs-12 col-md-8">
@@ -55,7 +54,6 @@ of patent rights can be found in the PATENTS file in the same directory.
                     </div>
                 </form>
             </div>
-        </div>
     </div>
 </header>
 

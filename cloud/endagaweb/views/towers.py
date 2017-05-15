@@ -32,6 +32,7 @@ from django.template.loader import get_template
 from django.http import HttpResponse
 
 
+
 class TowerList(drf_views.APIView):
     """View the list of towers."""
 
@@ -64,9 +65,16 @@ class TowerList(drf_views.APIView):
             'tower_table': tower_table,
             'suggested_nickname': suggested_nickname,
         }
-        # Render template.
+
+        # user_permissions = Permission.objects.filter(user=request.user)
+        # permissions = [str(a.codename) for a in user_permissions]
+        #if 'view_bts' not in permissions:
+        #    html = get_template('dashboard/403.html').render(context, request)
+        #else:
+            # Render template.
         towers_template = template.loader.get_template('dashboard/towers.html')
         html = towers_template.render(context, request)
+
         return http.HttpResponse(html)
 
     def post(self, request):
@@ -159,6 +167,7 @@ class TowerMonitor(ProtectedView):
     """View TimeseriesStats related to a single tower."""
 
     def get(self, request, uuid=None):
+
         """Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
         try:
@@ -314,7 +323,7 @@ class TowerEvents(drf_views.APIView):
     # Setup DRF permissions and auth.
     permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (authentication.SessionAuthentication,
-         authentication.TokenAuthentication)
+                              authentication.TokenAuthentication)
 
     def get(self, request, *args, **kwargs):
         return self._handle_request(request, *args, **kwargs)
@@ -331,11 +340,11 @@ class TowerEvents(drf_views.APIView):
         elif request.method == "GET":
             page = request.GET.get('page', 1)
         else:
-            return HttpResponseBadRequest()
+            return http.HttpResponseBadRequest()
 
         try:
             tower = models.BTS.objects.get(uuid=uuid,
-                              network=user_profile.network)
+                                           network=user_profile.network)
         except models.BTS.DoesNotExist:
             return http.HttpResponseBadRequest()
         endaga_version = json.loads(tower.package_versions)['endaga_version']

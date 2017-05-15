@@ -37,7 +37,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     <div class="container col-sm-10">
             {% for message in messages %}
             <div class="message alert alert-{{message.tags}}">
-                <a href="#" class="close" data-dismiss="alert">&times;</a>
+                <a href="/dashboard/user/management/blocking" class="close" data-dismiss="alert">&times;</a>
                 {{message}}
             </div>
             {% endfor %}
@@ -73,7 +73,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             </div>
             <div class='modal-body'>
                 <h4>
-                    Are you sure want to block "<span id="username"></span>"?
+                    Are you sure want to <span id="userstatus"></span> "<span id="username"></span>"?
                 </h4>
             </div>
             <div class='modal-footer'>
@@ -90,10 +90,16 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 {% block js %}
 <script>
-    function block(user) {
+    function block(user,status) {
         $("#user").val(user);
         $("#username").html($("#user_"+user).html())
+        if (status == 'True') {
+            $("#userstatus").html('block');
+        } else {
+            $("#userstatus").html('unblock');
+        }
     }
+
     $('#block-user-submit').click(function(){
 
         //console.log("ok here", $("#user").val());

@@ -44,8 +44,7 @@ from endagaweb.celery import app as celery_app
 from endagaweb.notifications import bts_up
 from endagaweb.util import currency as util_currency
 from endagaweb.util import dbutils as dbutils
-from django.contrib.auth.models import Permission
-from django.contrib.contenttypes.models import ContentType
+
 
 stripe.api_key = settings.STRIPE_API_KEY
 
@@ -72,21 +71,14 @@ class UserProfile(models.Model):
     timezone_choices = [(v, v) for v in pytz.common_timezones]
     timezone = models.CharField(max_length=50, default='UTC',
                                 choices=timezone_choices)
-    role_choices = (
-                    ('cloud_admin', 'Cloud Admin'),
-                    ('network_admin', 'Network Admin'),
-                    ('business analyst', 'Business Analyst'),
-                    ('loader', 'Loader'),
-                    ('partner', 'Partner'),
-                )
-    role = models.CharField(max_length=20,choices=role_choices, default='admin')
-
+    role = models.CharField(max_length=20, default='cloud_admin')
     # A UI kludge indicate which network a user is currently viewing
     # Important: This is not the only network a User is associated with
     # because a user may have permissions on other Network instances.
     # For example to get a list of networks the user can view:
     # >>> get_objects_for_user(user_profile.user, 'view_network', klass=Network)
-    network = models.ForeignKey('Network', null=True, on_delete=models.SET_NULL)
+    network = models.ForeignKey('Network', null=True,
+                                on_delete=models.SET_NULL)
 
     def __str__(self):
           return "%s's profile" % self.user
@@ -115,14 +107,16 @@ class UserProfile(models.Model):
 
             # To avoid duplicate names while running setup_test_db
             # network = Network.objects.create()
-            network = Network.objects.create(name='Network_%s' % instance.pk )
+            network = Network.objects.create(name='Network_%s' % instance.pk)
             network.auth_group.user_set.add(instance)
             network.save()
             # Make this the users currently selected network
             profile.network = network
             profile.save()
 
+
 post_save.connect(UserProfile.new_user_hook, sender=User)
+
 
 class Ledger(models.Model):
     """A ledger represents a list of transactions and a balance.
@@ -175,6 +169,7 @@ class Ledger(models.Model):
                 return
             ledger.balance = F('balance') + instance.amount
             ledger.save()
+
 
 class Transaction(models.Model):
     """ The transaction object represents a single line item in an account
@@ -310,8 +305,8 @@ class BTS(models.Model):
 
     class Meta:
         default_permissions = ()
-        permissions = ( 
-            ('view_bts', 'View BTS(Tower)'),  
+        permissions = (
+            ('view_bts', 'View BTS(Tower)'),
             ('add_bts', 'Add BTS(Tower)'),
             ('change_bts', 'Change BTS(Tower)'),
             ('deregister_bts', 'Deregister BTS(Tower)')
@@ -828,8 +823,8 @@ class UsageEvent(models.Model):
 
     class Meta:
         default_permissions = ()
-        permissions = ( 
-            ('view_usage', 'View usage activities'),  
+        permissions = (
+            ('view_usage', 'View usage activities'),
             ('download_usage', 'Download usage activities')
         )
 
@@ -1022,7 +1017,7 @@ class Network(models.Model):
 
     class Meta:
         default_permissions = ()
-        permissions = ( 
+        permissions = (
             ('view_network', 'View network'),
             ('change_network', 'Change network'),
         )
@@ -1252,7 +1247,7 @@ class Network(models.Model):
             tier = BillingTier.objects.get(
                 network=self, directionality=directionality)
         elif (directionality == 'off_network_send' and
-                      self.get_lowest_tower_version() is None):
+              self.get_lowest_tower_version() is None):
             # If the network's lowest tower version is too low to support
             # Billing Tiers, we should bill all off_network_send events on
             # Tier A, as that's the only Tier that will be shown to the
@@ -1393,7 +1388,7 @@ class Network(models.Model):
         """
         network = Network.objects.get(ledger=instance)
         if created or not (network.billing_enabled and
-                               network.autoload_enable):
+                           network.autoload_enable):
             return
         network.recharge_if_necessary()
 
@@ -1477,7 +1472,7 @@ class Network(models.Model):
             # instance.auth_group, created_group = Group.objects.get_or_create(name='network_%s'
             #     % instance.pk)
             instance.auth_group, created_group = Group.objects.get_or_create(name='%s_GROUP_%s'
-                % (instance.name,instance.pk))
+                % (instance.name, instance.pk))
             if created_group:
                 assign_perm('view_network', instance.auth_group, instance)
 
@@ -1485,7 +1480,7 @@ class Network(models.Model):
             # instance.auth_user, created_user = User.objects.get_or_create(username='network_%s'
             #     % instance.pk)
             instance.auth_user, created_user = User.objects.get_or_create(username='%s_USER_%s'
-                % (instance.name,instance.pk))
+                                                                                   % (instance.name, instance.pk))
             if created_user:
                 Token.objects.create(user=instance.auth_user)
                 instance.auth_group.user_set.add(instance.auth_user)
@@ -1500,7 +1495,6 @@ class Network(models.Model):
 
 # Whenever we update the Ledger, attempt to recharge the Network bill.
 post_save.connect(Network.ledger_save_handler, sender=Ledger)
-
 
 post_save.connect(Network.create_ledger, sender=Network)
 post_save.connect(Network.create_auth, sender=Network)
@@ -1851,9 +1845,9 @@ class SMSBroadcast(models.Model):
 
     class Meta:
         managed = False  # No database table creation or deletion operations \
-                         # will be performed for this model. 
+                         # will be performed for this model.
         default_permissions = ()
-        permissions = ( 
+        permissions = (
             ('add_sms', 'Add SMS broadcast'),
             ('send_sms', 'Send SMS broadcast from subscriber'),
         )
@@ -1864,7 +1858,7 @@ class Credit(models.Model):
     class Meta:
         managed = False
         default_permissions = ()
-        permissions = ( 
+        permissions = (
             ('add_credit', 'Add credit adjustment to subscriber'),
         )
 
@@ -1874,7 +1868,7 @@ class Notification(models.Model):
     class Meta:
         managed = False
         default_permissions = ()
-        permissions = ( 
+        permissions = (
             ('view_notification', 'View Notification'),
         )
 
@@ -1884,8 +1878,8 @@ class Report(models.Model):
     class Meta:
         managed = False
         default_permissions = ()
-        permissions = ( 
-            ('view_report', 'View reports'),  
+        permissions = (
+            ('view_report', 'View reports'),
             ('download_report', 'Download reports')
         )
 
@@ -1895,7 +1889,7 @@ class Graph(models.Model):
     class Meta:
         managed = False
         default_permissions = ()
-        permissions = ( 
-            ('view_graph', 'View graph'),  
+        permissions = (
+            ('view_graph', 'View graph'),
             ('download_graph', 'Download graph')
         )

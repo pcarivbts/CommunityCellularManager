@@ -11,21 +11,21 @@ of patent rights can be found in the PATENTS file in the same directory.
 
     <li role="presentation" class="{% if active_tab == 'add' %} active {% endif %}">
       <a href="
-        {% if active_tab == 'add' %} #
+        {% if active_tab == 'add' %} /dashboard/user/management
         {% else %} {% url 'user-management' %}
         {% endif %} ">Add</a>
     </li>
 
     <li role="presentation" class="{% if active_tab == 'delete' %} active {% endif %}">
       <a href="
-        {% if active_tab == 'delete' %} #
+        {% if active_tab == 'delete' %} /dashboard/user/management/delete
         {% else %} {% url 'user-delete' %}
         {% endif %} ">Delete</a>
     </li>
 
     <li role="presentation" class="{% if active_tab == 'blocking' %} active {% endif %}">
       <a href="
-        {% if active_tab == 'blocking' %} #
+        {% if active_tab == 'blocking' %} /dashboard/user/management/blocking
         {% else %} {% url 'user-blocking' %}
         {% endif %}">Block/Unblock</a>
     </li>

@@ -52,7 +52,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.cpus = 1
     end
   end
-
+#
   config.vm.define :rmq do |rmq|
     rmq.vm.hostname = "endaga-rmq"
     rmq.vm.network "forwarded_port", guest: 5555, host: 5555
