@@ -1,6 +1,0 @@
-{
-    "__comment": "Configuration for browser extension to simplify FB-GH workflow",
-    "allowDirectMerges": false,
-    "allowBotCommands": false,
-    "internalRepository": "fbsource"
-}

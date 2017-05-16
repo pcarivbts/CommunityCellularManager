@@ -293,18 +293,17 @@ CELERY_QUEUES = {
     }
 }
 
-# Email settings
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_USE_TLS = True
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'abc@gmail.com'
-EMAIL_HOST_PASSWORD = 'password'
+# Email settings for sending reset mail
+#EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+#EMAIL_HOST = 'smtp.gmail.com'
+#EMAIL_USE_TLS = True
+#EMAIL_PORT = 587
+#EMAIL_HOST_USER = 'abc@gmail.com'
+#EMAIL_HOST_PASSWORD = 'password'
 
-# Uncomment to use mailgun
-# EMAIL_BACKEND = 'django_mailgun.MailgunBackend'
-# MAILGUN_ACCESS_KEY = os.environ.get("MAILGUN_ACCESS_KEY", 'key-testkeypleaseignore')
-# MAILGUN_SERVER_NAME = os.environ.get("MAILGUN_SERVER_NAME", '')
+EMAIL_BACKEND = 'django_mailgun.MailgunBackend'
+MAILGUN_ACCESS_KEY = os.environ.get("MAILGUN_ACCESS_KEY", 'key-testkeypleaseignore')
+MAILGUN_SERVER_NAME = os.environ.get("MAILGUN_SERVER_NAME", '')
 
 # File uploads
 DEFAULT_FILE_STORAGE = 'endagaweb.util.storage.DatabaseStorage'
