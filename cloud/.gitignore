@@ -61,5 +61,3 @@ ansible/*.retry
 
 # static uncompressed files
 /static/**
-
-
