@@ -66,12 +66,7 @@ class TowerList(drf_views.APIView):
             'suggested_nickname': suggested_nickname,
         }
 
-        # user_permissions = Permission.objects.filter(user=request.user)
-        # permissions = [str(a.codename) for a in user_permissions]
-        #if 'view_bts' not in permissions:
-        #    html = get_template('dashboard/403.html').render(context, request)
-        #else:
-            # Render template.
+        # Render template.
         towers_template = template.loader.get_template('dashboard/towers.html')
         html = towers_template.render(context, request)
 

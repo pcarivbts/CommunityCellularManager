@@ -27,6 +27,7 @@ from endagaweb.forms import dashboard_forms
 from endagaweb.views.dashboard import ProtectedView
 from endagaweb.views import django_tables
 
+
 NUMBER_COUNTRIES = {
     'US': 'United States (+1)',
     'CA': 'Canada (+1)',
@@ -432,7 +433,6 @@ class NetworkEdit(ProtectedView):
         messages.success(request, "Network information updated.",
                          extra_tags="alert alert-success")
         return redirect(urlresolvers.reverse('network-edit'))
-
 
 class NetworkSelectView(ProtectedView):
     """This is a view that allows users to switch their current

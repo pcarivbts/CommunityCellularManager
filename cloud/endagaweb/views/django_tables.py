@@ -362,7 +362,6 @@ def render_username(record, **kwargs):
                          "data-toggle='modal'>%s</a>" \
                          % (record.id, html_utils.escape(record.username))
 
-    # 'dashboard/user/management/?username=%s/delete
     return safestring.mark_safe(element)
 
 
