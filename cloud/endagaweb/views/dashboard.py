@@ -208,8 +208,7 @@ def billing_view(request):
     msgs = messages.get_messages(request)
     for m in msgs:
         if "billing_resp_code" in m.tags:
-            context[
-                m.message] = True  # pass the message on to the template as-is
+            context[m.message] = True  # pass the message on to the template as-is
 
     if network.stripe_card_type == "American Express":
         context['card_type'] = 'AmEx'
@@ -914,11 +913,11 @@ class ActivityView(ProtectedView):
         res_events = UsageEvent.objects.none()
         for query in queries:
             events = orig_events
-            events = (events.filter(kind__icontains=query)
-                      | events.filter(reason__icontains=query)
-                      | events.filter(subscriber__name__icontains=query)
-                      | events.filter(subscriber__imsi__icontains=query)
-                      | events.filter(subscriber_imsi__icontains=query))
+            events = (events.filter(kind__icontains=query) |
+                      events.filter(reason__icontains=query) |
+                      events.filter(subscriber__name__icontains=query) |
+                      events.filter(subscriber__imsi__icontains=query) |
+                      events.filter(subscriber_imsi__icontains=query))
 
             # Get any numbers that match, and add their associated
             # subscribers' events to the results
@@ -958,9 +957,8 @@ class UserManagement(ProtectedView):
                  'download_graph', 'deactive_subscriber'])
 
         # Set the context with various stats.
-        content_type = ContentType.objects.filter(app_label='endagaweb',
-                                                  model__in=
-                                                  permission_set).values_list('id', flat=True)
+        content_type = ContentType.objects.filter(app_label='endagaweb', model__in=permission_set).\
+            values_list('id', flat=True)
 
         permission = []
         for content in content_type:
@@ -1048,7 +1046,7 @@ class UserManagement(ProtectedView):
         # Sending email now to reset password
         try:
             self._send_reset_link(request)
-            mail_info = 'Password reset Mail has been sent to %s'% email
+            mail_info = 'Password reset Mail has been sent to %s' % email
             messages.success(request, mail_info)
         except Exception as ex:
             # Todo: proper handling of email
@@ -1056,7 +1054,7 @@ class UserManagement(ProtectedView):
             print ex
             mail_info = '\n Please configure email to send password reset ' \
                         'link to user'
-            messages.warning(request, mail_info,extra_tags="alert alert-danger")
+            messages.warning(request, mail_info, extra_tags="alert alert-danger")
         # Re-connect the signal before return if it reaches exception
         post_save.connect(UserProfile.new_user_hook, sender=User)
 
@@ -1065,8 +1063,6 @@ class UserManagement(ProtectedView):
         return JsonResponse(
             {'status': 'success', 'message': 'User added successfully'})
 
-
-    # @staticmethod
     def _send_reset_link(self, request):
         return password_reset(request,
                               # email_template_name='dashboard/user_management/reset_email.html',
@@ -1209,10 +1205,8 @@ class UserBlockUnblock(ProtectedView):
         else:
             current_status = 'Blocked'
 
-        if ((
-                user_profile.user.is_superuser and user_profile.user.is_staff)
-                and (not user.is_superuser))\
-                or (user_profile.user.is_staff and (not user.is_staff)):
+        if ((user_profile.user.is_superuser and user_profile.user.is_staff) and
+                (not user.is_superuser)) or (user_profile.user.is_staff and (not user.is_staff)):
 
             if user.is_active:
                 user.is_active = False

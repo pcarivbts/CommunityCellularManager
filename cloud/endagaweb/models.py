@@ -105,9 +105,9 @@ class UserProfile(models.Model):
         if created and instance.username != settings.ANONYMOUS_USER_NAME:
             profile = UserProfile.objects.create(user=instance)
 
-            # To avoid duplicate names while running setup_test_db
-            # network = Network.objects.create()
-            network = Network.objects.create(name='Network_%s' % instance.pk)
+            # Add explicit name to avoid duplicate names when
+            # running setup_test_db
+            network = Network.objects.create(name='Network_%s') % (instance.pk,)
             network.auth_group.user_set.add(instance)
             network.save()
             # Make this the users currently selected network
@@ -1469,18 +1469,14 @@ class Network(models.Model):
         authenticate.
         """
         if not instance.auth_group or not instance.auth_user:
-            # instance.auth_group, created_group = Group.objects.get_or_create(name='network_%s'
-            #     % instance.pk)
-            instance.auth_group, created_group = Group.objects.get_or_create(name='%s_GROUP_%s'
-                % (instance.name, instance.pk))
+            instance.auth_group, created_group = Group.objects.get_or_create(name='%s_GROUP_%s' %
+                                                                                  (instance.name, instance.pk))
             if created_group:
                 assign_perm('view_network', instance.auth_group, instance)
 
             post_save.disconnect(UserProfile.new_user_hook, sender=User)
-            # instance.auth_user, created_user = User.objects.get_or_create(username='network_%s'
-            #     % instance.pk)
-            instance.auth_user, created_user = User.objects.get_or_create(username='%s_USER_%s'
-                                                                                   % (instance.name, instance.pk))
+            instance.auth_user, created_user = User.objects.get_or_create(username='%s_USER_%s' %
+                                                                                   (instance.name, instance.pk))
             if created_user:
                 Token.objects.create(user=instance.auth_user)
                 instance.auth_group.user_set.add(instance.auth_user)
@@ -1815,31 +1811,6 @@ class FileUpload(models.Model):
     accessed_time = models.DateTimeField(auto_now=True)
 
 
-
-
-"""
-class GlobalPermissionManager(models.Manager):
-    def get_queryset(self):
-        return super(GlobalPermissionManager, self).\
-            get_queryset().filter(content_type__model='global_permission')
-
-class GlobalPermission(Permission):
-    #A global permission, not attached to a model
-
-    objects = GlobalPermissionManager()
-
-    class Meta:
-        proxy = True
-        verbose_name = "global_permission"
-
-    def save(self, *args, **kwargs):
-        ct, created = ContentType.objects.get_or_create(
-            model=self._meta.verbose_name, app_label=self._meta.app_label,
-        )
-        self.content_type = ct
-        super(GlobalPermission, self).save(*args)
-"""
-
 class SMSBroadcast(models.Model):
     """ Global permission set for SMS Broadcasting module in network section"""
 
@@ -1852,6 +1823,7 @@ class SMSBroadcast(models.Model):
             ('send_sms', 'Send SMS broadcast from subscriber'),
         )
 
+
 class Credit(models.Model):
     """ Global permission set for Credit Adjustment module in subscribers"""
 
@@ -1861,6 +1833,7 @@ class Credit(models.Model):
         permissions = (
             ('add_credit', 'Add credit adjustment to subscriber'),
         )
+
 
 class Notification(models.Model):
     """ Global permission set for Credit Adjustment module in subscribers"""
@@ -1872,6 +1845,7 @@ class Notification(models.Model):
             ('view_notification', 'View Notification'),
         )
 
+
 class Report(models.Model):
     """ Global permission set for Report module"""
 
@@ -1882,6 +1856,7 @@ class Report(models.Model):
             ('view_report', 'View reports'),
             ('download_report', 'Download reports')
         )
+
 
 class Graph(models.Model):
     """ Global permission set for Report module"""

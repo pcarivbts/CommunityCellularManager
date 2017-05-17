@@ -95,15 +95,15 @@ of patent rights can be found in the PATENTS file in the same directory.
             {% if event.subscriber %}
               {% if event.subscriber.name %}
                 {% if perms.endagaweb.view_subscriber %}
-                <td><a href="{% url 'subscriber-info' imsi=event.subscriber.imsi %}">{{ event.subscriber.name }} ({{ event.subscriber.imsi }})</a></td>
+                  <td><a href="{% url 'subscriber-info' imsi=event.subscriber.imsi %}">{{ event.subscriber.name }} ({{ event.subscriber.imsi }})</a></td>
                 {% else %}
-                <td>{{ event.subscriber.name }} ({{ event.subscriber.imsi }})</td>
+                  <td>{{ event.subscriber.name }} ({{ event.subscriber.imsi }})</td>
                 {% endif %}
               {% else %}
                 {% if perms.endagaweb.view_subscriber %}
-                <td><a href="{% url 'subscriber-info' imsi=event.subscriber.imsi %}">{{ event.subscriber.imsi }}</a></td>
+                  <td><a href="{% url 'subscriber-info' imsi=event.subscriber.imsi %}">{{ event.subscriber.imsi }}</a></td>
                 {% else %}
-                <td>{{ event.subscriber.imsi }}</td>
+                  <td>{{ event.subscriber.imsi }}</td>
                 {% endif %}
               {% endif %}
             {% else %}  {# /event.subscriber check #}
