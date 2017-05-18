@@ -107,7 +107,7 @@ class UserProfile(models.Model):
 
             # Add explicit name to avoid duplicate names when
             # running setup_test_db
-            network = Network.objects.create(name='Network_%s') % (instance.pk,)
+            network = Network.objects.create(name='Network_%s' % (instance.pk,))
             network.auth_group.user_set.add(instance)
             network.save()
             # Make this the users currently selected network
