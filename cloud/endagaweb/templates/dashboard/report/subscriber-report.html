@@ -28,7 +28,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     {% include "dashboard/report/header.html" with network=network %}
 
     <div class='row'>
-        {% include "dashboard/report/nav.html" with active_tab='call_sms' %}
+        {% include "dashboard/report/nav.html" with active_tab='subscriber_reports' %}
 
         <div class='content col-xs-12 col-sm-10 col-md-10'>
 
@@ -39,37 +39,11 @@ of patent rights can be found in the PATENTS file in the same directory.
                     <div class="form-group">
                         <label for="id_keyword"
                                class="control-label col-xs-2">Filter by</label>
-                        <div class="col-xs-3">
+                        <div class="col-xs-10">
                             <label class="radio-inline"><input type="radio" name="optradio">BTS</label>
                             <label class="radio-inline"><input type="radio" name="optradio">Network</label>
                         </div>
-                        <!--label for="id_keyword"
-                               class="control-label col-xs-1">Interval</label>
-                        <div class="col-xs-4">
-                            <label class="radio-inline"><input type="radio" name="optradio">Daily</label>
-                            <label class="radio-inline"><input type="radio" name="optradio">Weekly</label>
-                            <label class="radio-inline"><input type="radio" name="optradio">Monthly</label>
-                        </div-->
                     </div>
-                    <!--div class="form-group">
-                        <label for="start_date" class="control-label col-xs-2">From</label>
-                        <div class="col-xs-3">
-                            <input class="form-control" id="start_date" name="start_date" type="text"
-                                   {% if eventfilter.start_date %}
-                                   value="{{ eventfilter.start_date }}"
-                                   {% endif %}
-                            />
-                        </div>
-                        <label for="end_date" class="control-label col-xs-1">Until</label>
-                        <div class="col-xs-3">
-                            <input class="form-control" id="end_date" name="end_date" type="text"
-                                   {% if eventfilter.end_date %}
-                                   value="{{ eventfilter.end_date }}"
-                                   {% endif %}
-                            />
-                        </div>
-                    </div-->
-
                     <div class="form-group">
                         <label class="control-label col-xs-2">Reports</label>
                         <div class="col-xs-5">

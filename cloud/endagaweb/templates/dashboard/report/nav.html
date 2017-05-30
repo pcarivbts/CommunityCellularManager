@@ -12,26 +12,26 @@ of patent rights can be found in the PATENTS file in the same directory.
     <li role="presentation" class="{% if active_tab == 'call_sms' %} active {% endif %}">
       <a href="
         {% if active_tab == 'call_sms' %} #
-        {% else %} {% url 'report' %}
+        {% else %} {% url 'call-report' %}
         {% endif %} ">Call & SMS Reports</a>
     </li>
     <li role="presentation" class="{% if active_tab == 'subscriber_reports' %} active {% endif %}">
       <a href="
         {% if active_tab == 'subscriber_reports' %} #
-        {% else %} {% url 'report' %}
+        {% else %} {% url 'subscriber-report' %}
         {% endif %} ">Subscriber Reports</a>
     </li>
 
     <li role="presentation" class="{% if active_tab == 'billing_reports' %} active {% endif %}">
       <a href="
         {% if active_tab == 'billing_reports' %} #
-        {% else %}{% url 'report' %}
+        {% else %}{% url 'billing-report' %}
         {% endif %}">Billing Reports</a>
     </li>
     <li role="presentation" class="{% if active_tab == 'health_reports' %} active {% endif %}">
       <a href="
         {% if active_tab == 'health_reports' %} #
-        {% else %}{% url 'report' %}
+        {% else %}{% url 'health-report' %}
         {% endif %}">Health Reports</a>
     </li>
 
