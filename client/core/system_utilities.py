@@ -19,7 +19,7 @@ import subprocess
 
 import dateutil.parser
 import dateutil.tz
-import envoy
+import delegator
 import netifaces
 import psutil
 import pytz
@@ -57,8 +57,8 @@ def log_stream(log_path, window_start=None, window_end=None):
 
     fnames = glob.glob(log_path) + glob.glob("%s.*" % log_path)
     fnames.sort(key=os.path.getmtime)
-    fnames = filter(lambda f: datetime.fromtimestamp(
-        os.path.getmtime(f), dateutil.tz.tzlocal()) >= window_start, fnames)
+    fnames = [f for f in fnames if datetime.fromtimestamp(
+        os.path.getmtime(f), dateutil.tz.tzlocal()) >= window_start]
 
     for fname in fnames:
         with open_raw_or_gzip(fname, 'r') as f:
@@ -104,10 +104,10 @@ def get_vpn_ip():
 
 def get_fs_profile_ip(profile_name):
     """Get the IP bound to a sofia profile in FS."""
-    response = envoy.run('fs_cli -x "sofia status"')
-    if response.status_code != 0:
+    response = delegator.run('fs_cli -x "sofia status"')
+    if response.return_code != 0:
         raise ValueError('error running "sofia status"')
-    for line in response.std_out.split('\n'):
+    for line in response.out.split('\n'):
         if profile_name in line and 'profile' in line:
             data = line.split()[2]
             result = re.search('sip:mod_sofia@(.*):50', data)
@@ -170,18 +170,18 @@ def upgrade_endaga(channel):
     # Try a dry-run of the upgrade.
     command = ('sudo apt-get install --assume-yes --dry-run'
                ' --only-upgrade -t %s endaga' % channel)
-    response = envoy.run(command)
-    if response.status_code != 0:
+    response = delegator.run(command)
+    if response.return_code != 0:
         message = ('Error while dry running the endaga upgrade: %s' %
-                   response.std_out)
+                   response.out)
         logger.error(message)
         return
     # Upgrade just the metapackage.
     command = ('sudo apt-get install --assume-yes'
                ' --only-upgrade -t %s endaga' % channel)
-    response = envoy.run(command)
-    if response.status_code != 0:
-        message = 'Error while upgrading endaga: %s' % response.std_out
+    response = delegator.run(command)
+    if response.return_code != 0:
+        message = 'Error while upgrading endaga: %s' % response.out
         logger.error(message)
 
 
