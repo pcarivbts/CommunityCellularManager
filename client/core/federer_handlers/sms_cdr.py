@@ -4,7 +4,7 @@ Copyright (c) 2016-present, Facebook, Inc.
 All rights reserved.
 
 This source code is licensed under the BSD-style license found in the
-LICENSE file in the root directory of this source tree. An additional grant 
+LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 """
 
@@ -24,9 +24,12 @@ class smscdr(object):
         if ('from_name' not in data or 'service_type' not in data or
                 'destination' not in data):
             raise web.BadRequest()
-        # Process the CDR data.
-        cost_in_credits = billing.get_sms_cost(
-            data.service_type, destination_number=data.destination)
+        if 'tariff' not in data:
+            # Process the CDR data.
+            cost_in_credits = billing.get_sms_cost(
+                data.service_type, destination_number=data.destination)
+        else:
+            cost_in_credits = data.tariff
         try:
             old_balance = subscriber.get_account_balance(data.from_name)
             subscriber.subtract_credit(data.from_name, str(cost_in_credits))

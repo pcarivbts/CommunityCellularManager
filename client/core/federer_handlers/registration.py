@@ -10,6 +10,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 import threading
 import traceback
+import requests
 
 import web
 
@@ -43,6 +44,16 @@ class registration:
                     gt("Your number is %(number)s.") % {'number': number})
             reason = 'Provisioned user %s number %s' % (from_name, number)
             events.create_provision_event(from_name, reason)
+
+            # call vbts-webadmin API to add newly provisioned
+            # subscriber to contact list
+            api_url = 'http://127.0.0.1:7000/api/contact/create'
+            params = {
+                "imsi": from_name,
+                "callerid": number,
+            }
+            requests.post(api_url, data=params)
+
         except Exception as e:
             self.fs_ic.send_to_imsi(from_name, ip, port, ret_num,
                     gt("Failed to register your handset."))

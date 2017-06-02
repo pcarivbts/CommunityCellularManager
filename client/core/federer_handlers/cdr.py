@@ -8,15 +8,20 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 """
 
+import requests
 import web
 import xml.dom.minidom as xml
+
+from math import ceil
 
 from ccm.common import logger
 from core import events
 from core import billing
 from core.subscriber import subscriber
 
+
 IMSI_PREFIX = "IMSI"
+
 
 def get_tag_text(nodelist):
     """ Get the text value of an XML tag (from the minidom doc)
@@ -60,6 +65,8 @@ class cdr(object):
             cdr_dom.getElementsByTagName("duration")[0].childNodes))
         billsec = int(get_tag_text(
             cdr_dom.getElementsByTagName("billsec")[0].childNodes))
+        tariff = int(get_tag_text(
+            cdr_dom.getElementsByTagName("call_tariff")[0].childNodes))
         # In b-leg cdrs, there are multiple destinations -- the sip one (IMSI)
         # and the dialed one (MSISDN).  We want the latter.
         callees = cdr_dom.getElementsByTagName("destination_number")
@@ -76,6 +83,10 @@ class cdr(object):
         if len(cdr_dom.getElementsByTagName("service_type")) > 0:
             service_type = get_tag_text(
                 cdr_dom.getElementsByTagName("service_type")[0].childNodes)
+            service_type_orig = service_type
+            promo_type = service_type[:1]
+            if promo_type in ['D', 'U', 'B', 'G']:
+                service_type = service_type[2:]
             # Get caller / callee info.  See the 'CDR notes' doc in drive for
             # more info.
             from_imsi, from_number, to_imsi, to_number = 4 * [None]
@@ -106,7 +117,8 @@ class cdr(object):
                             to_imsi = callee_id
                         else:
                             # callee_id_number in the CDR is MSISDN.
-                            to_imsi = subscriber.get_imsi_from_number(callee_id)
+                            to_imsi = subscriber.get_imsi_from_number(
+                                callee_id)
                         break
 
             # Get 'to_number' (slightly different for local/incoming calls).
@@ -126,12 +138,15 @@ class cdr(object):
             # Generate billing information for the caller, if the caller is
             # local to the BTS.
             if service_type != 'incoming_call':
-                tariff = billing.get_service_tariff(
-                    service_type, 'call', destination_number=to_number)
+                # remove this as tariff should have been included in curl call
+                # to this endpoint
+                # tariff = billing.get_service_tariff(
+                #     service_type, 'call', destination_number=to_number)
                 cost = billing.get_call_cost(billsec, service_type,
-                                             destination_number=to_number)
+                                             destination_number=to_number,
+                                             tariff=tariff)
                 reason = "%s sec call to %s (%s)" % (
-                    billsec, to_number, service_type)
+                    billsec, to_number, service_type_orig)
                 old_balance = subscriber.get_account_balance(from_imsi)
                 subscriber.subtract_credit(from_imsi, str(cost))
                 owner_imsi = from_imsi
@@ -140,6 +155,16 @@ class cdr(object):
                     owner_imsi, from_imsi, from_number, to_imsi, to_number,
                     old_balance, cost, kind, reason, tariff, call_duration,
                     billsec)
+                # call promo/deduct to deduct bulk promo credits
+                if promo_type == 'B':
+                    api_url = 'http://127.0.0.1:7000/api/promo/deduct'
+                    params = {
+                        "imsi": owner_imsi,
+                        "trans": service_type_orig,
+                        # round up to nearest minute
+                        "amount": int(ceil(int(billsec) / 60.0))
+                    }
+                    requests.post(api_url, data=params)
 
             # Create a call record for the callee, if applicable.
             if service_type in ['local_call', 'incoming_call']:

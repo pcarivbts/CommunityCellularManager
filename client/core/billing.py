@@ -139,6 +139,14 @@ def get_service_tariff(service_type, activity_type, destination_number=''):
     if 'free' in service_type or 'error' in service_type:
         return 0
 
+    # do not charge for unli or bulk promos
+    if 'U_' in service_type or 'B_' in service_type:
+        return 0
+
+    # get tariff from webadmin data if discounted type
+    if 'D_' in service_type or 'G_' in service_type:
+        pass
+
     service_type = convert_legacy_service_type(service_type)
 
     # Set the cost key suffix.
@@ -167,6 +175,11 @@ def get_service_billable_unit(service_type, destination_number):
     if 'free' in service_type or 'error' in service_type:
         return 1
 
+    # Use default billable unit for promos
+    if 'U_' in service_type or 'B_' in service_type or \
+            'D_' in service_type or 'G_' in service_type:
+        return 1
+
     service_type = convert_legacy_service_type(service_type)
 
     prefix = get_prefix_from_number(destination_number)
@@ -181,19 +194,23 @@ def get_service_billable_unit(service_type, destination_number):
         logger.error("get_service_billable_unit lookup failed for key: %s" % key)
         return 1
 
-def get_call_cost(billsec, service_type, destination_number=''):
+def get_call_cost(billsec, service_type, destination_number='', tariff=None):
     """Get the cost of a call.
 
     Args:
       billsec: the call's billable duration
       service_type: the type of call
       destination_number: the number we're calling
+      tariff: tariff as retrieved by VBTS api
 
     Returns:
       cost of call
     """
-    rate_per_min = get_service_tariff(
-        service_type, 'call', destination_number=destination_number)
+    if tariff:
+        rate_per_min = tariff
+    else:
+        rate_per_min = get_service_tariff(
+            service_type, 'call', destination_number=destination_number)
     free_seconds = int(config_db['free_seconds'])
     billable_unit = get_service_billable_unit(
         service_type, destination_number)
