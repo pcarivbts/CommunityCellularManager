@@ -560,6 +560,9 @@ class SubscriberAdjustCredit(ProtectedView):
                     CURRENCIES[currency]).amount_raw
             if abs(amount) > 2147483647:
                 raise ValueError(error_text)
+            if sub.balance + amount > network.max_account_limit:
+                error_text = 'Error : Crossed Credit Limit.'
+                raise ValueError(error_text)
         except ValueError:
             messages.error(request, error_text)
             return adjust_credit_redirect

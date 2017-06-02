@@ -1,0 +1,115 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+{% load apptags %}
+{% load humanize %}
+{% load crispy_forms_tags %}
+
+
+{% block title %}
+{% if network.name %}
+{% tmpl_const "SITENAME" %} | "{{ network.name }}"
+{% else %}
+{% tmpl_const "SITENAME" %} | Network
+{% endif %}
+{% endblock %}
+
+
+{% block pagestyle %}
+<style>
+  #messages-container .alert {
+    margin-top: 20px;
+  }
+  #div_id_autoupgrade_enabled .controls, #div_id_autoupgrade_in_window .controls {
+    margin-left: 15px;
+  }
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+
+{% include "dashboard/network_detail/header.html" with network=network %}
+
+
+<div class = 'row'>
+  {% include "dashboard/network_detail/nav.html" with active_tab='limit'%}
+
+  <div class='content col-xs-12 col-md-4'>
+    <div class='row'>
+    <div class='col-sm-12'>
+      <!--<h4>Add Credit</h4>-->
+        {% if user_profile.user.is_staff %}
+        {% crispy network_balance_limit_form %}
+        {% endif %}
+       <p class='col-xs-12'>Network current maximum balance limit: {% currency network.max_account_limit %}</p>
+       <p class='col-xs-12'>Maximum permissible unsuccessful transactions current limit: {{ network.max_failure_transaction }}</p>
+      </div>
+      <div class='col-sm-12'>
+        {% for message in messages %}
+          <div class="{{ message.tags }} message">{{ message }}</div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+  {% endblock %}
+{% block js %}
+
+<script type="text/javascript">
+        $(document).ready(function () {
+            $('#id_limit').keypress(function (event) {
+                var $this = $(this);
+                if ((event.which != 46 || $this.val().indexOf('.') != -1) &&
+                    ((event.which < 48 || event.which > 57) &&
+                    (event.which != 0 && event.which != 8))) {
+                    event.preventDefault();
+                }
+                var text = $(this).val();
+                if ((event.which == 46) && (text.indexOf('.') == -1)) {
+                    if(text.length>= 10){
+                      event.preventDefault();
+                      return;
+                    }
+                    setTimeout(function () {
+                        if ($this.val().substring($this.val().indexOf('.')).length > 3) {
+                            $this.val($this.val().substring(0, $this.val().indexOf('.') + 3));
+                        }
+                    }, 1);
+                }
+                if ((text.indexOf('.') != -1) &&
+                    (text.substring(text.indexOf('.')).length > 2) &&
+                    (event.which != 0 && event.which != 8) &&
+                    ($(this)[0].selectionStart >= text.length - 2)) {
+                    event.preventDefault();
+                }
+            });
+            $("#id_transaction").keydown(function (e) {
+                // Allow: backspace, delete, tab, escape and enter
+                if ($.inArray(e.keyCode, [46, 8, 9, 27, 13, 110]) !== -1 ||
+                    // Allow: Ctrl+A, Command+A
+                    (e.keyCode === 65 && (e.ctrlKey === true || e.metaKey === true)) ||
+                    // Allow: home, end, left, right, down, up
+                    (e.keyCode >= 35 && e.keyCode <= 40)) {
+                    // let it happen, don't do anything
+                    return;
+                }
+                // Ensure that it is a number and stop the keypress
+                if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                    e.preventDefault();
+                }
+            });
+        });
+
+</script>
+
+{% endblock %}
+
