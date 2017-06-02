@@ -9,14 +9,15 @@
 import sys
 import re
 
-from osmocom.bts import BTS
-from osmocom.network import Network
-from osmocom.trx import TRX
-from osmocom.subscribers import Subscribers
-from osmocom.vty import BaseVTY
+from osmocom.vty.bts import BTS
+from osmocom.vty.network import Network
+from osmocom.vty.trx import TRX
+from osmocom.vty.subscribers import Subscribers
+from osmocom.vty.base import BaseVTY
 
 from core.config_database import ConfigDB
-from core.bts.base import BaseBTS, BSSError
+from core.bts.base import BaseBTS
+from core.exceptions import BSSError
 from core.service import Service
 
 from ccm.common import logger
@@ -101,7 +102,7 @@ class Lc15BTS(BaseVTY, BaseBTS):
                 return s.camped_subscribers(access_period, auth)
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
-            raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
+            raise BSSError("%s: %s" % (exc_type, exc_value)).with_traceback(exc_trace)
 
     def get_load(self):
         try:
@@ -120,18 +121,22 @@ class Lc15BTS(BaseVTY, BaseBTS):
                 # we need to reformat load dict to meet openBTS load
                 # since CCM cloud expects to see load with openBTS format
                 return {
-                    'sdcch_load': bsc_load['sdcch8_load'] + bsc_load['ccch_sdcch4_load'],
-                    'sdcch_available': bsc_load['sdcch8_max'] + bsc_load['ccch_sdcch4_max'],
+                    'ccch_sdcch4_load': bsc_load['ccch_sdcch4_load'],
+                    'ccch_sdcch4_max': bsc_load['ccch_sdcch4_max'],
+                    'sdcch_load': bsc_load['sdcch8_load'],
+                    'sdcch_available': bsc_load['sdcch8_max'],
                     'tchf_load': bsc_load['tch_f_load'],
                     'tchf_available': bsc_load['tch_f_max'],
                     'tchh_load': bsc_load['tch_h_load'],
                     'tchh_available': bsc_load['tch_h_max'],
+                    'tch_f_pdch_load': bsc_load['tch_f_pdch_load'],
+                    'tch_f_pdch_max': bsc_load['tch_f_pdch_max'],
                     'pch_active': bts_load['paging_queue_occupied'],
                     'agch_active': bts_load['agch_queue_occupied'],
                 }
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
-            raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
+            raise BSSError("%s: %s" % (exc_type, exc_value)).with_traceback(exc_trace)
 
     def get_noise(self):
         return {'some_noise_stats_here_tbd': 0}
@@ -143,7 +148,7 @@ class Lc15BTS(BaseVTY, BaseBTS):
                 return n.set_mcc(mcc)
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
-            raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
+            raise BSSError("%s: %s" % (exc_type, exc_value)).with_traceback(exc_trace)
 
     def set_mnc(self, mnc):
         """Set MNC"""
@@ -152,7 +157,7 @@ class Lc15BTS(BaseVTY, BaseBTS):
                 return n.set_mnc(mnc)
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
-            raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
+            raise BSSError("%s: %s" % (exc_type, exc_value)).with_traceback(exc_trace)
 
     def set_short_name(self, short_name):
         """Set beacon short name"""
@@ -161,7 +166,7 @@ class Lc15BTS(BaseVTY, BaseBTS):
                 return n.set_short_name(short_name)
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
-            raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
+            raise BSSError("%s: %s" % (exc_type, exc_value)).with_traceback(exc_trace)
 
     def set_open_registration(self, expression):
         """Set a regular expression matching IMSIs
@@ -182,7 +187,7 @@ class Lc15BTS(BaseVTY, BaseBTS):
                     return n.set_timer(timer, value)
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
-            raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
+            raise BSSError("%s: %s" % (exc_type, exc_value)).with_traceback(exc_trace)
 
     def set_band(self, band):
         """Set the GSM band of default BTS"""
@@ -191,7 +196,7 @@ class Lc15BTS(BaseVTY, BaseBTS):
                 return b.set_band(self.DEFAULT_BTS_ID, band)
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
-            raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
+            raise BSSError("%s: %s" % (exc_type, exc_value)).with_traceback(exc_trace)
 
     def set_arfcn_c0(self, arfcn):
         """Set the ARFCN of the first carrier."""
@@ -200,7 +205,7 @@ class Lc15BTS(BaseVTY, BaseBTS):
                 return t.set_arfcn(self.DEFAULT_BTS_ID, self.DEFAULT_TRX_ID, arfcn)
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
-            raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
+            raise BSSError("%s: %s" % (exc_type, exc_value)).with_traceback(exc_trace)
 
     def get_mcc(self):
         try:
@@ -208,7 +213,7 @@ class Lc15BTS(BaseVTY, BaseBTS):
                 return n.show()['mcc']
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
-            raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
+            raise BSSError("%s: %s" % (exc_type, exc_value)).with_traceback(exc_trace)
 
     def get_mnc(self):
         try:
@@ -216,7 +221,7 @@ class Lc15BTS(BaseVTY, BaseBTS):
                 return n.show()['mnc']
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
-            raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
+            raise BSSError("%s: %s" % (exc_type, exc_value)).with_traceback(exc_trace)
 
     def get_short_name(self):
         try:
@@ -224,7 +229,7 @@ class Lc15BTS(BaseVTY, BaseBTS):
                 return n.show()['short_name']
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
-            raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
+            raise BSSError("%s: %s" % (exc_type, exc_value)).with_traceback(exc_trace)
 
     def get_open_registration(self):
         auth_regex = self.__get('openRegistration')
@@ -241,7 +246,7 @@ class Lc15BTS(BaseVTY, BaseBTS):
                     return n.running_config()['timer t%d' % timer]
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
-            raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
+            raise BSSError("%s: %s" % (exc_type, exc_value)).with_traceback(exc_trace)
 
     def get_available_bands(self):
         try:
@@ -249,7 +254,7 @@ class Lc15BTS(BaseVTY, BaseBTS):
                 return b.get_available_bands()
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
-            raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
+            raise BSSError("%s: %s" % (exc_type, exc_value)).with_traceback(exc_trace)
 
     def get_available_arfcns(self):
         """Returns a list of available ARFCNs for the default BTS"""
@@ -258,7 +263,7 @@ class Lc15BTS(BaseVTY, BaseBTS):
                 return b.get_available_arfcns(self.DEFAULT_BTS_ID)
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
-            raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
+            raise BSSError("%s: %s" % (exc_type, exc_value)).with_traceback(exc_trace)
 
     def get_band(self):
         try:
@@ -266,7 +271,7 @@ class Lc15BTS(BaseVTY, BaseBTS):
                 return b.show(self.DEFAULT_BTS_ID)['band']
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
-            raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
+            raise BSSError("%s: %s" % (exc_type, exc_value)).with_traceback(exc_trace)
 
     def get_arfcn_c0(self):
         try:
@@ -274,7 +279,7 @@ class Lc15BTS(BaseVTY, BaseBTS):
                 return t.show(self.DEFAULT_BTS_ID, self.DEFAULT_TRX_ID)['arfcn']
         except Exception as e:
             exc_type, exc_value, exc_trace = sys.exc_info()
-            raise BSSError, "%s: %s" % (exc_type, exc_value), exc_trace
+            raise BSSError("%s: %s" % (exc_type, exc_value)).with_traceback(exc_trace)
 
     def get_gprs_usage(self, target_imsi=None):
         """Get all available GPRS data, or that of a specific IMSI (experimental).

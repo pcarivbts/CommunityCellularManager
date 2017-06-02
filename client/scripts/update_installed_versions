@@ -15,28 +15,35 @@ of patent rights can be found in the PATENTS file in the same directory.
 import delegator
 
 from core.config_database import ConfigDB
+from pkg_resources import parse_version
 
 # Hard-coded package version to simplify integration in embedded
 # environment (yocto).
 packages_version = {'endaga-openbts': '',
-                    'endaga-osmocom': '0.7.12',
+                    'endaga-osmocom': '0.8.1',
                     'freeswitch': '1.6.12+git~20170222T162745Z~b91a0a6f2b-1~jessie+1',
                     'openbts-public': '',
-                    'osmo-nitb': '0.15.1.20170221',
-                    'python-endaga-core': '0.5.11',
+                    'osmo-nitb': '0.15.0-748-g61c15ff-r1.5.3',
+                    'python3-endaga-core': '0.6.1',
                     'python-openbts': '',
-                    'python-osmocom': '0.0.4'}
+                    'python3-osmocom': '0.1.0'}
 
 #this should be moved to common and used in the bts classes directly
 def get_version(package_name):
     """Runs opkg status to get package version info."""
-    query = envoy.run("/usr/bin/opkg status %s | grep 'Version: ' | cut -d ' ' -f 2" % package_name)
-    result = query.std_out.strip(' \t\n\r')
-    if result :
+    query = delegator.run("/usr/bin/opkg status %s | grep 'Version: ' | cut -d ' ' -f 2" % package_name)
+    if query.return_code != 0:
+        return packages_version[package_name]
+    try:
         # update package version array
-        packages_version[package_name] = result
-    return packages_version[package_name]
-
+        print ("package=%s, version=%s" %(package_name, query.out))
+        # we send MAJOR.MINOR for now
+        ver =  query.out.split('-')[0]
+        if (parse_version(ver) != parse_version('0.0.0')) :
+            packages_version[package_name] = ver
+        return packages_version[package_name]
+    except ValueError:
+        return ''
 
 config_db = ConfigDB()
 packages = [('endaga', ['endaga-openbts',
