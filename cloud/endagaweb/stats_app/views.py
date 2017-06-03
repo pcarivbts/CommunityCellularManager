@@ -23,7 +23,7 @@ from endagaweb.stats_app import stats_client
 # for these other categories: sms, call, uploaded_data, downloaded_data,
 # total_data.
 SMS_KINDS = stats_client.SMS_KINDS + ['sms']
-CALL_KINDS = stats_client.CALL_KINDS + ['call']
+CALL_KINDS = stats_client.CALL_KINDS + ['call'] #, 'oustside_call']
 GPRS_KINDS = ['total_data', 'uploaded_data', 'downloaded_data']
 TIMESERIES_STAT_KEYS = stats_client.TIMESERIES_STAT_KEYS
 VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS
@@ -55,6 +55,7 @@ def parse_query_params(params):
         'stat-types': ['sms'],
         'level-id': -1,
         'aggregation': 'count',
+        'report_view':'list'
     }
     # Override defaults with any query params that have been set, if the
     # query params are valid.
@@ -81,6 +82,8 @@ def parse_query_params(params):
         parsed_params['level-id'] = int(params['level-id'])
     if 'aggregation' in params and params['aggregation'] in AGGREGATIONS:
         parsed_params['aggregation'] = params['aggregation']
+    if 'report-view' in params and params['report-view'] in ['summary', 'list']:
+        parsed_params['report-view'] = params['report-view']
     return parsed_params
 
 
@@ -181,7 +184,6 @@ class ReportsAPIView(views.APIView):
 
     def get(self, request, infrastructure_level):
         print "---------------------------------------------------------------------"
-        print request
         print "infrastructure_level ======== ", infrastructure_level
         """GET request handler.
 
@@ -217,7 +219,10 @@ class ReportsAPIView(views.APIView):
         data = {
             'results': [],
         }
+        print "params = ", params
+        print "========"
         for stat_type in params['stat-types']:
+            print "stat_type = ", stat_type
             # Setup the appropriate stats client, SMS, call or GPRS.
             if stat_type in SMS_KINDS:
                 client_type = stats_client.SMSStatsClient
@@ -241,7 +246,9 @@ class ReportsAPIView(views.APIView):
                 start_time_epoch=params['start-time-epoch'],
                 end_time_epoch=params['end-time-epoch'],
                 aggregation=params['aggregation'],
+                report_view=params['report-view'],
             )
+            print "results ===================", results
             data['results'].append({
                 "key": stat_type,
                 "values": results

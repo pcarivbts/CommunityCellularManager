@@ -99,6 +99,7 @@ class StatsClientBase(object):
         end_time_epoch = kwargs.pop('end_time_epoch', -1)
         interval = kwargs.pop('interval', 'months')
         aggregation = kwargs.pop('aggregation', 'count')
+        report_view = kwargs.pop('report_view', 'list')
         # Turn the start and end epoch timestamps into datetimes.
         start = datetime.fromtimestamp(start_time_epoch, pytz.utc)
         if end_time_epoch != -1:
@@ -136,13 +137,21 @@ class StatsClientBase(object):
         elif aggregation == 'average_value':
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=aggregates.Avg('value'))
+        #elif aggregation == 'count':
+        #    queryset_stats = qsstats.QuerySetStats(
+        #        queryset, 'date', aggregate=aggregates.Count('id'))
         else:
             queryset_stats = qsstats.QuerySetStats(queryset, 'date')
+
         timeseries = queryset_stats.time_series(start, end, interval=interval)
         # The timeseries results is a list of (datetime, value) pairs.  We need
         # to convert the datetimes to timestamps with millisecond precision and
         # then zip the pairs back together.
         datetimes, values = zip(*timeseries)
+        if report_view == 'summary':
+            # Return sum count for pie-chart and table view
+            return sum(values)
+
         timestamps = [
             int(time.mktime(dt.timetuple()) * 1e3 + dt.microsecond / 1e3)
             for dt in datetimes
@@ -157,7 +166,7 @@ class StatsClientBase(object):
         return zip(timestamps, rounded_values)
 
 
-class SMSStatsClient(StatsClientBase):
+class duration(StatsClientBase):
     """The SMS stats client.
 
     Gets number of SMS, with the ability to filter by SMS kind.
@@ -260,6 +269,7 @@ class CallStatsClient(StatsClientBase):
             for call_kind in all_call_kinds:
                 usage = self.aggregate_timeseries(call_kind, **kwargs)
                 values = [u[1] for u in usage]
+                print call_kind, values
                 results.append(values)
             # The dates are all the same in each of the loops above, so we'll
             # just grab the last one.
@@ -271,6 +281,7 @@ class CallStatsClient(StatsClientBase):
             totals = [sum(v) for v in zip(*results)]
             return zip(dates, totals)
         else:
+            print "else++++++++++++++"
             return self.aggregate_timeseries(kind, **kwargs)
 
 

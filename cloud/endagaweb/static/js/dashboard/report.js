@@ -10,122 +10,6 @@
 // React chart components.
 
 
-function exampleData() {
- return  [
-    {
-      key: "Cumulative Return",
-      values: [
-        {
-          "label" : "A Label" ,
-          "value" : 29.765957771107
-        } ,
-        {
-          "label" : "B Label" ,
-          "value" : 0
-        } ,
-        {
-          "label" : "C Label" ,
-          "value" : 32.807804682612
-        } ,
-        {
-          "label" : "D Label" ,
-          "value" : 196.45946739256
-        } ,
-        {
-          "label" : "E Label" ,
-          "value" : 0.19434030906893
-        } ,
-        {
-          "label" : "F Label" ,
-          "value" : 98.079782601442
-        } ,
-        {
-          "label" : "G Label" ,
-          "value" : 13.925743130903
-        } ,
-        {
-          "label" : "H Label" ,
-          "value" : 5.1387322875705
-        }
-      ]
-    },
-    {
-      key: "Second",
-      values: [
-        {
-          "label" : "AA" ,
-          "value" : 196.45946739256
-        } ,
-        {
-          "label" : "BB" ,
-          "value" : 0.19434030906893
-        } ,
-        {
-          "label" : "CC" ,
-          "value" : 98.079782601442
-        } ,
-        {
-          "label" : "DD" ,
-          "value" : 13.925743130903
-        } ,
-        {
-          "label" : "EE" ,
-          "value" : 5.1387322875705
-        }, {
-          "label" : "FF" ,
-          "value" : 29.765957771107
-        } ,
-        {
-          "label" : "GG" ,
-          "value" : 0
-        } ,
-        {
-          "label" : "HH" ,
-          "value" : 32.807804682612
-        }
-      ]
-    }, {
-      key: "Third",
-      values: [
-        {
-          "label" : "AA Label" ,
-          "value" : 29.765957771107
-        } ,
-        {
-          "label" : "BB Label" ,
-          "value" : 0
-        } ,
-        {
-          "label" : "CC Label" ,
-          "value" : 32.807804682612
-        } ,
-        {
-          "label" : "DD Label" ,
-          "value" : 196.45946739256
-        } ,
-        {
-          "label" : "EE Label" ,
-          "value" : 0.19434030906893
-        } ,
-        {
-          "label" : "FF Label" ,
-          "value" : 98.079782601442
-        } ,
-        {
-          "label" : "GG Label" ,
-          "value" : 13.925743130903
-        } ,
-        {
-          "label" : "HH Label" ,
-          "value" : 5.1387322875705
-        }
-      ]
-    }
-  ]
-
-}
-
-
 var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
 
   getInitialState: function() {
@@ -260,8 +144,11 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       'stat-types': this.props.statTypes,
       'level-id': this.props.levelID,
       'aggregation': this.props.aggregation,
+      'report-view':'summary'
     };
     $.get(this.props.endpoint, queryParams, function(data) {
+      console.log("data ======== ");
+      console.log(data);
       this.setState({
         isLoading: false,
         chartData: data,
@@ -304,6 +191,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
         <LoadingText
           visible={this.state.isLoading}
         />
+        <DownloadButton />
         <TimeseriesChart
           chartID={this.props.chartID}
           data={this.state.chartData}
@@ -343,33 +231,39 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
   for (var index in data) {
     var newSeries = { 'key': data[index]['key'] };
     var newValues = [];
-    for (var series_index in data[index]['values']) {
-      var newValue = [
-        // Shift out of the locale offset to 'convert' to UTC and then shift
-        // back into the operator's tz by adding the tz offset from the server.
-        data[index]['values'][series_index][0] + 1e3 * localeOffset + 1e3 * timezoneOffset,
-        data[index]['values'][series_index][1]
-      ];
-      newValues.push(newValue);
+    console.log("values data type = ", typeof(data[index]['values']));
+    if( typeof(data[index]['values']) === 'object'){
+
+      for (var series_index in data[index]['values']) {
+        var newValue = [
+          // Shift out of the locale offset to 'convert' to UTC and then shift
+          // back into the operator's tz by adding the tz offset from the server.
+          data[index]['values'][series_index][0] + 1e3 * localeOffset + 1e3 * timezoneOffset,
+          data[index]['values'][series_index][1]
+        ];
+        newValues.push(newValue);
+      }
+      newSeries['values'] = newValues;
+    } else {
+      newSeries['values'] = data[index]['values'];
     }
-    newSeries['values'] = newValues;
     shiftedData.push(newSeries);
   }
   console.log("shiftedData = ", shiftedData);
 
   nv.addGraph(function() {
+
     if(chartType == 'pie-chart') {
         console.log("PIE CHART");
         var chart = nv.models.pieChart()
             .x(function(d) { return d.key; })
-            .y(function(d) { return Math.floor((Math.random() * 100) + 1); })
-            //.x(function(d) { return d.label })
-            //.y(function(d) { return d.value })
+            .y(function(d) { return d.values; })
+            //.y(function(d) { return Math.floor((Math.random() * 100) + 1); })
             .showLabels(true);
 
         d3.select(domTarget)
         .datum(shiftedData)
-        .transition().duration(350)
+        .transition().duration(1200)
         .call(chart);
 
     }
@@ -449,9 +343,11 @@ var TimeseriesChart = React.createClass({
 
   chartIsFlat(results) {
     return results.every(function(series) {
-      return series['values'].every(function(pair) {
-        return pair[1] === 0;
-      });
+      if(typeof(series['values']) === 'object'){
+        return series['values'].every(function(pair) {
+          return pair[1] === 0;
+        });
+      }
     });
   },
 
@@ -485,6 +381,8 @@ var TimeSeriesChartElement = React.createClass({
   // When the request params have changed, get new data and rebuild the graph.
   // We circumvent react's typical re-render cycle for this component by returning false.
   shouldComponentUpdate: function(nextProps) {
+    console.log("nextProps = ");
+    console.log(nextProps.data['results']);
     var nextData = JSON.stringify(nextProps.data);
     var prevData = JSON.stringify(this.props.data);
     console.log("this.props.chartType = ", this);
@@ -634,3 +532,137 @@ var DatePicker = React.createClass({
     );
   },
 });
+
+
+var DownloadButton = React.createClass({
+  getDefaultProps: function() {
+    return {
+      visible: false,
+    }
+  },
+
+  render: function() {
+    return (
+      <span className="loadingText pull-right">
+        <button id="save-btn">Download Graph</button>
+      </span>
+    );
+  },
+});
+
+
+function exampleData() {
+ return  [
+    {
+      key: "Cumulative Return",
+      values: [
+        {
+          "label" : "A Label" ,
+          "value" : 29.765957771107
+        } ,
+        {
+          "label" : "B Label" ,
+          "value" : 0
+        } ,
+        {
+          "label" : "C Label" ,
+          "value" : 32.807804682612
+        } ,
+        {
+          "label" : "D Label" ,
+          "value" : 196.45946739256
+        } ,
+        {
+          "label" : "E Label" ,
+          "value" : 0.19434030906893
+        } ,
+        {
+          "label" : "F Label" ,
+          "value" : 98.079782601442
+        } ,
+        {
+          "label" : "G Label" ,
+          "value" : 13.925743130903
+        } ,
+        {
+          "label" : "H Label" ,
+          "value" : 5.1387322875705
+        }
+      ]
+    },
+    {
+      key: "Second",
+      values: [
+        {
+          "label" : "AA" ,
+          "value" : 196.45946739256
+        } ,
+        {
+          "label" : "BB" ,
+          "value" : 0.19434030906893
+        } ,
+        {
+          "label" : "CC" ,
+          "value" : 98.079782601442
+        } ,
+        {
+          "label" : "DD" ,
+          "value" : 13.925743130903
+        } ,
+        {
+          "label" : "EE" ,
+          "value" : 5.1387322875705
+        }, {
+          "label" : "FF" ,
+          "value" : 29.765957771107
+        } ,
+        {
+          "label" : "GG" ,
+          "value" : 0
+        } ,
+        {
+          "label" : "HH" ,
+          "value" : 32.807804682612
+        }
+      ]
+    }, {
+      key: "Third",
+      values: [
+        {
+          "label" : "AA Label" ,
+          "value" : 29.765957771107
+        } ,
+        {
+          "label" : "BB Label" ,
+          "value" : 0
+        } ,
+        {
+          "label" : "CC Label" ,
+          "value" : 32.807804682612
+        } ,
+        {
+          "label" : "DD Label" ,
+          "value" : 196.45946739256
+        } ,
+        {
+          "label" : "EE Label" ,
+          "value" : 0.19434030906893
+        } ,
+        {
+          "label" : "FF Label" ,
+          "value" : 98.079782601442
+        } ,
+        {
+          "label" : "GG Label" ,
+          "value" : 13.925743130903
+        } ,
+        {
+          "label" : "HH Label" ,
+          "value" : 5.1387322875705
+        }
+      ]
+    }
+  ]
+
+}
+

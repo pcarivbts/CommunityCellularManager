@@ -22,6 +22,9 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% block pagestyle %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
+
+<link rel="stylesheet" href="http://nvd3-community.github.io/nvd3/build/nv.d3.css">
+
 {% endblock %}
 
 {% block content %}
@@ -74,8 +77,8 @@ of patent rights can be found in the PATENTS file in the same directory.
                 </ul>
 
                 <div class="tab-content">
-                    <div id="number_call_graph" class="tab-pane fade in active">
-                        <div id='call-number-chart'></div>
+                    <div id="number_call_graph" class="tab-pane fade in active">\
+                      <div id='call-number-chart'></div>
                     </div>
                     <div id="number_call_table" class="tab-pane fade">
                         table
@@ -134,6 +137,11 @@ of patent rights can be found in the PATENTS file in the same directory.
       $('.timezone-notice').fadeIn(500);
     }, 800);
   });
+  $("#save-btn").click(function() {
+      $("#call-number-chart").get(0).toBlob(function(blob) {
+        saveAs(blob, "call-number-chart.png");
+    });
+});
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/react.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/JSXTransformer.js"></script>
@@ -150,9 +158,10 @@ of patent rights can be found in the PATENTS file in the same directory.
     <TimeseriesChartWithButtonsAndDatePickers
       title='Number of Calls'
       chartID='call-chart'
-      statTypes='call,local_call,local_recv_call,outside_call,incoming_call,free_call'
+      statTypesOLD='call,local_call,local_recv_call,outside_call,incoming_call,free_call'
+      statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
       levelID='{{ network_id }}'
-      aggregation='duration'
+      aggregation='count'
       yAxisLabel='numbers of calls'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
@@ -161,7 +170,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('call-number-chart')
   );
-
+/*
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Minutes of Calls'
@@ -177,7 +186,6 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('call-minutes-chart')
   );
-
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='SMS usage'
@@ -193,7 +201,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('sms-usage-chart')
   );
-
+*/
 
 </script>
 
