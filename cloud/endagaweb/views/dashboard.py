@@ -286,6 +286,14 @@ class SubscriberInfo(ProtectedView):
                 'date')[0].date
         except IndexError:
             context['created'] = None
+        try:
+            # Get balance expire date for subscriber's first number.
+            number_details = Number.objects.filter(
+                subscriber__imsi=imsi,
+                subscriber__network=network)[0:1].get()
+            context['valid_through'] = number_details.valid_through
+        except Number.DoesNotExist:
+            context['valid_through'] = None
         # Set usage info (SMS sent, total call duration, data usage).
         sms_kinds = ['free_sms', 'outside_sms', 'incoming_sms', 'local_sms',
                      'local_recv_sms', 'error_sms']
