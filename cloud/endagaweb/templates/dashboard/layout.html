@@ -70,20 +70,10 @@ of patent rights can be found in the PATENTS file in the same directory.
           <ul class="nav navbar-nav side-nav">
             <!-- TODO set these as active appropriately -->
 
-            {% if perms.endagaweb.view_graph %}
             <li><a href="/dashboard"><i class="fa fa-line-chart"></i> Graphs</a></li>
-            {% endif %}
-            {% if perms.endagaweb.view_usage %}
             <li><a href="/dashboard/activity"><i class="fa fa-list-ul"></i> Activity</a></li>
-            {% endif %}
-            {% if perms.endagaweb.view_bts %}
             <li><a href="/dashboard/towers"><i class="fa fa-signal"></i> Towers</a></li>
-            {% endif %}
-            {% if perms.endagaweb.view_subscriber %}
             <li><a href="/dashboard/subscribers"><i class="fa fa-users"></i> Subscribers</a></li>
-            {% endif %}
-            {% if perms.endagaweb.view_network %}
-            {% endif %}
             <li><a href="/dashboard/network"><i class="fa fa-cogs"></i> Network</a></li>
           </ul>
 

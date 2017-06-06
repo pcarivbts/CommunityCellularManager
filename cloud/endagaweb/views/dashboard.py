@@ -10,6 +10,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 import csv
 import datetime
+import json
 import logging
 import operator
 import time
@@ -38,6 +39,8 @@ from django.template.loader import get_template
 from django.utils import timezone as django_utils_timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import View
+from guardian.mixins import PermissionRequiredMixin
+from guardian.shortcuts import assign_perm
 from guardian.shortcuts import (get_objects_for_user)
 from rest_framework.authtoken.models import Token
 
@@ -51,7 +54,7 @@ from endagaweb.util.currency import cents2mc
 from endagaweb.views import django_tables
 
 
-class ProtectedView(View):
+class ProtectedView(PermissionRequiredMixin, View):
     """ A class-based view that requires a login. """
 
     # title = ""
@@ -66,7 +69,20 @@ Views for logged in users.
 """
 USER_ROLES = ('Business Analyst', 'Loader',
               'Partner', 'Network Admin')
-# Cloud Admin will only be available when created via createsuperuser
+
+# Tables to get permissions from.
+PERMSISSION_TABLES = (
+            'graph',
+            'smsbroadcast',
+            'tower',
+            'bts',
+            'subscriber',
+            'network',
+            'notification',
+            'usageevent',
+            'userprofile',
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +151,7 @@ def dashboard_view(request):
     network_has_activity = UsageEvent.objects.filter(
         network=network).exists()
     context = {
+        'user_permission': request.user.get_all_permissions(),
         'networks': get_objects_for_user(request.user,
                                          'view_network', klass=Network),
         'user_profile': user_profile,
@@ -162,6 +179,7 @@ def profile_view(request):
         'timezone': user_profile.timezone
     })
     context = {
+        'user_permission': request.user.get_all_permissions(),
         'networks': get_objects_for_user(request.user,
                                          'view_network', klass=Network),
         'user_profile': user_profile,
@@ -198,6 +216,7 @@ def billing_view(request):
         num_pages = transaction_paginator.num_pages
         transactions = transaction_paginator.page(num_pages)
     context = {
+        'user_permission': request.user.get_all_permissions(),
         'networks': get_objects_for_user(request.user,
                                          'view_network', klass=Network),
         'user_profile': user_profile,
@@ -208,7 +227,8 @@ def billing_view(request):
     msgs = messages.get_messages(request)
     for m in msgs:
         if "billing_resp_code" in m.tags:
-            context[m.message] = True  # pass the message on to the template as-is
+            context[
+                m.message] = True  # pass the message on to the template as-is
 
     if network.stripe_card_type == "American Express":
         context['card_type'] = 'AmEx'
@@ -223,8 +243,7 @@ def billing_view(request):
     return HttpResponse(html)
 
 
-@login_required
-def subscriber_list_view(request):
+class SubscriberListView(ProtectedView):
     """View the list of Subscribers at /dashboard/subscribers.
 
     You can pass 'query' as a GET request parameter -- it can contain a
@@ -236,51 +255,58 @@ def subscriber_list_view(request):
     Returns:
        an HttpResponse
     """
+    permission_required = 'endagaweb.view_subscriber'
+    raise_exception = True
 
-    user_profile = UserProfile.objects.get(user=request.user)
-    network = user_profile.network
-    all_subscribers = Subscriber.objects.filter(network=network)
+    def get(self, request, *args, **kwargs):
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        all_subscribers = Subscriber.objects.filter(network=network)
 
-    query = request.GET.get('query', None)
-    if query:
-        # Get actual subs with partial IMSI matches or partial name matches.
-        query_subscribers = (
-            network.subscriber_set.filter(imsi__icontains=query) |
-            network.subscriber_set.filter(name__icontains=query))
-        # Get ids of subs with partial number matches.
-        sub_ids = network.number_set.filter(
-            number__icontains=query
-        ).values_list('subscriber_id', flat=True)
-        # Or them together to get list of actual matching subscribers.
-        query_subscribers |= network.subscriber_set.filter(
-            id__in=sub_ids)
-    else:
-        # Display all subscribers.
-        query_subscribers = all_subscribers
+        query = request.GET.get('query', None)
+        if query:
+            # Get actual subs with partial IMSI matches or partial name matches.
+            query_subscribers = (
+                network.subscriber_set.filter(imsi__icontains=query) |
+                network.subscriber_set.filter(name__icontains=query))
+            # Get ids of subs with partial number matches.
+            sub_ids = network.number_set.filter(
+                number__icontains=query
+            ).values_list('subscriber_id', flat=True)
+            # Or them together to get list of actual matching subscribers.
+            query_subscribers |= network.subscriber_set.filter(
+                id__in=sub_ids)
+        else:
+            # Display all subscribers.
+            query_subscribers = all_subscribers
 
-    # Setup the subscriber table.
-    subscriber_table = django_tables.SubscriberTable(list(query_subscribers))
-    tables.RequestConfig(request, paginate={'per_page': 15}).configure(
-        subscriber_table)
+        # Setup the subscriber table.
+        subscriber_table = django_tables.SubscriberTable(list(query_subscribers))
+        tables.RequestConfig(request, paginate={'per_page': 15}).configure(
+            subscriber_table)
 
-    # Render the response with context.
-    context = {
-        'networks': get_objects_for_user(request.user,
-                                         'view_network', klass=Network),
-        'currency': CURRENCIES[network.subscriber_currency],
-        'user_profile': user_profile,
-        'total_number_of_subscribers': len(all_subscribers),
-        'number_of_filtered_subscribers': len(query_subscribers),
-        'subscriber_table': subscriber_table,
-        'search': dform.SubscriberSearchForm({'query': query}),
-    }
-    template = get_template("dashboard/subscribers.html")
-    html = template.render(context, request)
-    return HttpResponse(html)
+        # Render the response with context.
+        context = {
+            'user_permission': request.user.get_all_permissions(),
+            'networks': get_objects_for_user(request.user,
+                                             'view_network', klass=Network),
+            'currency': CURRENCIES[network.subscriber_currency],
+            'user_profile': user_profile,
+            'total_number_of_subscribers': len(all_subscribers),
+            'number_of_filtered_subscribers': len(query_subscribers),
+            'subscriber_table': subscriber_table,
+            'search': dform.SubscriberSearchForm({'query': query}),
+        }
+        template = get_template("dashboard/subscribers.html")
+        html = template.render(context, request)
+        return HttpResponse(html)
 
 
 class SubscriberInfo(ProtectedView):
     """View info on a single subscriber."""
+    permission_required = 'endagaweb.view_subscriber'
+    # return_403 = True
+    raise_exception = True
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -293,6 +319,7 @@ class SubscriberInfo(ProtectedView):
             return HttpResponseBadRequest()
         # Set the context with various stats.
         context = {
+            'user_permission': request.user.get_all_permissions(),
             'networks': get_objects_for_user(request.user,
                                              'view_network', klass=Network),
             'currency': CURRENCIES[network.subscriber_currency],
@@ -335,6 +362,9 @@ class SubscriberActivity(ProtectedView):
     """
     datepicker_time_format = '%Y-%m-%d at %I:%M%p'
     url_time_format = '%Y-%m-%d-at-%I.%M%p'
+    permission_required = 'endagaweb.view_subscriber'
+    # return_403 = True
+    raise_exception = True
 
     def post(self, request, imsi=None):
         """Handles POST requests for activity filtering.
@@ -438,6 +468,7 @@ class SubscriberActivity(ProtectedView):
             context_end_date = end_date.strftime(self.datepicker_time_format)
 
         context = {
+            'user_permission': request.user.get_all_permissions(),
             'networks': get_objects_for_user(request.user,
                                              'view_network', klass=Network),
             'currency': CURRENCIES[network.subscriber_currency],
@@ -460,6 +491,9 @@ class SubscriberActivity(ProtectedView):
 
 class SubscriberSendSMS(ProtectedView):
     """Send an SMS to a single subscriber."""
+    permission_required = 'endagaweb.view_subscriber'
+    # return_403 = True
+    raise_exception = True
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -476,6 +510,7 @@ class SubscriberSendSMS(ProtectedView):
         }
         # Set the response context.
         context = {
+            'user_permission': request.user.get_all_permissions(),
             'networks': get_objects_for_user(request.user,
                                              'view_network', klass=Network),
             'user_profile': user_profile,
@@ -522,6 +557,9 @@ class SubscriberSendSMS(ProtectedView):
 
 class SubscriberAdjustCredit(ProtectedView):
     """Adjust credit for a single subscriber."""
+    permission_required = 'endagaweb.view_subscriber'
+    # return_403 = True
+    raise_exception = True
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -539,6 +577,7 @@ class SubscriberAdjustCredit(ProtectedView):
             'imsi': subscriber.imsi,
         }
         context = {
+            'user_permission': request.user.get_all_permissions(),
             'networks': get_objects_for_user(request.user,
                                              'view_network', klass=Network),
             'currency': CURRENCIES[network.subscriber_currency],
@@ -612,6 +651,9 @@ class SubscriberAdjustCredit(ProtectedView):
 
 class SubscriberEdit(ProtectedView):
     """Edit a single subscriber's info."""
+    permission_required = 'endagaweb.view_subscriber'
+    return_403 = True
+    # raise_exception = True
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -630,6 +672,7 @@ class SubscriberEdit(ProtectedView):
                 subscriber.prevent_automatic_deactivation),
         }
         context = {
+            'user_permission': request.user.get_all_permissions(),
             'networks': get_objects_for_user(request.user,
                                              'view_network', klass=Network),
             'user_profile': user_profile,
@@ -673,7 +716,8 @@ class SubscriberEdit(ProtectedView):
 
 class ActivityView(ProtectedView):
     """View activity on the network."""
-
+    permission_required = 'endagaweb.view_usage'
+    raise_exception = True
     datepicker_time_format = '%Y-%m-%d at %I:%M%p'
 
     def get(self, request, *args, **kwargs):
@@ -820,6 +864,7 @@ class ActivityView(ProtectedView):
             events = event_paginator.page(event_paginator.num_pages)
         # Setup the context for the template.
         context = {
+            'user_permission': request.user.get_all_permissions(),
             'networks': get_objects_for_user(request.user,
                                              'view_network', klass=Network),
             'currency': CURRENCIES[network.subscriber_currency],
@@ -935,52 +980,40 @@ class ActivityView(ProtectedView):
 
 
 class UserManagement(ProtectedView):
+    permission_required = 'endagaweb.view_user'
+    # return_403 = True
+    raise_exception = True
+
     def get(self, request, *args, **kwargs):
         # Handles request from Network Admin or Cloud Admin
         user_profile = UserProfile.objects.get(user=request.user)
         user = User.objects.get(id=user_profile.user_id)
-        permission_set = ["credit", "graph", "report", "smsbroadcast", "tower",
-                          "bts", "subscriber", "network",
-                          "notification", "usageevent"]
-
-        # View network is restricted
-        #  else giving this in permission will allow user to have all networks
-        restricted_perms = ['view_network']
-
-        if user.is_superuser:  # Cloud Admin
-            role = USER_ROLES
-        else:  # Network Admin
+        # exclude view_network
+        if not user.is_superuser:  # Network Admin
+            codename_list = []
             role = USER_ROLES[0:len(USER_ROLES) - 1]
-            restricted_perms.extend(
-                ['add_bts', 'change_bts', 'deregister_bts', 'change_network',
-                 'download_report',
-                 'download_graph', 'deactive_subscriber'])
-
-        # Set the context with various stats.
-        content_type = ContentType.objects.filter(app_label='endagaweb', model__in=permission_set).\
-            values_list('id', flat=True)
-
-        permission = []
-        for content in content_type:
+            for codename in user.get_all_permissions():
+                codename_list.append(str(codename).replace('endagaweb.', ''))
             permissions = Permission.objects.filter(
-                content_type=content).exclude(codename__in=restricted_perms)
-            permission.append(permissions)
-
+                codename__in=codename_list)
+        else:  # Cloud Admin
+            role = USER_ROLES
+            # Set the context with various stats.
+            content_type = ContentType.objects.filter(
+                app_label='endagaweb', model__in=PERMSISSION_TABLES).values_list(
+                    'id', flat=True)
+            permissions = Permission.objects.filter(
+                content_type__in=content_type)
         context = {
+            'user_permission': request.user.get_all_permissions(),
             'user_profile': user_profile,
             'networks': get_objects_for_user(request.user,
                                              'view_network', klass=Network),
-            'permissions': permission,
-            'staff': user.is_staff,
-            'roles': role
+            'permissions': permissions.exclude(codename='view_network'),
+            'roles': role,
         }  # Check logged in user permission for view user
-
-        if not user_profile.user.is_staff:
-            info_template = get_template('dashboard/403.html')
-        else:
-            # Render template.
-            info_template = get_template(
-                'dashboard/user_management/add.html')
+        # Render template.
+        info_template = get_template('dashboard/user_management/add.html')
 
         html = info_template.render(context, request)
         return HttpResponse(html)
@@ -1033,7 +1066,8 @@ class UserManagement(ProtectedView):
                 # Add the permissions
                 for permission_id in permissions:
                     permission = Permission.objects.get(id=permission_id)
-                    user.user_permissions.add(permission)
+                    codename = 'endagaweb.' + permission.codename
+                    assign_perm(codename, user)
 
         except IntegrityError:
             message = "User with email %s already exists!" % email
@@ -1051,10 +1085,11 @@ class UserManagement(ProtectedView):
         except Exception as ex:
             # Todo: proper handling of email
             # Checking mail log on terminal
-            print ex
+            logger.error(ex)
             mail_info = '\n Please configure email to send password reset ' \
                         'link to user'
-            messages.warning(request, mail_info, extra_tags="alert alert-danger")
+            messages.warning(request, mail_info,
+                             extra_tags="alert alert-danger")
         # Re-connect the signal before return if it reaches exception
         post_save.connect(UserProfile.new_user_hook, sender=User)
 
@@ -1071,25 +1106,29 @@ class UserManagement(ProtectedView):
 
 
 class UserDelete(ProtectedView):
+    permission_required = 'endagaweb.view_user'
+    # return_403 = True
+    raise_exception = True
+
     def get(self, request, *args, **kwargs):
 
         # Use render_table to hide/unhide users on search page.
         user_profile = UserProfile.objects.get(user=request.user)
-        # exclude cloud admin for every scenario
+        user = User.objects.get(id=user_profile.user_id)
         query = request.GET.get('query', None)
 
         if query:
             query_users = (
-                User.objects.filter(username__icontains=query)).exclude(is_superuser=True)
+                User.objects.filter(username__icontains=query))
             if not user_profile.user.is_superuser:
-                query_users = query_users.exclude(is_staff=True)
+                query_users = (
+                    User.objects.filter(username__icontains=query)).exclude(
+                    is_superuser=True)
             render_table = True
         else:
-            # Will Display all users, currently not showing any!
             query_users = (
                 User.objects.all()).exclude(is_superuser=True)
-            if not user_profile.user.is_superuser:
-                query_users = query_users.exclude(is_staff=True)
+            # Set True to display all users without search
             render_table = False
 
         # Setup the subscriber table.
@@ -1098,6 +1137,7 @@ class UserDelete(ProtectedView):
             user_table)
 
         context = {
+            'user_permission': request.user.get_all_permissions(),
             'search': dform.UserSearchForm({'query': query}),
             'users_found': len(query_users),
             'user_table': user_table,
@@ -1106,15 +1146,10 @@ class UserDelete(ProtectedView):
             'networks': get_objects_for_user(request.user, 'view_network',
                                              klass=Network),
         }
+
         # Check logged in user permission for delete user
-
-        if not user_profile.user.is_staff:
-            info_template = get_template('dashboard/403.html')
-        else:
-            # Render template.
-            info_template = get_template(
-                'dashboard/user_management/delete.html')
-
+        # Render template.
+        info_template = get_template('dashboard/user_management/delete.html')
         html = info_template.render(context, request)
         return HttpResponse(html)
 
@@ -1126,52 +1161,52 @@ class UserDelete(ProtectedView):
         except User.DoesNotExist:
             return HttpResponseBadRequest()
 
-        # CA can delete NA/BA/Partner/Loader
-        # NA can delete BA/Partner/Loader
-        if not user_profile.user.is_staff:
-            info_template = get_template('dashboard/403.html')
-            html = info_template.render({}, request)
-            return HttpResponse(html)
-
-        if ((
-                user_profile.user.is_superuser and user_profile.user.is_staff) and (not user.is_superuser)) or \
-                (user_profile.user.is_staff and (not user.is_staff)):
+        if ((user_profile.user.is_superuser and user_profile.user.is_staff) and
+                (not user.is_superuser)) or (
+                    user_profile.user.is_staff and (not user.is_staff)):
             user.delete()
             message = '%s deleted successfully!' % user.username
+            messages.success(request, message, extra_tags="alert alert-danger")
+        elif user_profile.user.id == user.id:
+            message = 'You cannot delete yourself.'
+            messages.error(request, message, extra_tags="alert alert-danger")
         else:
-            message = '%s cannot be deleted!' % user.username
+            role = 'Cloud Admin'
+            message = 'You don\'t have sufficient privileges to delete %s(%s).' % (
+                user.username, role)
+            if user.is_superuser:
+                role = 'Network Admin'
+                message = 'You cannot delete %s (%s).Please contact Cloud ' \
+                          'Admin for support!' % (user.username, role)
+            messages.error(request, message, extra_tags="alert alert-danger")
 
-        messages.success(request, message)
-        return HttpResponse(message)
+        return HttpResponse(request, message)
 
 
 class UserBlockUnblock(ProtectedView):
+    permission_required = 'endagaweb.view_user'
+    # return_403 = True
+    raise_exception = True
+
     def get(self, request, *args, **kwargs):
         user_profile = UserProfile.objects.get(user=request.user)
+        user = User.objects.get(id=user_profile.user_id)
         query = request.GET.get('query', None)
 
         if query:
-            # Exclude Super/Django Admin
             query_users = (
-                User.objects.filter(username__icontains=query)).exclude(is_superuser=True)
-            if not user_profile.user.is_superuser:
-                query_users = query_users.exclude(is_staff=True)
-
+                User.objects.filter(username__icontains=query))
         else:
-            # Display all blocked users for CA and exclude CA for Network Admin.
             query_users = User.objects.all().exclude(is_active=True)
-            if not user_profile.user.is_superuser:
-                query_users = query_users.exclude(is_superuser=True)
-
-        # Cannot Block/Unblock itself so exclude it
-        query_users = query_users.exclude(username=user_profile.user.username)
+        if not user_profile.user.is_superuser:
+            query_users = query_users.exclude(is_superuser=True)
 
         # Setup the subscriber table.
         user_table = django_tables.BlockedUserTable(list(query_users))
         tables.RequestConfig(request, paginate={'per_page': 10}).configure(
             user_table)
-
         context = {
+            'user_permission': request.user.get_all_permissions(),
             'search': dform.UserSearchForm({'query': query}),
             'users_found': len(query_users),
             'user_table': user_table,
@@ -1179,14 +1214,8 @@ class UserBlockUnblock(ProtectedView):
             'networks': get_objects_for_user(request.user, 'view_network',
                                              klass=Network),
         }
-
         # Check logged in user permission for block user
-        if not user_profile.user.is_staff:
-            info_template = get_template('dashboard/403.html')
-        else:
-            # Render template.
-            info_template = get_template(
-                'dashboard/user_management/block-unblock.html')
+        info_template = get_template('dashboard/user_management/block-unblock.html')
 
         html = info_template.render(context, request)
         return HttpResponse(html)
@@ -1199,33 +1228,37 @@ class UserBlockUnblock(ProtectedView):
             user = User.objects.get(id=request.GET['user'])
         except User.DoesNotExist:
             return HttpResponseBadRequest()
-
-        if user.is_active:
-            current_status = 'Unblocked'
-        else:
-            current_status = 'Blocked'
-
         if ((user_profile.user.is_superuser and user_profile.user.is_staff) and
-                (not user.is_superuser)) or (user_profile.user.is_staff and (not user.is_staff)):
-
+                (not user.is_superuser)) or (
+                    user_profile.user.is_staff and (not user.is_staff)):
             if user.is_active:
                 user.is_active = False
                 message = '%s is Blocked!' % user.username
             else:
                 user.is_active = True
                 message = '%s is Unblocked!' % user.username
-
             user.save()
-            messages.success(request, message)
+            messages.success(request, message, extra_tags="alert "
+                                                          "alert-success")
             return HttpResponse(message)
-
-        message = 'Cannot %s %s' % (current_status, user.username)
-        messages.INFO(request, message)
-        return HttpResponse(message)
+        elif user_profile.user.id == user.id:
+            message = 'You cannot block yourself.'
+            messages.error(request, message, extra_tags="alert alert-danger")
+        else:
+            if user.is_active:
+                status = 'Block'
+            else:
+                status = 'Unblock'
+            message = 'Cannot %s %s' % (status, user.username)
+            messages.error(request, message, extra_tags="alert alert-danger")
+        return HttpResponse(request, message)
 
 
 class SubscriberCategoryEdit(ProtectedView):
     """Search and update the category of the subscriber"""
+    permission_required = 'endagaweb.view_subscriber'
+    # return_403 = True
+    raise_exception = True
 
     def get(self, request, *args, **kwargs):
         return self._handle_request(request)
@@ -1268,6 +1301,7 @@ class SubscriberCategoryEdit(ProtectedView):
 
             # Render the response with context.
             context = {
+                'user_permission': request.user.get_all_permissions(),
                 'networks': get_objects_for_user(request.user, 'view_network',
                                                  klass=Network),
                 'currency': CURRENCIES[network.subscriber_currency],
@@ -1277,7 +1311,7 @@ class SubscriberCategoryEdit(ProtectedView):
                 'query_subscribers': query_subscribers,
                 'subscriber_table': subscriber_table,
                 'show_table': show_table,
-                'query': query
+                'query': query,
             }
             template = get_template(
                 'dashboard/subscriber_management/subscribers.html')
@@ -1293,13 +1327,11 @@ class SubscriberCategoryEdit(ProtectedView):
                 update_imsi.update(role=category)
                 message = "IMSI category updated successfully"
                 messages.success(request, message,
-                                 extra_tags="alert alert-success" )
+                                 extra_tags="alert alert-success")
             except Exception as e:
                 message = "IMSI category update cannot happen"
                 messages.error(request, message,
                                extra_tags="alert alert-danger")
-
             return HttpResponse(message)
         else:
-
             return HttpResponseBadRequest()

@@ -57,6 +57,9 @@ of patent rights can be found in the PATENTS file in the same directory.
       <p><strong>Last Active</strong>: {{ subscriber.last_active | naturaltime }}</p>
       <p><strong>Last Outbound Activity</strong>: {{ subscriber.last_outbound_activity | naturaltime }}</p>
       <p><strong>Registered</strong>: {{ created.date }} ({{ created | naturaltime }})</p>
+      {% if valid_through %}
+      <p><strong>Balance Validity</strong>: {{ valid_through.date }} ({{ valid_through | naturaltime }})</p>
+      {% endif %}
       <p>
         <strong>Activity</strong>:
         <ul>

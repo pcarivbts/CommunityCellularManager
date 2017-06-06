@@ -80,6 +80,14 @@ class UserProfile(models.Model):
     network = models.ForeignKey('Network', null=True,
                                 on_delete=models.SET_NULL)
 
+    class Meta:
+        default_permissions = ()
+        permissions= (
+            ('view_user', 'User Management'),
+            ('add_user', 'Add User'),
+            ('delete_user', 'Delete User'),
+            ('block_user', 'Block User'),
+        )
     def __str__(self):
           return "%s's profile" % self.user
 
@@ -306,10 +314,10 @@ class BTS(models.Model):
     class Meta:
         default_permissions = ()
         permissions = (
-            ('view_bts', 'View BTS(Tower)'),
-            ('add_bts', 'Add BTS(Tower)'),
-            ('change_bts', 'Change BTS(Tower)'),
-            ('deregister_bts', 'Deregister BTS(Tower)')
+            ('view_bts', 'View Tower'),
+            ('add_bts', 'Add Tower'),
+            ('edit_bts', 'Edit Tower'),
+            ('delete_bts', 'Delete Tower')
         )
 
     def __unicode__(self):
@@ -550,9 +558,9 @@ class Subscriber(models.Model):
     class Meta:
         default_permissions = ()
         permissions = (
-            ('view_subscriber', 'View subscriber list'),
-            ('change_subscriber', 'Edit subscriber'),
-            ('deactive_subscriber', 'Deactive subscriber'),
+            ('view_subscriber', 'View Subscriber'),
+            ('edit_subscriber', 'Edit Subscriber'),
+            ('delete_subscriber', 'Delete Subscriber'),
         )
 
     @classmethod
@@ -824,8 +832,8 @@ class UsageEvent(models.Model):
     class Meta:
         default_permissions = ()
         permissions = (
-            ('view_usage', 'View usage activities'),
-            ('download_usage', 'Download usage activities')
+            ('view_usage', 'View Usage'),
+            ('download_usage', 'Download Usage Report')
         )
 
     def voice_sec(self):
@@ -1018,8 +1026,10 @@ class Network(models.Model):
     class Meta:
         default_permissions = ()
         permissions = (
-            ('view_network', 'View network'),
-            ('change_network', 'Change network'),
+            ('view_network', 'View Network'),
+            ('view_network_detail', 'View Network Detail'),
+            ('edit_network', 'Edit Network'),
+            ('adjust_credit', 'Adjust Credit'),
         )
 
     @property
@@ -1819,42 +1829,8 @@ class SMSBroadcast(models.Model):
                          # will be performed for this model.
         default_permissions = ()
         permissions = (
-            ('add_sms', 'Add SMS broadcast'),
-            ('send_sms', 'Send SMS broadcast from subscriber'),
-        )
-
-
-class Credit(models.Model):
-    """ Global permission set for Credit Adjustment module in subscribers"""
-
-    class Meta:
-        managed = False
-        default_permissions = ()
-        permissions = (
-            ('add_credit', 'Add credit adjustment to subscriber'),
-        )
-
-
-class Notification(models.Model):
-    """ Global permission set for Credit Adjustment module in subscribers"""
-
-    class Meta:
-        managed = False
-        default_permissions = ()
-        permissions = (
-            ('view_notification', 'View Notification'),
-        )
-
-
-class Report(models.Model):
-    """ Global permission set for Report module"""
-
-    class Meta:
-        managed = False
-        default_permissions = ()
-        permissions = (
-            ('view_report', 'View reports'),
-            ('download_report', 'Download reports')
+            ('send_bulk_sms', 'Send Bulk SMS'),
+            ('send_sms', 'Broadcast SMS'),
         )
 
 
@@ -1865,6 +1841,6 @@ class Graph(models.Model):
         managed = False
         default_permissions = ()
         permissions = (
-            ('view_graph', 'View graph'),
-            ('download_graph', 'Download graph')
+            ('view_graph', 'View Graph'),
+            ('download_graph', 'Download Graph Report')
         )

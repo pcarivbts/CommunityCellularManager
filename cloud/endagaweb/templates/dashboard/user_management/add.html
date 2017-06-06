@@ -46,7 +46,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     <div class="row">
         <div class="col-xs-12 col-sm-12 page-header">
             <h4 class="page-title">
-                <i class='fa fa-user'></i> Users
+                <i class='fa fa-user'></i>
+                Add
             </h4>
         </div>
     </div>
@@ -61,8 +62,8 @@ of patent rights can be found in the PATENTS file in the same directory.
                 {{message}}
             </div>
             {% endfor %}
-
-            <form action="/dashboard/user/management" id="user_form" name="user_form" method="POST"
+            {% if 'endagaweb.add_user' in user_permission %}
+                <form action="/dashboard/user/management" id="user_form" name="user_form" method="POST"
                   data-toggle="validator" onsubmit="return createUser();"> {% csrf_token %}
 
                 <!--Role-->
@@ -135,21 +136,20 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <!--Permissions-->
                 <div class="form-group column">
                     <div>
-                        <label><i class="glyphicon glyphicon-ok-circle"> </i> Permission <span class="aseriskField">*</span></label>
                         <div class="row">
                             <div class="col-xs-5">
+                                <label><i class="glyphicon glyphicon-list-alt"></i> Avaliable Permissions</label>
                                 <select name="available_permissions" id="permissions_left" class="form-control"
                                         size="10"
                                         multiple="multiple" data-toggle="tooltip"
                                         title="Add/Remove the permissions for the user">
                                     {% for entry in permissions %}
-                                    {% for values in entry %}
-                                    <option value="{{ values.id }}">{{ values.name }}</option>
-                                    {% endfor %}
+                                    <option value="{{ entry.id }}">{{ entry.name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
                             <div class="col-xs-2">
+                                <div>&nbsp;</div>
                                 <div>&nbsp;</div>
                                 <button type="button" id="lstview_rightAll" class="btn btn-default btn-block"><i
                                         class="glyphicon glyphicon-forward"></i></button>
@@ -163,6 +163,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                                         class="glyphicon glyphicon-backward"></i></button>
                             </div>
                             <div class="col-xs-5">
+                                <label><i class="glyphicon glyphicon-ok-circle"></i> Selected Permissions<span class="aseriskField"> *</span></label>
                                 <select name="permissions" id="permissions_right" class="form-control" size="10"
                                         multiple="multiple"></select>
                                 <span class="msg no_perm_error">Please assign atleast one permission.</span>
@@ -170,141 +171,15 @@ of patent rights can be found in the PATENTS file in the same directory.
                         </div>
                     </div>
                 </div><!-- Permission Ends -->
-
-                <!--div class="column">
-                    <div>
-                        <label>Permission</label>
-                        <div class="row">
-                            <div class="col-xs-10">
-                                <table id="permissions_row" border="0" width="100%" cellpadding="5" cellspacing="0">
-                                    <tr>
-                                        <th>Modules</th>
-                                        <th>Permissions&nbsp;</th>
-                                    </tr>
-                                    <tr>
-                                        <td>Graphs</td>
-                                        <td>
-                                            <div class="form-check has-success col-xs-2">
-                                              <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> View
-                                              </label>
-                                            </div>
-                                            <div class="form-check has-warning col-xs-2">
-                                              <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input" id="checkboxWarning" value="option1"> Download
-                                              </label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Reports</td>
-                                        <td>
-                                            <div class="form-check has-success col-xs-2">
-                                              <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> View
-                                              </label>
-                                            </div>
-                                            <div class="form-check has-warning col-xs-2">
-                                              <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input" id="checkboxWarning" value="option1"> Download
-                                              </label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Towers</td>
-                                        <td>
-                                            <div class="form-check has-success col-xs-2">
-                                              <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> View
-                                              </label>
-                                            </div>
-                                            <div class="form-check has-warning col-xs-2">
-                                              <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input" id="checkboxWarning" value="option1"> Add
-                                              </label>
-                                            </div>
-                                            <div class="form-check has-danger col-xs-2">
-                                              <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input" id="checkboxDanger" value="option1"> Edit
-                                              </label>
-                                            </div>
-                                            <div class="form-check has-danger col-xs-2">
-                                              <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input" id="checkboxDanger" value="option1"> Deregister
-                                              </label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Subscribers</td>                                        
-                                        <td>
-                                            <div class="form-check has-success col-xs-2">
-                                              <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> View
-                                              </label>
-                                            </div>
-                                            <div class="form-check has-warning col-xs-2">
-                                              <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input" id="checkboxWarning" value="option1"> Edit
-                                              </label>
-                                            </div>
-                                            <div class="form-check has-danger col-xs-2">
-                                              <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input" id="checkboxDanger" value="option1"> Deactivate
-                                              </label>
-                                            </div>
-                                            <div class="form-check has-danger col-xs-2">
-                                              <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input" id="checkboxDanger" value="option1"> Adjust Credit
-                                              </label>
-                                            </div>
-                                            <div class="form-check has-danger col-xs-2">
-                                              <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input" id="checkboxDanger" value="option1"> Send SMS
-                                              </label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>SMS</td>
-                                        <td>
-                                            <div class="form-check has-success col-xs-2">
-                                              <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> Broadcast
-                                              </label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Network</td>
-                                        <td>
-                                            <div class="form-check has-success col-xs-2">
-                                              <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input" id="checkboxSuccess" value="option1"> View
-                                              </label>
-                                            </div>
-                                            <div class="form-check has-warning col-xs-2">
-                                              <label class="form-check-label">
-                                                <input type="checkbox" class="form-check-input" id="checkboxWarning" value="option1"> Edit
-                                              </label>
-                                            </div>
-                                        </td>
-                                    </tr>
-
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">&nbsp;</div-->
                 <div class="row">&nbsp;</div>
 
                 <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
                     <input type="submit" id="submit" class="btn btn-primary" value="Submit" />
                 </div>
             </form>
-
+            {% else %}
+            <h3>Permission denied</h3>
+            {% endif %}
         </div>
     </div>
     <div class="row">&nbsp;</div>

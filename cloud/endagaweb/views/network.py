@@ -39,6 +39,9 @@ NUMBER_COUNTRIES = {
 
 class NetworkInfo(ProtectedView):
     """View info on a single network."""
+    permission_required = 'endagaweb.view_network_detail'
+    # return_403 = True
+    raise_exception = True
 
     def get(self, request):
         """Handles GET requests."""
@@ -84,6 +87,7 @@ class NetworkInfo(ProtectedView):
         camped_right_now = len([s for s in all_subs if s.is_camped])
         # Set the context with various stats.
         context = {
+            'user_permission': request.user.get_all_permissions(),
             'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
             'currency': CURRENCIES[user_profile.network.subscriber_currency],
             'user_profile': user_profile,
@@ -109,6 +113,9 @@ class NetworkInfo(ProtectedView):
 
 class NetworkInactiveSubscribers(ProtectedView):
     """Edit settings for expiring inactive subs."""
+    permission_required = 'endagaweb.view_network_detail'
+    # return_403 = True
+    raise_exception = True
 
     def get(self, request):
         """Handles GET requests."""
@@ -137,6 +144,7 @@ class NetworkInactiveSubscribers(ProtectedView):
             unprotected_subs_table)
         # Set the context with various stats.
         context = {
+            'user_permission': request.user.get_all_permissions(),
             'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
             'user_profile': user_profile,
             'network': network,
@@ -183,6 +191,9 @@ class NetworkInactiveSubscribers(ProtectedView):
 
 class NetworkPrices(ProtectedView):
     """View pricing for a single network."""
+    permission_required = 'endagaweb.view_network_detail'
+    # return_403 = True
+    raise_exception = True
 
     def get(self, request):
         """Handles GET requests."""
@@ -269,6 +280,7 @@ class NetworkPrices(ProtectedView):
             destination_group=destination.destination_group, network=network)
         # Create the context for the template.
         context = {
+            'user_permission': request.user.get_all_permissions(),
             'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
             'currency': CURRENCIES[user_profile.network.subscriber_currency],
             'user_profile': user_profile,
@@ -354,6 +366,9 @@ class NetworkPrices(ProtectedView):
 
 class NetworkEdit(ProtectedView):
     """Edit basic network info (but not prices)."""
+    permission_required = 'endagaweb.view_network_detail'
+    # return_403 = True
+    raise_exception = True
 
     def get(self, request):
         """Handles GET requests."""
@@ -361,6 +376,7 @@ class NetworkEdit(ProtectedView):
         network = user_profile.network
         # Set the context with various stats.
         context = {
+            'user_permission': request.user.get_all_permissions(),
             'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
             'user_profile': user_profile,
             'network': network,
@@ -434,11 +450,14 @@ class NetworkEdit(ProtectedView):
                          extra_tags="alert alert-success")
         return redirect(urlresolvers.reverse('network-edit'))
 
+
 class NetworkSelectView(ProtectedView):
     """This is a view that allows users to switch their current
     network. They must have view_network permission on the instance
     for this to work.
     """
+    permission_required = 'endagaweb.view_network_detail'
+    raise_exception = True
 
     def get(self, request, network_id):
         user_profile = models.UserProfile.objects.get(user=request.user)

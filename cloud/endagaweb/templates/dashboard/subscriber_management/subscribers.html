@@ -23,7 +23,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% include "dashboard/subscriber_management/header.html" with user=user %}
 {% include "dashboard/subscriber_management/nav.html" with active_tab='category'%}
 
-
+{% if 'endagaweb.view_subscriber' in user_permission %}
 <div class='col-md-10'>
     <div class='row'>
         {% if total_number_of_subscribers %}
@@ -109,7 +109,9 @@ of patent rights can be found in the PATENTS file in the same directory.
         </div>
     </div>
 </div>
-
+{% else %}
+  {% include 'dashboard/permission_denied.html' %}
+  {% endif %}
 {% endblock %}
 {% block js %}
 

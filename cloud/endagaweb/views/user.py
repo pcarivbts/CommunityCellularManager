@@ -33,6 +33,7 @@ from django.template.loader import get_template
 from django.utils.translation import ugettext_lazy as _
 
 from endagaweb.models import UserProfile
+from endagaweb.views.dashboard import PERMSISSION_TABLES
 
 logger = logging.getLogger('endagaweb')
 
@@ -282,24 +283,24 @@ def success(request):
 def role_default_permissions(request):
     if request.method == 'GET':
         role = request.GET['role']
-        permission_set = ['credit', 'graph', 'report', "smsbroadcast", "tower",
-                          "bts", "subscriber", "network",
-                          "notification", "usageevent"]
+        permission_set = PERMSISSION_TABLES
 
         business_analyst = ['view_graph', 'view_report', 'view_bts',
-                            'view_subscriber', 'view_network']
+                            'view_usage', 'view_subscriber',
+                            'view_network_detail']
 
         loader = ['view_graph', 'view_report', 'view_bts', 'view_subscriber',
-                  'view_network', 'change_subscriber', 'change_network',
-                  'add_subscriber', 'add_sms', 'add_credit', 'download_graph']
+                  'view_network_detail', 'edit_subscriber', 'change_network',
+                  'add_subscriber', 'add_sms', 'add_credit', 'download_graph',
+                  'view_usage']
 
         partner = ['view_graph', 'view_report', 'view_bts', 'view_subscriber',
-                   'view_network', 'edit_subscriber', 'edit_network',
-                   'add_subscriber', 'add_sms', 'download_graph']
+                   'view_network_detail', 'edit_subscriber', 'edit_network',
+                   'add_subscriber', 'add_sms', 'download_graph', 'view_usage']
 
-        content_type = ContentType.objects.filter(app_label='endagaweb',
-                                                  model__in=
-                                                  permission_set).values_list('id', flat=True)
+        content_type = ContentType.objects.filter(
+            app_label='endagaweb', model__in=permission_set).values_list(
+            'id', flat=True)
         permission = Permission.objects.filter(
             content_type__in=content_type).values_list('id', flat=True)
         role_permission = []
@@ -318,3 +319,14 @@ def role_default_permissions(request):
 
         return JsonResponse({'permissions': list(role_permission)})
     return HttpResponseBadRequest()
+
+
+def validate_password_strength(value):
+    """Checks that a submitted value should match regex and return
+        boolean value
+    """
+
+    value = value.lower()
+    regex = "(?=.*[a-zA-Z])(?=.*\\d)(?=.*[!@#$%&*()_+=|<>?{}\\[\\]~-]).{8}"
+    pattern = re.compile(regex)
+    return bool(pattern.match(value))

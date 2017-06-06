@@ -117,7 +117,8 @@ urlpatterns = [
         name='tower-events'),
     # Subscriber views in the dashboard.
     url(r'^dashboard/subscribers$',
-        endagaweb.views.dashboard.subscriber_list_view),
+        endagaweb.views.dashboard.SubscriberListView.as_view(),
+        name='subscribers-list'),
     url(r'^dashboard/subscribers/(?P<imsi>[^/]+)$',
         endagaweb.views.dashboard.SubscriberInfo.as_view(),
         name='subscriber-info'),

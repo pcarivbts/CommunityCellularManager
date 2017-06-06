@@ -53,7 +53,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 <div class = 'row'>
   {% include "dashboard/network_detail/nav.html" with active_tab='inactive-subscribers'%}
-
+{% if 'endagaweb.edit_network' in user_permission %}
   <div class='col-xs-12 col-offset-sm-2 col-sm-4'>
     <div class='col-sm-12'>
       {% crispy sub_vacuum_form %}
@@ -130,7 +130,9 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 
   </div>
-
+  {% else %}
+  {% include 'dashboard/permission_denied.html' %}
+  {% endif %}
 </div>
 
 

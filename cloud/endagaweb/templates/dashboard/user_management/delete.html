@@ -22,8 +22,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     <div class="row">
         <div class="col-xs-12 col-sm-12 page-header">
             <h4 class="page-title">
-                Delete
                 <i class='fa fa-user'></i>
+                Delete
             </h4>
         </div>
     </div>
@@ -37,9 +37,10 @@ of patent rights can be found in the PATENTS file in the same directory.
                 {{message}}
             </div>
             {% endfor %}
+            {% if 'endagaweb.delete_user' in user_permission %}
                 <form action="/dashboard/user/management/delete" method="GET" role="form">
-                    {% crispy search %}
-                    <div class="col-xs-12 col-md-8">
+                    <div class="col-xs-12 col-md-6">
+                        {% crispy search %}
                         <head>
                             <link rel="stylesheet" href="{% static 'django_tables2/themes/paleblue/css/screen.css' %}"/>
                         </head>
@@ -53,6 +54,9 @@ of patent rights can be found in the PATENTS file in the same directory.
                         </body>
                     </div>
                 </form>
+            {% else %}
+            {% include 'dashboard/permission_denied.html' %}
+            {% endif %}
             </div>
     </div>
 </header>
@@ -90,9 +94,6 @@ of patent rights can be found in the PATENTS file in the same directory.
         $("#username").html($("#user_"+user).html())
     }
     $('#delete-user-submit').click(function(){
-
-        console.log("ok here", $("#user").val());
-
         // Show a 'working' message.
       var message = 'Working..';
       var html = "<div class='alert alert-success'>" + message + "</div>";

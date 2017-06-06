@@ -1,4 +1,3 @@
-{% extends "dashboard/layout.html" %}
 {% comment %}
 Copyright (c) 2016-present, Facebook, Inc.
 All rights reserved.
@@ -18,19 +17,23 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endblock %}
 
 {% block headerclass %}
-<body id="add_user">
-<header class="navbar navbar-inverse normal" role="banner">
-    {% endblock %}
-    {% block content %}
-
+<div class="container">
     <div class="row">
-        <div class="col-xs-12 col-sm-12 page-header">
-            <h3>Permission denied</h3>
+        <div class="col-md-12">
+            <div class="error-template">
+                <font color="#00b8e6" size="30">
+                    403
+                <div class="error-details">
+                        <h2>Sorry! Access Denied :(</h2>
+                </div>
+                </font>
+                 <font color="#737373"><h4>You don't have permission to access this page.</h4></font>
+                </div>
+            </div>
         </div>
     </div>
+</div>
 
-    <p>Please contact administrator to get access for this page.</p>
-</header>
 {% endblock %}
 
 

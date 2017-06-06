@@ -23,7 +23,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 </div>
 
 <div class='row'>
-
+    {% if 'endagaweb.view_subscriber' in user_permission %}
     <div class="col-xs-12 col-md-4 col-xl-2 pull-right">
     {% if total_number_of_subscribers %}
       <p>Search subscribers by name, IMSI or number:</p>
@@ -39,12 +39,11 @@ of patent rights can be found in the PATENTS file in the same directory.
     {% endif %}
     </div>
 
+
     <div class="col-xs-12 col-md-8">
     {% if number_of_filtered_subscribers %}
 
-      {% if perms.endagaweb.view_subscriber %}
         {% render_table subscriber_table %}
-      {% endif %}
 
     {% elif total_number_of_subscribers > 0 %}
     <h4>No subscribers matched your search.</h4>
@@ -57,6 +56,9 @@ of patent rights can be found in the PATENTS file in the same directory.
 
     {% endif %}
     </div>
+    {% else %}
+    {% include 'dashboard/permission_denied.html' %}
+    {% endif %}
 
 </div> <!-- /.row (subscribers) -->
 
