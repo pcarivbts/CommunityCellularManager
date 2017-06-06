@@ -36,9 +36,12 @@ def get_version(package_name):
         return packages_version[package_name]
     try:
         # update package version array
-        print ("package=%s, version=%s" %(package_name, query.out))
-        # we send MAJOR.MINOR for now
-        ver =  query.out.split('-')[0]
+        # we send MAJOR.MINOR. for now
+        ver =  query.out.split('+')[0]
+        if ver.find('-') != -1:
+            #contain '-' in version string
+            ver =  query.out.split('-')[0]
+
         if (parse_version(ver) != parse_version('0.0.0')) :
             packages_version[package_name] = ver
         return packages_version[package_name]
