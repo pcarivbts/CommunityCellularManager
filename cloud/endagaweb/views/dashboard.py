@@ -910,3 +910,29 @@ class ActivityView(ProtectedView):
 
                 res_events |= events
             return res_events
+
+
+class ReportView(ProtectedView):
+    """View reports on basis of Network or tower level."""
+
+    def get(self, request):
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
+            datetime.datetime.now()).total_seconds()
+        # Determine if there has been any activity on the network (if not, we won't
+        # show the graphs).
+        network_has_activity = UsageEvent.objects.filter(
+            network=network).exists()
+        context = {
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=Network),
+            'user_profile': user_profile,
+            'network_id': network.id,
+            'current_time_epoch': int(time.time()),
+            'timezone_offset': timezone_offset,
+            'network_has_activity': network_has_activity,
+        }
+        template = get_template("dashboard/report.html")
+        html = template.render(context, request)
+        return HttpResponse(html)
