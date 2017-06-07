@@ -305,7 +305,6 @@ class SubscriberListView(ProtectedView):
 class SubscriberInfo(ProtectedView):
     """View info on a single subscriber."""
     permission_required = 'endagaweb.view_subscriber'
-    # return_403 = True
     raise_exception = True
 
     def get(self, request, imsi=None):
@@ -363,7 +362,6 @@ class SubscriberActivity(ProtectedView):
     datepicker_time_format = '%Y-%m-%d at %I:%M%p'
     url_time_format = '%Y-%m-%d-at-%I.%M%p'
     permission_required = 'endagaweb.view_subscriber'
-    # return_403 = True
     raise_exception = True
 
     def post(self, request, imsi=None):
@@ -492,7 +490,6 @@ class SubscriberActivity(ProtectedView):
 class SubscriberSendSMS(ProtectedView):
     """Send an SMS to a single subscriber."""
     permission_required = 'endagaweb.view_subscriber'
-    # return_403 = True
     raise_exception = True
 
     def get(self, request, imsi=None):
@@ -558,7 +555,6 @@ class SubscriberSendSMS(ProtectedView):
 class SubscriberAdjustCredit(ProtectedView):
     """Adjust credit for a single subscriber."""
     permission_required = 'endagaweb.view_subscriber'
-    # return_403 = True
     raise_exception = True
 
     def get(self, request, imsi=None):
@@ -652,8 +648,7 @@ class SubscriberAdjustCredit(ProtectedView):
 class SubscriberEdit(ProtectedView):
     """Edit a single subscriber's info."""
     permission_required = 'endagaweb.view_subscriber'
-    return_403 = True
-    # raise_exception = True
+    raise_exception = True
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -981,7 +976,6 @@ class ActivityView(ProtectedView):
 
 class UserManagement(ProtectedView):
     permission_required = 'endagaweb.view_user'
-    # return_403 = True
     raise_exception = True
 
     def get(self, request, *args, **kwargs):
@@ -1107,7 +1101,6 @@ class UserManagement(ProtectedView):
 
 class UserDelete(ProtectedView):
     permission_required = 'endagaweb.view_user'
-    # return_403 = True
     raise_exception = True
 
     def get(self, request, *args, **kwargs):
@@ -1185,7 +1178,6 @@ class UserDelete(ProtectedView):
 
 class UserBlockUnblock(ProtectedView):
     permission_required = 'endagaweb.view_user'
-    # return_403 = True
     raise_exception = True
 
     def get(self, request, *args, **kwargs):
@@ -1257,7 +1249,6 @@ class UserBlockUnblock(ProtectedView):
 class SubscriberCategoryEdit(ProtectedView):
     """Search and update the category of the subscriber"""
     permission_required = 'endagaweb.view_subscriber'
-    # return_403 = True
     raise_exception = True
 
     def get(self, request, *args, **kwargs):

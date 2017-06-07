@@ -178,7 +178,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 </div>
             </form>
             {% else %}
-            <h3>Permission denied</h3>
+            {% include 'dashboard/permission_denied.html' %}
             {% endif %}
         </div>
     </div>

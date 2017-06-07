@@ -41,7 +41,6 @@ class TowerList(PermissionRequiredMixin, drf_views.APIView):
 
     # Setup DRF permissions and auth.
     permission_required = 'endagaweb.view_bts'
-    # return_403 = True
     raise_exception = True
 
     permission_classes = (permissions.IsAuthenticated,)
@@ -172,7 +171,7 @@ class TowerInfo(ProtectedView):
 class TowerMonitor(ProtectedView):
     """View TimeseriesStats related to a single tower."""
     permission_required = 'endagaweb.view_bts'
-    return_403 = True
+    raise_exception = True
 
     def get(self, request, uuid=None):
 
@@ -216,7 +215,7 @@ class TowerEdit(PermissionRequiredMixin, drf_views.APIView):
     permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (authentication.SessionAuthentication,
                               authentication.TokenAuthentication)
-    return_403 = True
+    raise_exception = True
 
     def get(self, request, uuid=None):
         """Handles GET requests."""
@@ -306,7 +305,7 @@ class TowerDeregister(drf_views.APIView, PermissionRequiredMixin):
     authentication_classes = (authentication.SessionAuthentication,
                               authentication.TokenAuthentication)
     permission_required = 'endagaweb.view_bts'
-    return_403 = True
+    raise_exception = True
 
     def get(self, request, uuid=None):
         """Handles GET requests."""
@@ -339,7 +338,7 @@ class TowerEvents(drf_views.APIView, PermissionRequiredMixin):
     permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (authentication.SessionAuthentication,
                               authentication.TokenAuthentication)
-    return_403 = True
+    raise_exception = True
 
     def get(self, request, *args, **kwargs):
         return self._handle_request(request, *args, **kwargs)

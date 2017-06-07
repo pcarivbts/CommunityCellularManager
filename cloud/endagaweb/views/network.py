@@ -40,7 +40,6 @@ NUMBER_COUNTRIES = {
 class NetworkInfo(ProtectedView):
     """View info on a single network."""
     permission_required = 'endagaweb.view_network_detail'
-    # return_403 = True
     raise_exception = True
 
     def get(self, request):
@@ -114,7 +113,6 @@ class NetworkInfo(ProtectedView):
 class NetworkInactiveSubscribers(ProtectedView):
     """Edit settings for expiring inactive subs."""
     permission_required = 'endagaweb.view_network_detail'
-    # return_403 = True
     raise_exception = True
 
     def get(self, request):
@@ -192,7 +190,6 @@ class NetworkInactiveSubscribers(ProtectedView):
 class NetworkPrices(ProtectedView):
     """View pricing for a single network."""
     permission_required = 'endagaweb.view_network_detail'
-    # return_403 = True
     raise_exception = True
 
     def get(self, request):
@@ -367,7 +364,6 @@ class NetworkPrices(ProtectedView):
 class NetworkEdit(ProtectedView):
     """Edit basic network info (but not prices)."""
     permission_required = 'endagaweb.view_network_detail'
-    # return_403 = True
     raise_exception = True
 
     def get(self, request):
