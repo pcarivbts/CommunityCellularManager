@@ -45,11 +45,10 @@ of patent rights can be found in the PATENTS file in the same directory.
   <div class='content col-xs-12 col-md-4'>
     <div class='row'>
     <div class='col-sm-12'>
-      <!--<h4>Add Credit</h4>-->
         {% if user_profile.user.is_staff %}
         {% crispy network_balance_limit_form %}
         {% endif %}
-       <p class='col-xs-12'>Network current maximum balance limit: {% currency network.max_account_limit %}</p>
+       <p class='col-xs-12'>Network current maximum balance limit: {% currency network.max_balance %}</p>
        <p class='col-xs-12'>Maximum permissible unsuccessful transactions current limit: {{ network.max_failure_transaction }}</p>
       </div>
       <div class='col-sm-12'>
@@ -66,7 +65,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 <script type="text/javascript">
         $(document).ready(function () {
-            $('#id_limit').keypress(function (event) {
+            $('#id_max_balance').keypress(function (event) {
                 var $this = $(this);
                 if ((event.which != 46 || $this.val().indexOf('.') != -1) &&
                     ((event.which < 48 || event.which > 57) &&
@@ -92,7 +91,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                     event.preventDefault();
                 }
             });
-            $("#id_transaction").keydown(function (e) {
+            $("#id_max_unsuccessful_transaction").keydown(function (e) {
                 // Allow: backspace, delete, tab, escape and enter
                 if ($.inArray(e.keyCode, [46, 8, 9, 27, 13, 110]) !== -1 ||
                     // Allow: Ctrl+A, Command+A

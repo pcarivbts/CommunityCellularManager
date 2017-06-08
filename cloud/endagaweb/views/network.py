@@ -28,6 +28,8 @@ from endagaweb import models
 from endagaweb.forms import dashboard_forms
 from endagaweb.views.dashboard import ProtectedView
 from endagaweb.views import django_tables
+from endagaweb.forms import dashboard_forms as dform
+from django.core import exceptions
 
 
 NUMBER_COUNTRIES = {
@@ -663,8 +665,8 @@ class NetworkBalanceLimit(ProtectedView):
             'network': network,
             'currency': CURRENCIES[network.subscriber_currency],
             'network_balance_limit_form': dashboard_forms.NetworkBalanceLimit({
-                'limit': '',
-                'transitions': '',
+                'max_balance': '',
+                'max_unsuccessful_transaction': '',
 
             }),
         }
@@ -679,45 +681,46 @@ class NetworkBalanceLimit(ProtectedView):
         user_profile = models.UserProfile.objects.get(user=request.user)
         network = user_profile.network
         success = []
-        if 'limit' not in request.POST:
+        if 'max_balance' not in request.POST:
             return http.HttpResponseBadRequest()
-        if 'transaction' not in request.POST:
+        if 'max_unsuccessful_transaction' not in request.POST:
             return http.HttpResponseBadRequest()
-        limit = float(request.POST.get('limit') or 0)
-
-        if request.POST.get('transaction') == "" and request.POST.get(
-                'limit') == "":
-            error_text = 'Error : please provide value.'
-            messages.error(request, error_text,
-                           extra_tags="alert alert-danger")
-            return redirect(urlresolvers.reverse('network_balance_limit'))
-        if request.POST.get('transaction') == "" and limit <= 0:
-            error_text = 'Error : Enter positive and non-zero value ' \
-                                        'for balance limit.'
-            messages.error(request, error_text,
-                           extra_tags="alert alert-danger")
-            return redirect(urlresolvers.reverse('network_balance_limit'))
-        with transaction.atomic():
-            try:
-                currency = network.subscriber_currency
-                if request.POST.get('limit'):
-                    limit = float(request.POST.get('limit'))
-                    amount = parse_credits(limit,
-                                           CURRENCIES[currency]).amount_raw
-                    network.max_account_limit = amount
-                    success.append('Network maximum balance limit updated.')
-                if request.POST.get('transaction'):
-                    transaction_val = float(request.POST.get('transaction'))
-                    network.max_failure_transaction = transaction_val
-                    success.append('Network maximun permissible unsuccessful' \
-                                   ' transactions limit updated.')
-                network.save()
-            except ValueError:
-                error_text = 'Error : please provide valid value.'
-                messages.error(request, error_text,
-                               extra_tags="alert alert-danger")
+        try:
+            form = dform.NetworkBalanceLimit(data=request.POST)
+            if form.is_valid():
+                cleaned_field_data = form.clean_network_balance()
+                max_balance = cleaned_field_data.get("max_balance")
+                max_failure_transaction = cleaned_field_data.get("max_unsuccessful_transaction")
+                with transaction.atomic():
+                    try:
+                        currency = network.subscriber_currency
+                        if max_balance:
+                            balance = float(max_balance)
+                            max_network_amount = parse_credits(balance,
+                                                               CURRENCIES[
+                                                                   currency]).amount_raw
+                            network.max_balance = max_network_amount
+                            success.append(
+                                'Network maximum balance limit updated.')
+                        if max_failure_transaction:
+                            print ("ooooooooo",max_failure_transaction)
+                            transaction_val = int(max_failure_transaction)
+                            network.max_failure_transaction = transaction_val
+                            success.append(
+                                'Network maximun permissible unsuccessful' \
+                                ' transactions limit updated.')
+                        network.save()
+                    except ValueError:
+                        error_text = 'Error : please provide valid value.'
+                        messages.error(request, error_text,
+                                       extra_tags="alert alert-danger")
+                        return redirect(
+                            urlresolvers.reverse('network_balance_limit'))
+                messages.success(request,
+                                 ''.join(success),
+                                 extra_tags="alert alert-success")
                 return redirect(urlresolvers.reverse('network_balance_limit'))
-        messages.success(request,
-                         ''.join(success),
-                         extra_tags="alert alert-success")
-        return redirect(urlresolvers.reverse('network_balance_limit'))
+        except exceptions.ValidationError as e:
+            tags = 'password alert alert-danger'
+            messages.error(request, ''.join(e.messages), extra_tags=tags)
+            return redirect(urlresolvers.reverse('network_balance_limit'))

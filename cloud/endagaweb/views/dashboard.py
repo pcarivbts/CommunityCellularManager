@@ -555,13 +555,17 @@ class SubscriberAdjustCredit(ProtectedView):
             return HttpResponseBadRequest()
         error_text = 'Error: credit value must be between -10M and 10M.'
         try:
+
             currency = network.subscriber_currency
             amount = parse_credits(request.POST['amount'],
                     CURRENCIES[currency]).amount_raw
+            network_max_balance = parse_credits(network.max_balance,
+                                    CURRENCIES[currency]).amount_raw
             if abs(amount) > 2147483647:
                 raise ValueError(error_text)
-            if sub.balance + amount > network.max_account_limit:
-                error_text = 'Error : Crossed Credit Limit.'
+            if (sub.balance + amount) > network_max_balance:
+                error_text = 'Error : Crossed Credit Limit %s.'% \
+                             (network.max_balance)
                 raise ValueError(error_text)
         except ValueError:
             messages.error(request, error_text)
