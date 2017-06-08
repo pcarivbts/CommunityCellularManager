@@ -932,7 +932,8 @@ class ReportView(ProtectedView):
             'current_time_epoch': int(time.time()),
             'timezone_offset': timezone_offset,
             'network_has_activity': network_has_activity,
+            'report_summary': 'Call and SMS'
         }
-        template = get_template("dashboard/report.html")
+        template = get_template("dashboard/report/call-report.html")
         html = template.render(context, request)
         return HttpResponse(html)
