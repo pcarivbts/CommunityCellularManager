@@ -155,7 +155,6 @@ class SubscriberAdjustCreditTest(SubscriberBaseTest):
         }
         response = self.client.post(self.adjust_credit_endpoint, data,
                                     follow=True)
-        print ("yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy", response)
         message = self.getmessage(response)
         self.assertEqual(message.tags, 'error')
 
