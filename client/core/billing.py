@@ -206,7 +206,7 @@ def get_call_cost(billsec, service_type, destination_number='', tariff=None):
     Returns:
       cost of call
     """
-    if tariff:
+    if tariff is not None:
         rate_per_min = tariff
     else:
         rate_per_min = get_service_tariff(
