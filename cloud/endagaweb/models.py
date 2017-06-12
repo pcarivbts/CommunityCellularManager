@@ -781,7 +781,7 @@ class UsageEvent(models.Model):
       downloaded_bytes: number of downloaded bytes for a GPRS event
       timespan: the duration of time over which the GPRS data was sampled
     """
-    transaction_id = models.UUIDField(editable=False, default=uuid.uuid4)
+    transaction_id = models.TextField()
     subscriber = models.ForeignKey(Subscriber, null=True,
                                    on_delete=models.SET_NULL)
     subscriber_imsi = models.TextField(null=True)
