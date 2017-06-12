@@ -26,6 +26,9 @@ elif conf['bts.type'] == 'osmocom':
 elif conf['bts.type'] == 'lc15bts':
     from . import _osmocom
     subscriber = _osmocom.OsmocomSubscriber()
+elif conf['bts.type'] == 'oc2gbts':
+    from . import _osmocom
+    subscriber = _osmocom.OsmocomSubscriber()
 else:
     from . import _openbts
     subscriber = _openbts.OpenBTSSubscriber()

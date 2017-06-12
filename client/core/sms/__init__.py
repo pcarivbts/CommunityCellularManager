@@ -19,6 +19,9 @@ if conf['bts.type'] == 'osmocom':
 elif conf['bts.type'] == 'lc15bts':
     from .freeswitch import _osmocom
     sms = _osmocom.OsmocomSMS()
+elif conf['bts.type'] == 'oc2gbts':
+    from .freeswitch import _osmocom
+    sms = _osmocom.OsmocomSMS()
 else:
     from .freeswitch import _openbts
     sms = _openbts.OpenBTSSMS()
