@@ -55,6 +55,8 @@ urlpatterns = [
     # level id as a query param.
     url(r'^api/v1/stats/(.*)',
         endagaweb.stats_app.views.StatsAPIView.as_view()),
+    url(r'^api/v1/reports/(.*)',
+        endagaweb.stats_app.views.ReportsAPIView.as_view()),
 
     # the internal API.
     url(r'^internal/api/v1/number/',

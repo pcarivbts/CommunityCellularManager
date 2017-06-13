@@ -10,6 +10,50 @@
 // React chart components.
 
 
+function exampleData() {
+ return  [
+    {
+      key: "Cumulative Return",
+      values: [
+        {
+          "label" : "Piyush" ,
+          "value" : 29.765957771107
+        } ,
+        {
+          "label" : "B Label" ,
+          "value" : 0
+        } ,
+        {
+          "label" : "C Label" ,
+          "value" : 32.807804682612
+        } ,
+        {
+          "label" : "D Label" ,
+          "value" : 196.45946739256
+        } ,
+        {
+          "label" : "E Label" ,
+          "value" : 0.19434030906893
+        } ,
+        {
+          "label" : "F Label" ,
+          "value" : 98.079782601442
+        } ,
+        {
+          "label" : "G Label" ,
+          "value" : 13.925743130903
+        } ,
+        {
+          "label" : "H Label" ,
+          "value" : 5.1387322875705
+        }
+      ]
+    }
+  ]
+
+}
+
+
 var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
 
   getInitialState: function() {
@@ -32,11 +76,10 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
     // adjust the graph data.
     var currentTime = Math.round(new Date().getTime() / 1000);
     return {
-      title: 'title (set me!)',
       chartID: 'one',
       buttons: ['hour', 'day', 'week', 'month', 'year'],
       defaultButtonText: 'week',
-      endpoint: '/api/v1/stats/network',
+      endpoint: '/api/v1/reports/network',
       statTypes: 'sms',
       levelID: 0,
       aggregation: 'count',
@@ -44,6 +87,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       currentTimeEpoch: currentTime,
       timezoneOffset: 0,
       tooltipUnits: '',
+      chartType: 'line-chart'
     }
   },
 
@@ -160,7 +204,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
     var toDatepickerID = 'to-datepicker-' + this.props.chartID;
     return (
       <div>
-        <h4>{this.props.title}</h4>
+        <div>&nbsp;</div>
         <span>past &nbsp;&nbsp;</span>
         {this.props.buttons.map(function(buttonText, index) {
           return (
@@ -196,6 +240,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
           yAxisLabel={this.props.yAxisLabel}
           timezoneOffset={this.props.timezoneOffset}
           tooltipUnits={this.props.tooltipUnits}
+          chartType={this.props.chartType}
         />
       </div>
     );
@@ -214,7 +259,7 @@ var secondsMap = {
 
 // Builds the target chart from scratch.  NVD3 surprisingly handles this well.
 // domTarget is the SVG element's parent and data is the info that will be graphed.
-var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxisLabel, timezoneOffset, tooltipUnits) {
+var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxisLabel, timezoneOffset, tooltipUnits, chartType) {
   // We pass in the timezone offset and calculate a locale offset.  The former
   // is based on the UserProfile's specified timezone and the latter is the user's
   // computer's timezone offset.  We manually shift the data to work around
@@ -238,34 +283,71 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
     newSeries['values'] = newValues;
     shiftedData.push(newSeries);
   }
+  console.log("shiftedData = ", shiftedData);
 
   nv.addGraph(function() {
-    var chart = nv.models.lineChart()
-      .x(function(d) { return d[0] })
-      .y(function(d) { return d[1] })
-      .color(d3.scale.category10().range())
-      .interpolate('monotone')
-      .showYAxis(true)
-      ;
-    chart.xAxis
-      .tickFormat(function(d) {
-        return d3.time.format(xAxisFormatter)(new Date(d));
-      });
-    // Fixes x-axis time alignment.
-    chart.xScale(d3.time.scale.utc());
-    chart.yAxis
-      .axisLabel(yAxisLabel)
-      .axisLabelDistance(25)
-      .tickFormat(d3.format(yAxisFormatter));
-    // Fixes the axis-labels being rendered out of the SVG element.
-    chart.margin({right: 80});
-    chart.tooltipContent(function(key, x, y) {
-      return '<p>' + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
-    });
-    // TODO(matt): non-negative y-axis
-    d3.select(domTarget)
-      .datum(shiftedData)
-      .call(chart);
+    if(chartType == 'pie-chart') {
+        console.log("PIE CHART");
+        var chart = nv.models.pieChart()
+            .x(function(d) { return d.key; })
+            .y(function(d) { return Math.floor((Math.random() * 100) + 1); })
+            //.x(function(d) { return d.label })
+            //.y(function(d) { return d.value })
+            .showLabels(true);
+
+        d3.select(domTarget)
+        .datum(shiftedData)
+        .transition().duration(350)
+        .call(chart);
+
+    }
+    else if(chartType == 'bar-chart'){
+        console.log("BAR CHART");
+        var chart = nv.models.discreteBarChart()
+            //.x(function(d) { return d.key; })
+            //.y(function(d) { return Math.floor((Math.random() * 100) + 1); })
+            .x(function(d) { return d.label })    //Specify the data accessors.
+            .y(function(d) { return d.value })
+            .staggerLabels(true)    //Too many bars and not enough room? Try staggering labels.
+            .tooltips(false)        //Don't show tooltips
+            .showValues(true)       //...instead, show the bar value right on top of each bar.
+            .transitionDuration(350);
+
+        d3.select(domTarget)
+            .datum(exampleData())
+            .transition().duration(350)
+            .call(chart);
+    } else {
+        console.log("Default Line CHART");
+        var chart = nv.models.lineChart()
+          .x(function(d) { return d[0] })
+          .y(function(d) { return d[1] })
+          .color(d3.scale.category10().range())
+          .interpolate('monotone')
+          .showYAxis(true)
+          ;
+        chart.xAxis
+          .tickFormat(function(d) {
+            return d3.time.format(xAxisFormatter)(new Date(d));
+          });
+        // Fixes x-axis time alignment.
+        chart.xScale(d3.time.scale.utc());
+        chart.yAxis
+          .axisLabel(yAxisLabel)
+          .axisLabelDistance(25)
+          .tickFormat(d3.format(yAxisFormatter));
+        // Fixes the axis-labels being rendered out of the SVG element.
+        chart.margin({right: 80});
+        chart.tooltipContent(function(key, x, y) {
+          return '<p>' + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
+        });
+
+        d3.select(domTarget)
+            .datum(shiftedData)
+            .transition().duration(350)
+            .call(chart);
+
+    }
     // Resize the chart on window resize.
     nv.utils.windowResize(chart.update);
     return chart;
@@ -285,6 +367,7 @@ var TimeseriesChart = React.createClass({
       yAxisLabel: 'the y axis!',
       timezoneOffset: 0,
       tooltipUnits: '',
+      chartType:''
     }
   },
 
@@ -328,6 +411,7 @@ var TimeSeriesChartElement = React.createClass({
   shouldComponentUpdate: function(nextProps) {
     var nextData = JSON.stringify(nextProps.data);
     var prevData = JSON.stringify(this.props.data);
+    console.log("this.props.chartType = ", this);
     if (nextData !== prevData) {
       updateChart(
         '#' + this.props.chartID,
@@ -336,7 +420,8 @@ var TimeSeriesChartElement = React.createClass({
         nextProps.yAxisFormatter,
         nextProps.yAxisLabel,
         this.props.timezoneOffset,
-        this.props.tooltipUnits
+        this.props.tooltipUnits,
+        this.props.chartType
       );
     }
     return false;
