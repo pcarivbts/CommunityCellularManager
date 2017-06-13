@@ -559,13 +559,12 @@ class SubscriberAdjustCredit(ProtectedView):
             currency = network.subscriber_currency
             amount = parse_credits(request.POST['amount'],
                     CURRENCIES[currency]).amount_raw
-            network_max_balance = parse_credits(network.max_balance,
-                                    CURRENCIES[currency]).amount_raw
+            currency_value = str(humanize_credits(network.max_balance, CURRENCIES[currency]))
             if abs(amount) > 2147483647:
                 raise ValueError(error_text)
-            if (sub.balance + amount) > network_max_balance:
-                error_text = 'Error : Crossed Credit Limit %s.'% \
-                             (network.max_balance)
+            if (sub.balance + amount) > network.max_balance:
+                error_text = 'Error : crossed credit limit.Maximum balance limit is %s.'% \
+                             (currency_value)
                 raise ValueError(error_text)
         except ValueError:
             messages.error(request, error_text)

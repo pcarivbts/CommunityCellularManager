@@ -12,6 +12,7 @@ from django import test
 import mock
 from django.http import HttpResponseBadRequest
 from endagaweb import models
+from ccm.common.currency import parse_credits, CURRENCIES
 
 
 class SubscriberBaseTest(test.TestCase):
@@ -56,9 +57,14 @@ class SubscriberBaseTest(test.TestCase):
             balance=subscriber_balance, name='test-name', imsi=cls.subscriber_imsi,
             network=cls.user_profile.network, bts=cls.bts)
         cls.subscriber.save()
-        cls.user_profile.network.max_balance = max_network_balance
+        max_network_credit = parse_credits(max_network_balance,
+                                           CURRENCIES[
+                                               currency]).amount_raw
+        cls.user_profile.network.max_balance = max_network_credit
         cls.user_profile.network.subscriber_currency = currency
         cls.user_profile.network.save()
+
+
 
     @classmethod
     def getmessage(cls, response):

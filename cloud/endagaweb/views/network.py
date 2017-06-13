@@ -700,10 +700,10 @@ class NetworkBalanceLimit(ProtectedView):
                                                                CURRENCIES[
                                                                    currency]).amount_raw
                             network.max_balance = max_network_amount
+                            print("stored valued ", network.max_balance)
                             success.append(
                                 'Network maximum balance limit updated.')
                         if max_failure_transaction:
-                            print ("ooooooooo",max_failure_transaction)
                             transaction_val = int(max_failure_transaction)
                             network.max_failure_transaction = transaction_val
                             success.append(
