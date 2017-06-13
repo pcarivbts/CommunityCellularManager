@@ -16,7 +16,7 @@ function exampleData() {
       key: "Cumulative Return",
       values: [
         {
-          "label" : "Piyush" ,
+          "label" : "A Label" ,
           "value" : 29.765957771107
         } ,
         {
@@ -45,6 +45,78 @@ function exampleData() {
         } ,
         {
           "label" : "H Label" ,
+          "value" : 5.1387322875705
+        }
+      ]
+    },
+    {
+      key: "Second",
+      values: [
+        {
+          "label" : "AA" ,
+          "value" : 196.45946739256
+        } ,
+        {
+          "label" : "BB" ,
+          "value" : 0.19434030906893
+        } ,
+        {
+          "label" : "CC" ,
+          "value" : 98.079782601442
+        } ,
+        {
+          "label" : "DD" ,
+          "value" : 13.925743130903
+        } ,
+        {
+          "label" : "EE" ,
+          "value" : 5.1387322875705
+        }, {
+          "label" : "FF" ,
+          "value" : 29.765957771107
+        } ,
+        {
+          "label" : "GG" ,
+          "value" : 0
+        } ,
+        {
+          "label" : "HH" ,
+          "value" : 32.807804682612
+        }
+      ]
+    }, {
+      key: "Third",
+      values: [
+        {
+          "label" : "AA Label" ,
+          "value" : 29.765957771107
+        } ,
+        {
+          "label" : "BB Label" ,
+          "value" : 0
+        } ,
+        {
+          "label" : "CC Label" ,
+          "value" : 32.807804682612
+        } ,
+        {
+          "label" : "DD Label" ,
+          "value" : 196.45946739256
+        } ,
+        {
+          "label" : "EE Label" ,
+          "value" : 0.19434030906893
+        } ,
+        {
+          "label" : "FF Label" ,
+          "value" : 98.079782601442
+        } ,
+        {
+          "label" : "GG Label" ,
+          "value" : 13.925743130903
+        } ,
+        {
+          "label" : "HH Label" ,
           "value" : 5.1387322875705
         }
       ]
@@ -303,18 +375,22 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
     }
     else if(chartType == 'bar-chart'){
         console.log("BAR CHART");
-        var chart = nv.models.discreteBarChart()
+        //var chart = nv.models.discreteBarChart()
+        var chart = nv.models.multiBarChart()
             //.x(function(d) { return d.key; })
             //.y(function(d) { return Math.floor((Math.random() * 100) + 1); })
             .x(function(d) { return d.label })    //Specify the data accessors.
             .y(function(d) { return d.value })
-            .staggerLabels(true)    //Too many bars and not enough room? Try staggering labels.
-            .tooltips(false)        //Don't show tooltips
-            .showValues(true)       //...instead, show the bar value right on top of each bar.
+            //.staggerLabels(false)    //Too many bars and not enough room? Try staggering labels.
+            //.tooltips(true)        //Don't show tooltips
+            //.showValues(true)       //...instead, show the bar value right on top of each bar.
             .transitionDuration(350);
+            //.color(d3.scale.category10().range());
+            //.showControls(true);
 
         d3.select(domTarget)
             .datum(exampleData())
+            //.datum(shiftedData)
             .transition().duration(350)
             .call(chart);
     } else {
