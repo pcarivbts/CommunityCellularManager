@@ -23,9 +23,9 @@ of patent rights can be found in the PATENTS file in the same directory.
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
 
-<link rel="stylesheet" href="http://nvd3-community.github.io/nvd3/build/nv.d3.css">
+
 <style type="text/css">
-  .nv-label {
+  .nv-label, .nv-legend-text {
     text-transform: capitalize;
   }
 </style>
@@ -86,7 +86,8 @@ of patent rights can be found in the PATENTS file in the same directory.
                       <div id='call-number-chart'></div>
                     </div>
                     <div id="number_call_table" class="tab-pane fade">
-                        table
+                        <div class="row">&nbsp;</div>
+                        <div id="basic" class="basic"></div>
                     </div>
                 </div>
             </div>
@@ -155,6 +156,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
 
+
 <script type="text/jsx" src="/static/js/dashboard/report.js"></script>
 <script type="text/jsx">
   var currentTimeEpoch = {{ current_time_epoch }};
@@ -194,7 +196,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     <TimeseriesChartWithButtonsAndDatePickers
       title='SMS usage'
       chartID='sms-chart'
-      statTypes='local_sms,local_recv_sms,outside_sms,incoming_sms,free_sms'
+      statTypes='local_sms,local_recv_sms,outside_sms,incoming_sms,free_sms,error_sms'
       levelID='{{ network_id }}'
       aggregation='count'
       yAxisLabel='number of SMS'
@@ -205,7 +207,9 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('sms-usage-chart')
   );
-  
+
+
+  React.render(<Table cols={cols} data={data}/>, document.getElementById('basic'));
 </script>
 
 {% endif %}

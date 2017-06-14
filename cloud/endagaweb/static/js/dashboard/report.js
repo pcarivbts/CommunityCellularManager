@@ -345,6 +345,8 @@ var TimeseriesChart = React.createClass({
         return series['values'].every(function(pair) {
           return pair[1] === 0;
         });
+      } else {
+        return series['values'] === 0;
       }
     });
   },
@@ -542,7 +544,20 @@ var DownloadButton = React.createClass({
   render: function() {
     return (
       <span className="loadingText pull-right">
-        <button id="save-btn">Download Graph</button>
+        view as&nbsp;&nbsp; 
+        <a href="javascript:void(0);" title="view as graph">
+          <i className='fa fa-lg fa-area-chart' aria-hidden="true"></i>
+        </a>&nbsp;&nbsp;
+        <a href="javascript:void(0);" title="view as table">
+          <i className='fa fa-lg fa-list-ul' aria-hidden="true"></i>
+        </a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        download&nbsp;&nbsp; 
+        <a href="javascript:void(0);" title="download graph">
+          <i className='fa fa-lg fa-area-chart' aria-hidden="true"></i>
+        </a>&nbsp;&nbsp;
+        <a href="javascript:void(0);" title="download CSV">
+          <i className='fa fa-lg fa-list-ul' aria-hidden="true"></i>
+        </a>
       </span>
     );
   },
@@ -664,3 +679,53 @@ function exampleData() {
 
 }
 
+
+
+var cols = [
+    { key: 'firstName', label: 'First Name' },
+    { key: 'lastName', label: 'Last Name' }
+];
+
+var data = [
+    { id: 1, firstName: 'John', lastName: 'Doe' },
+    { id: 2, firstName: 'Clark', lastName: 'Kent' }
+];
+
+var Table = React.createClass({
+
+    render: function() {
+        var headerComponents = this.generateHeaders(),
+            rowComponents = this.generateRows();
+
+        return (
+            <table className='table table-striped table-bordered'>
+                <thead> {headerComponents} </thead>
+                <tbody> {rowComponents} </tbody>
+            </table>
+        );
+    },
+
+    generateHeaders: function() {
+        var cols = this.props.cols;  // [{key, label}]
+
+        // generate our header (th) cell components
+        return cols.map(function(colData) {
+            return <th key={colData.key}> {colData.label} </th>;
+        });
+    },
+
+    generateRows: function() {
+        var cols = this.props.cols,  // [{key, label}]
+            data = this.props.data;
+
+        return data.map(function(item) {
+            // handle the column data within each row
+            var cells = cols.map(function(colData) {
+
+                // colData.key might be "firstName"
+                return <td> {item[colData.key]} </td>;
+            });
+            return <tr key={item.id}> {cells} </tr>;
+        });
+    }
+});
