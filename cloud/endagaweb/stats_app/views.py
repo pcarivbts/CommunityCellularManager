@@ -84,6 +84,8 @@ def parse_query_params(params):
         parsed_params['aggregation'] = params['aggregation']
     if 'report-view' in params and params['report-view'] in ['summary', 'list']:
         parsed_params['report-view'] = params['report-view']
+    else:
+        parsed_params['report-view'] = 'list'
     return parsed_params
 
 
