@@ -23,6 +23,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       activeButtonText: '',
       xAxisFormatter: '%x',
       yAxisFormatter: '',
+      activeView:''
     }
   },
 
@@ -34,6 +35,8 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
     return {
       chartID: 'one',
       buttons: ['hour', 'day', 'week', 'month', 'year'],
+      icons: ['graph', 'list'],
+      defaultView: 'graph',
       defaultButtonText: 'week',
       endpoint: '/api/v1/reports/network',
       statTypes: 'sms',
@@ -52,6 +55,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
   componentDidMount: function() {
     this.setState({
       activeButtonText: this.props.defaultButtonText,
+      activeView: this.props.defaultView,
       startTimeEpoch: this.props.currentTimeEpoch - secondsMap[this.props.defaultButtonText],
       endTimeEpoch: this.props.currentTimeEpoch,
     // When the request params in the state have been set, go get more data.
@@ -78,6 +82,19 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
         endTimeEpoch: this.props.currentTimeEpoch,
         isLoading: true,
         activeButtonText: text,
+      });
+    }
+  },
+
+  // This handler takes the text of the view mode buttons
+  // and ouputs figures out the corresponding number of seconds.
+  handleViewClick: function(text) {
+    console.log("view mode CHANGED = ", text);
+    // Update only if the startTime has actually changed.
+    if (this.state.activeView != text) {
+      this.setState({
+        isLoading: true,
+        activeView: text
       });
     }
   },
@@ -147,8 +164,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       'report-view':'summary'
     };
     $.get(this.props.endpoint, queryParams, function(data) {
-      console.log("data ======== ");
-      console.log(data);
       this.setState({
         isLoading: false,
         chartData: data,
@@ -188,6 +203,19 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
           epochTime={this.state.endTimeEpoch}
           onDatePickerChange={this.endTimeChange}
         />
+        <span className='spacer'></span>
+        <span>view as&nbsp;&nbsp;&nbsp;</span>
+        {this.props.icons.map(function(buttonText, index) {
+          return (
+            <ViewButton
+              buttonText={buttonText}
+              activeView={this.state.activeView}
+              onButtonClick={this.handleViewClick}
+              key={index}
+            />
+          );
+        }, this)}
+        <span className='spacer'></span>
         <LoadingText
           visible={this.state.isLoading}
         />
@@ -201,6 +229,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
           timezoneOffset={this.props.timezoneOffset}
           tooltipUnits={this.props.tooltipUnits}
           chartType={this.props.chartType}
+          activeView={this.state.activeView}
         />
       </div>
     );
@@ -231,9 +260,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
   for (var index in data) {
     var newSeries = { 'key': data[index]['key'] };
     var newValues = [];
-    console.log("values data type = ", typeof(data[index]['values']));
     if( typeof(data[index]['values']) === 'object'){
-
       for (var series_index in data[index]['values']) {
         var newValue = [
           // Shift out of the locale offset to 'convert' to UTC and then shift
@@ -249,15 +276,16 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
     }
     shiftedData.push(newSeries);
   }
-  console.log("shiftedData = ", shiftedData);
 
+  
   nv.addGraph(function() {
 
     if(chartType == 'pie-chart') {
         var chart = nv.models.pieChart()
             .x(function(d) { return d.key.replace('_'," "); })
             .y(function(d) { return d.values; })
-            .showLabels(true);
+            .showLabels(true)
+            .labelType("percent");
 
         d3.select(domTarget)
         .datum(shiftedData)
@@ -286,7 +314,6 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
             .transition().duration(350)
             .call(chart);
     } else {
-        console.log("Default Line CHART");
         var chart = nv.models.lineChart()
           .x(function(d) { return d[0] })
           .y(function(d) { return d[1] })
@@ -335,7 +362,8 @@ var TimeseriesChart = React.createClass({
       yAxisLabel: 'the y axis!',
       timezoneOffset: 0,
       tooltipUnits: '',
-      chartType:''
+      chartType:'',
+      activeView:''
     }
   },
 
@@ -381,11 +409,14 @@ var TimeSeriesChartElement = React.createClass({
   // When the request params have changed, get new data and rebuild the graph.
   // We circumvent react's typical re-render cycle for this component by returning false.
   shouldComponentUpdate: function(nextProps) {
-    console.log("nextProps = ");
-    console.log(nextProps.data['results']);
+    this.props.activeView = nextProps.activeView;
+
+    console.log("nextProps = ", nextProps);
+    console.log("activeView = ", nextProps.activeView, this.props.activeView);
+    console.log("this.props.chartType = ", this);
+
     var nextData = JSON.stringify(nextProps.data);
     var prevData = JSON.stringify(this.props.data);
-    console.log("this.props.chartType = ", this);
     if (nextData !== prevData) {
       updateChart(
         '#' + this.props.chartID,
@@ -402,15 +433,36 @@ var TimeSeriesChartElement = React.createClass({
   },
 
   render: function() {
+    console.log("this.props = ", this.props);
     var inlineStyles = {
       height: this.props.chartHeight
     };
-    return (
-      <svg id={this.props.chartID}
-           className="time-series-chart"
-           style={inlineStyles}>
-      </svg>
-    );
+    if(this.props.activeView == 'list') {
+
+      var cols = [
+            { key: 'firstName', label: 'First Name' },
+            { key: 'lastName', label: 'Last Name' }
+        ];
+
+        var data = [
+            { id: 1, firstName: 'John', lastName: 'Doe' },
+            { id: 2, firstName: 'Clark', lastName: 'Kent' }
+        ];
+
+
+      d3.select('#call-chart').selectAll('svg').remove();
+      return (
+        <Table cols={cols} data={data}/>
+      );
+
+    } else {
+      return (
+        <svg id={this.props.chartID}
+             className="time-series-chart"
+             style={inlineStyles}>
+        </svg>
+      );
+    }
   }
 });
 
@@ -544,13 +596,6 @@ var DownloadButton = React.createClass({
   render: function() {
     return (
       <span className="loadingText pull-right">
-        view as&nbsp;&nbsp; 
-        <a href="javascript:void(0);" title="view as graph">
-          <i className='fa fa-lg fa-area-chart' aria-hidden="true"></i>
-        </a>&nbsp;&nbsp;
-        <a href="javascript:void(0);" title="view as table">
-          <i className='fa fa-lg fa-list-ul' aria-hidden="true"></i>
-        </a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         download&nbsp;&nbsp; 
         <a href="javascript:void(0);" title="download graph">
           <i className='fa fa-lg fa-area-chart' aria-hidden="true"></i>
@@ -562,6 +607,70 @@ var DownloadButton = React.createClass({
     );
   },
 });
+
+
+var ViewButton = React.createClass({
+  propTypes: {
+    buttonText: React.PropTypes.string.isRequired
+  },
+
+  getDefaultProps: function() {
+    return {
+      buttonText: 'graph',
+      activeView: '',
+      onButtonClick: null,
+    }
+  },
+
+  render: function() {
+    // Determine whether this particular button is active by checking
+    // this button's text vs the owner's knowledge of the active button.
+    // Then change styles accordingly.
+    var inlineStyles = {
+      marginRight: 20
+    };
+    if (this.props.buttonText == this.props.activeView) {
+      inlineStyles.cursor = 'inherit';
+      inlineStyles.color = 'black';
+      inlineStyles.textDecoration = 'none';
+    } else {
+      inlineStyles.cursor = 'pointer';
+    }
+    if(this.props.buttonText == 'graph') {
+      return (
+        <a style={inlineStyles} onClick={this.onThisClick.bind(this, this.props.buttonText)}  title="view as graph">
+          <i className='fa fa-lg fa-area-chart' aria-hidden="true"></i>
+        </a>
+      );
+    } else {
+      return (
+        <a style={inlineStyles} onClick={this.onThisClick.bind(this, this.props.buttonText)}  title="view as table">
+          <i className='fa fa-lg fa-list-ul' aria-hidden="true"></i>
+        </a>
+      );
+    }
+  },
+
+  onThisClick: function(text) {
+    this.props.onButtonClick(text);
+  },
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 function exampleData() {
