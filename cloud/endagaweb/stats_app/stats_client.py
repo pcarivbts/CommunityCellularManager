@@ -166,7 +166,7 @@ class StatsClientBase(object):
         return zip(timestamps, rounded_values)
 
 
-class duration(StatsClientBase):
+class SMSStatsClient(StatsClientBase):
     """The SMS stats client.
 
     Gets number of SMS, with the ability to filter by SMS kind.

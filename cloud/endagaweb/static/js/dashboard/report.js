@@ -254,11 +254,9 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
   nv.addGraph(function() {
 
     if(chartType == 'pie-chart') {
-        console.log("PIE CHART");
         var chart = nv.models.pieChart()
-            .x(function(d) { return d.key; })
+            .x(function(d) { return d.key.replace('_'," "); })
             .y(function(d) { return d.values; })
-            //.y(function(d) { return Math.floor((Math.random() * 100) + 1); })
             .showLabels(true);
 
         d3.select(domTarget)

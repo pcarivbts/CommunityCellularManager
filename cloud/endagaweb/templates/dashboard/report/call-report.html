@@ -24,6 +24,11 @@ of patent rights can be found in the PATENTS file in the same directory.
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
 
 <link rel="stylesheet" href="http://nvd3-community.github.io/nvd3/build/nv.d3.css">
+<style type="text/css">
+  .nv-label {
+    text-transform: capitalize;
+  }
+</style>
 
 {% endblock %}
 
@@ -184,12 +189,12 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('call-minutes-chart')
   );
-  /*
+
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='SMS usage'
       chartID='sms-chart'
-      statTypes='sms,local_sms,local_recv_sms,outside_sms,incoming_sms,free_sms'
+      statTypes='local_sms,local_recv_sms,outside_sms,incoming_sms,free_sms'
       levelID='{{ network_id }}'
       aggregation='count'
       yAxisLabel='number of SMS'
@@ -200,8 +205,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('sms-usage-chart')
   );
-  */
-
+  
 </script>
 
 {% endif %}
