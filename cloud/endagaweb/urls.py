@@ -154,7 +154,9 @@ urlpatterns = [
     url(r'^dashboard/activity',
         endagaweb.views.dashboard.ActivityView.as_view(),
         name='network-activity'),
-
+    url(r'^dashboard/callreport$',
+        endagaweb.views.dashboard.BillingReports.as_view(),
+        name='billing-reports'),
     # Raise a server error on-demand to test the 500 template.
     url(r'^insta-five-hundred$',
         endagaweb.views.static.InstaFiveHundred.as_view()),

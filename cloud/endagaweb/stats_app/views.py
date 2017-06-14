@@ -25,13 +25,14 @@ from endagaweb.stats_app import stats_client
 SMS_KINDS = stats_client.SMS_KINDS + ['sms']
 CALL_KINDS = stats_client.CALL_KINDS + ['call']
 GPRS_KINDS = ['total_data', 'uploaded_data', 'downloaded_data']
+TRANSFER  = ['transfer']
 TIMESERIES_STAT_KEYS = stats_client.TIMESERIES_STAT_KEYS
-VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS
+VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + TRANSFER
 # Set valid intervals.
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
 # Set valid aggregation types.
 AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
-                'average_value']
+                'average_value', 'amount']
 
 
 # Any requested start time earlier than this date will be set to this date.
@@ -135,6 +136,8 @@ class StatsAPIView(views.APIView):
                 client_type = stats_client.GPRSStatsClient
             elif stat_type in TIMESERIES_STAT_KEYS:
                 client_type = stats_client.TimeseriesStatsClient
+            elif stat_type in TIMESERIES_STAT_KEYS:
+                client_type = stats_client.TransferStatsClient
             # Instantiate the client at an infrastructure level.
             if infrastructure_level == 'global':
                 client = client_type('global')

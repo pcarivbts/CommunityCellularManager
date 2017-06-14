@@ -113,6 +113,7 @@ def dashboard_view(request):
     API.  We also load the server's notion of the current time so that we don't
     have to rely on the user's clock.
     """
+    print_data()
     user_profile = UserProfile.objects.get(user=request.user)
     network = user_profile.network
     timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
@@ -910,3 +911,56 @@ class ActivityView(ProtectedView):
 
                 res_events |= events
             return res_events
+
+from endagaweb.serializers import UsageEventSerializer
+
+
+def print_data():
+    # Return type :Dict
+    ue_d = UsageEventSerializer(UsageEvent.objects.get(id=3)).data
+    # Return type :List
+    ue_l = UsageEventSerializer(UsageEvent.objects.filter(id__lte=3),
+                                many=True).data
+    # print ue_d, ue_l
+    # usage = UsageEventSerializer(UsageEvent.objects.filter(subscriber_imsi='IMSI19999000000004').values_list('change'), many=True).data
+    outside_call = sum(UsageEvent.objects.filter(kind='outside_call').values_list('change', flat=True))
+    local_call = sum(UsageEvent.objects.filter(kind='local_call').values_list('change', flat=True))
+    print outside_call, local_call
+    print '*************************'
+    outside_sms = sum(UsageEvent.objects.filter(kind='outside_sms').values_list('change', flat=True))
+    local_sms = sum(UsageEvent.objects.filter(kind='local_sms').values_list('change', flat=True))
+    print outside_sms, local_sms
+    print '*************************'
+
+class BillingReports(ProtectedView):
+    """
+    Report Graphs of:
+    Call/SMS Billing,
+    """
+    def get(self, request, *args, **kwargs):
+        user_profile = UserProfile.objects.get(user=request.user)
+        # network = user_profile.network
+        # data = print_data()
+        # print data
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
+            datetime.datetime.now()).total_seconds()
+        network_has_activity = UsageEvent.objects.filter(
+            network=network).exists()
+        context = {
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=Network),
+            'user_profile': user_profile,
+            'network_id': network.id,
+            'current_time_epoch': int(time.time()),
+            'timezone_offset': timezone_offset,
+            'network_has_activity': network_has_activity,
+        }
+        # print network.id
+        template = get_template(
+            'bill.html')
+        html = template.render(context, request)
+        return HttpResponse(html)
+
+        pass

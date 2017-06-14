@@ -136,6 +136,10 @@ class StatsClientBase(object):
         elif aggregation == 'average_value':
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=aggregates.Avg('value'))
+        # Sum of change in amounts for SMS/CALL
+        elif aggregation == 'amount':
+            queryset_stats = qsstats.QuerySetStats(
+                queryset, 'date', aggregate=aggregates.Sum('change'))
         else:
             queryset_stats = qsstats.QuerySetStats(queryset, 'date')
         timeseries = queryset_stats.time_series(start, end, interval=interval)
@@ -369,3 +373,7 @@ class TimeseriesStatsClient(StatsClientBase):
         if 'aggregation' not in kwargs:
             kwargs['aggregation'] = 'average_value'
         return self.aggregate_timeseries(key, **kwargs)
+
+
+class TransferStatsClient(StatsClientBase):
+    pass
