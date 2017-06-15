@@ -75,52 +75,13 @@ of patent rights can be found in the PATENTS file in the same directory.
 
             {% if network_has_activity %}
             <div class="row">
-                <h3>Number of Calls</h3>
-                <ul class="nav nav-tabs">
-                    <li class="active"><a data-toggle="tab" href="#number_call_graph">Graph View</a></li>
-                    <li><a data-toggle="tab" href="#number_call_table">Table View</a></li>
-                </ul>
-
-                <div class="tab-content">
-                    <div id="number_call_graph" class="tab-pane fade in active">
-                      <div id='call-number-chart'></div>
-                    </div>
-                    <div id="number_call_table" class="tab-pane fade">
-                        <div class="row">&nbsp;</div>
-                        <div id="basic" class="basic"></div>
-                    </div>
-                </div>
+              <div id='call-number-chart'></div>
             </div>
             <div class="row">
-                <h3>Minutes of Calls</h3>
-                <ul class="nav nav-tabs">
-                    <li class="active"><a data-toggle="tab" href="#minute_call_graph">Graph View</a></li>
-                    <li><a data-toggle="tab" href="#minute_call_table">Table View</a></li>
-                </ul>
-                <div class="tab-content">
-                    <div id="minute_call_graph" class="tab-pane fade in active">
-                        <div id='call-minutes-chart'></div>
-                    </div>
-                    <div id="minute_call_table" class="tab-pane fade">
-                        table
-                    </div>
-                </div>
+              <div id='call-minutes-chart'></div>
             </div>
             <div class="row">
-                <h3>Number of SMS</h3>
-                <ul class="nav nav-tabs">
-                    <li class="active"><a data-toggle="tab" href="#number_sms_graph">Graph View</a></li>
-                    <li><a data-toggle="tab" href="#number_sms_table">Table View</a></li>
-                </ul>
-
-                <div class="tab-content">
-                    <div id="number_sms_graph" class="tab-pane fade in active">
-                        <div id='sms-usage-chart'></div>
-                    </div>
-                    <div id="number_sms_table" class="tab-pane fade">
-                        table
-                    </div>
-                </div>
+              <div id='sms-usage-chart'></div>
             </div>
 
             <div class="row ">
@@ -212,7 +173,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('sms-usage-chart')
   );
-  
+
 </script>
 
 {% endif %}
