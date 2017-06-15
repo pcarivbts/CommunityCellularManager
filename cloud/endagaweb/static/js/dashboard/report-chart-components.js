@@ -39,7 +39,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       icons: ['graph', 'list'],
       defaultView: 'graph',
       defaultButtonText: 'week',
-      endpoint: '/api/v1/reports/network',
+      endpoint: '/api/v1/stats/network',
       statTypes: 'sms',
       levelID: 0,
       aggregation: 'count',
@@ -262,6 +262,9 @@ var secondsMap = {
   'year': 365 * 24 * 60 * 60,
 };
 
+var add = function (a, b){
+  return a + b ;
+}
 
 // Builds the target chart from scratch.  NVD3 surprisingly handles this well.
 // domTarget is the SVG element's parent and data is the info that will be graphed.
@@ -274,6 +277,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
   // is negative (-7hrs).
   var localeOffset = 60 * (new Date()).getTimezoneOffset();
   var shiftedData = [];
+  var changeAmount = [];
   var tableData = [];
 
   for (var index in data) {
@@ -289,6 +293,16 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
           data[index]['values'][series_index][1]
         ];
         newValues.push(newValue);
+        changeAmount.push(newValue[1])
+      }
+      // Get sum of the total charges
+      var sumAmount = changeAmount.reduce(add, 0);
+      // sum can be of all negative values
+      if ( sumAmount < 0 ){
+      newSeries['total'] = (sumAmount * -1);
+      }
+      else{
+      newSeries['total'] = (sumAmount);
       }
       newSeries['values'] = newValues;
     } else {
@@ -321,7 +335,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
     if(chartType == 'pie-chart') {
         var chart = nv.models.pieChart()
             .x(function(d) { return d.key.replace('_'," "); })
-            .y(function(d) { return d.values; })
+            .y(function(d) { return d.total; })
             .showLabels(true)
             .labelType("percent");
 
@@ -688,147 +702,9 @@ var ViewButton = React.createClass({
   },
 });
 
-
-
-
-
-
-
-
-
-
-function exampleData() {
- return  [
-    {
-      key: "Cumulative Return",
-      values: [
-        {
-          "label" : "A Label" ,
-          "value" : 29.765957771107
-        } ,
-        {
-          "label" : "B Label" ,
-          "value" : 0
-        } ,
-        {
-          "label" : "C Label" ,
-          "value" : 32.807804682612
-        } ,
-        {
-          "label" : "D Label" ,
-          "value" : 196.45946739256
-        } ,
-        {
-          "label" : "E Label" ,
-          "value" : 0.19434030906893
-        } ,
-        {
-          "label" : "F Label" ,
-          "value" : 98.079782601442
-        } ,
-        {
-          "label" : "G Label" ,
-          "value" : 13.925743130903
-        } ,
-        {
-          "label" : "H Label" ,
-          "value" : 5.1387322875705
-        }
-      ]
-    },
-    {
-      key: "Second",
-      values: [
-        {
-          "label" : "AA" ,
-          "value" : 196.45946739256
-        } ,
-        {
-          "label" : "BB" ,
-          "value" : 0.19434030906893
-        } ,
-        {
-          "label" : "CC" ,
-          "value" : 98.079782601442
-        } ,
-        {
-          "label" : "DD" ,
-          "value" : 13.925743130903
-        } ,
-        {
-          "label" : "EE" ,
-          "value" : 5.1387322875705
-        }, {
-          "label" : "FF" ,
-          "value" : 29.765957771107
-        } ,
-        {
-          "label" : "GG" ,
-          "value" : 0
-        } ,
-        {
-          "label" : "HH" ,
-          "value" : 32.807804682612
-        }
-      ]
-    }, {
-      key: "Third",
-      values: [
-        {
-          "label" : "AA Label" ,
-          "value" : 29.765957771107
-        } ,
-        {
-          "label" : "BB Label" ,
-          "value" : 0
-        } ,
-        {
-          "label" : "CC Label" ,
-          "value" : 32.807804682612
-        } ,
-        {
-          "label" : "DD Label" ,
-          "value" : 196.45946739256
-        } ,
-        {
-          "label" : "EE Label" ,
-          "value" : 0.19434030906893
-        } ,
-        {
-          "label" : "FF Label" ,
-          "value" : 98.079782601442
-        } ,
-        {
-          "label" : "GG Label" ,
-          "value" : 13.925743130903
-        } ,
-        {
-          "label" : "HH Label" ,
-          "value" : 5.1387322875705
-        }
-      ]
-    }
-  ]
-
-}
-
-
-
-var cols = [
-    { key: 'firstName', label: 'First Name' },
-    { key: 'lastName', label: 'Last Name' }
-];
-
-var data = [
-    { id: 1, firstName: 'John', lastName: 'Doe' },
-    { id: 2, firstName: 'Clark', lastName: 'Kent' }
-];
-
 var Table = React.createClass({
   shouldComponentUpdate: function(nextProps) {
     this.props.activeView = nextProps.activeView;
-
-    console.log("TABLE -> activeView = ", nextProps.activeView, this.props.activeView);
 
     var nextData = JSON.stringify(nextProps.data);
     var prevData = JSON.stringify(this.props.data);

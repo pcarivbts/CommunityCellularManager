@@ -26,12 +26,13 @@ SMS_KINDS = stats_client.SMS_KINDS + ['sms']
 CALL_KINDS = stats_client.CALL_KINDS + ['call'] #, 'oustside_call']
 GPRS_KINDS = ['total_data', 'uploaded_data', 'downloaded_data']
 TIMESERIES_STAT_KEYS = stats_client.TIMESERIES_STAT_KEYS
-VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS
+TRANSFER_KINDS = stats_client.TRANSFER_KINDS
+VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + TRANSFER_KINDS
 # Set valid intervals.
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
 # Set valid aggregation types.
 AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
-                'average_value']
+                'average_value', 'transaction_sum']
 
 
 # Any requested start time earlier than this date will be set to this date.
@@ -141,8 +142,8 @@ class StatsAPIView(views.APIView):
                 client_type = stats_client.CallStatsClient
             elif stat_type in GPRS_KINDS:
                 client_type = stats_client.GPRSStatsClient
-            elif stat_type in TIMESERIES_STAT_KEYS:
-                client_type = stats_client.TimeseriesStatsClient
+            elif stat_type in TRANSFER_KINDS:
+                client_type = stats_client.TransferStatsClient
             # Instantiate the client at an infrastructure level.
             if infrastructure_level == 'global':
                 client = client_type('global')
@@ -150,6 +151,8 @@ class StatsAPIView(views.APIView):
                 client = client_type('network', params['level-id'])
             elif infrastructure_level == 'tower':
                 client = client_type('tower', params['level-id'])
+            elif stat_type in TIMESERIES_STAT_KEYS:
+                client_type = stats_client.TimeseriesStatsClient
             # Get timeseries results and append it to data.
             results = client.timeseries(
                 stat_type,
@@ -166,7 +169,6 @@ class StatsAPIView(views.APIView):
         # Convert params.stat_types back to CSV and echo back the request.
         params['stat-types'] = ','.join(params['stat-types'])
         data['request'] = params
-
         # Send results and echo back the request params.
         response_status = status.HTTP_200_OK
         return response.Response(data, response_status)

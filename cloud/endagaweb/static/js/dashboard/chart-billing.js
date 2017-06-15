@@ -23,6 +23,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       activeButtonText: '',
       xAxisFormatter: '%x',
       yAxisFormatter: '',
+      activeView:''
     }
   },
 
@@ -35,6 +36,8 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       title: 'title (set me!)',
       chartID: 'one',
       buttons: ['hour', 'day', 'week', 'month', 'year'],
+      icons: ['graph', 'list'],
+      defaultView: 'graph',
       defaultButtonText: 'week',
       endpoint: '/api/v1/stats/network',
       statTypes: 'sms',
@@ -44,6 +47,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       currentTimeEpoch: currentTime,
       timezoneOffset: 0,
       tooltipUnits: '',
+      chartType: 'pie-chart',
     }
   },
 
@@ -52,6 +56,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
   componentDidMount: function() {
     this.setState({
       activeButtonText: this.props.defaultButtonText,
+      activeView: this.props.defaultView,
       startTimeEpoch: this.props.currentTimeEpoch - secondsMap[this.props.defaultButtonText],
       endTimeEpoch: this.props.currentTimeEpoch,
     // When the request params in the state have been set, go get more data.
@@ -78,6 +83,21 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
         endTimeEpoch: this.props.currentTimeEpoch,
         isLoading: true,
         activeButtonText: text,
+      });
+    }
+  },
+
+  // This handler takes the text of the view mode buttons
+  // and ouputs figures out the corresponding number of seconds.
+  handleViewClick: function(text) {
+    console.log("view mode CHANGED = ", text);
+    // Update only if the startTime has actually changed.
+    if (this.state.activeView != text) {
+      this.setState({
+        startTimeEpoch: this.state.startTimeEpoch,
+        endTimeEpoch: this.props.currentTimeEpoch,
+        isLoading: true,
+        activeView: text,
       });
     }
   },
@@ -144,6 +164,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       'stat-types': this.props.statTypes,
       'level-id': this.props.levelID,
       'aggregation': this.props.aggregation,
+      'report-view':'summary'
     };
     $.get(this.props.endpoint, queryParams, function(data) {
       this.setState({
@@ -185,9 +206,23 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
           epochTime={this.state.endTimeEpoch}
           onDatePickerChange={this.endTimeChange}
         />
+        <span className='spacer'></span>
+        <span>view as&nbsp;&nbsp;&nbsp;</span>
+        {this.props.icons.map(function(buttonText, index) {
+          return (
+            <ViewButton
+              buttonText={buttonText}
+              activeView={this.state.activeView}
+              onButtonClick={this.handleViewClick}
+              key={index}
+            />
+          );
+        }, this)}
+        <span className='spacer'></span>
         <LoadingText
           visible={this.state.isLoading}
         />
+        <DownloadButton />
         <TimeseriesChart
           chartID={this.props.chartID}
           data={this.state.chartData}
@@ -196,6 +231,8 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
           yAxisLabel={this.props.yAxisLabel}
           timezoneOffset={this.props.timezoneOffset}
           tooltipUnits={this.props.tooltipUnits}
+          chartType={this.props.chartType}
+          activeView={this.state.activeView}
         />
       </div>
     );
@@ -211,10 +248,13 @@ var secondsMap = {
   'year': 365 * 24 * 60 * 60,
 };
 
+function add(a, b){
+    return a + b ;
+    }
 
 // Builds the target chart from scratch.  NVD3 surprisingly handles this well.
 // domTarget is the SVG element's parent and data is the info that will be graphed.
-var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxisLabel, timezoneOffset, tooltipUnits) {
+var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxisLabel, timezoneOffset, tooltipUnits, chartType) {
   // We pass in the timezone offset and calculate a locale offset.  The former
   // is based on the UserProfile's specified timezone and the latter is the user's
   // computer's timezone offset.  We manually shift the data to work around
@@ -223,6 +263,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
   // is negative (-7hrs).
   var localeOffset = 60 * (new Date()).getTimezoneOffset();
   var shiftedData = [];
+  var changeAmount = [];
   for (var index in data) {
     var newSeries = { 'key': data[index]['key'] };
     var newValues = [];
@@ -234,25 +275,55 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
         data[index]['values'][series_index][1]
       ];
       newValues.push(newValue);
+    changeAmount.push(newValue[1])
+    }
+    // Get sum of the total charges
+    var sumAmount = changeAmount.reduce(add, 0);
+    // sum can be of all negative values
+    if ( sumAmount < 0 ){
+    newSeries['total'] = (sumAmount * -1);
+    }
+    else{
+    newSeries['total'] = (sumAmount);
     }
     newSeries['values'] = newValues;
     shiftedData.push(newSeries);
   }
 
-  nv.addGraph(function() {
-    var chart = nv.models.lineChart()
+//console.log(this.props.chartType)
+//for pie/donut chart
+nv.addGraph(function() {
+if ( chartType == 'pie-chart'){
+  var chart = nv.models.pieChart()
+      .x(function(d) { return d.key.replace('_',' ').toUpperCase() })
+      .y(function(d) { return d.total })
+      .showLabels(true)     //Display pie labels
+      .labelThreshold(.05)  //Configure the minimum slice size for labels to show up
+      .labelType("percent")   //Configure what type of data to show in the label. Can be "key", "value" or "percent"
+//      .donut(true)          //Turn on Donut mode. Makes pie chart look tasty!
+//      .donutRatio(0.2)     //Configure how big you want the donut hole size to be.
+//      .donut(true).donutRatio(0.2) // Trick to make the labels go inside the chart
+      ;
+
+    d3.select(domTarget)
+        .datum(shiftedData)
+        .transition().duration(1200)
+        .call(chart);
+  }
+  else if (chartType == 'bar-chart'){
+  var chart = nv.models.multiBarChart()
       .x(function(d) { return d[0] })
       .y(function(d) { return d[1] })
-      .color(d3.scale.category10().range())
-      .interpolate('monotone')
-      .showYAxis(true)
-      ;
+      .transitionDuration(350)
+      .reduceXTicks(true)   //If 'false', every single x-axis tick label will be rendered.
+//      .tooltips(true)
+      .stacked(true).showControls(false)
+    ;
     chart.xAxis
       .tickFormat(function(d) {
         return d3.time.format(xAxisFormatter)(new Date(d));
       });
     // Fixes x-axis time alignment.
-    chart.xScale(d3.time.scale.utc());
     chart.yAxis
       .axisLabel(yAxisLabel)
       .axisLabelDistance(25)
@@ -262,16 +333,14 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
     chart.tooltipContent(function(key, x, y) {
       return '<p>' + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
     });
-    // TODO(matt): non-negative y-axis
     d3.select(domTarget)
-      .datum(shiftedData)
-      .call(chart);
-    // Resize the chart on window resize.
+        .datum(shiftedData)
+        .call(chart);
     nv.utils.windowResize(chart.update);
-    return chart;
-  });
+  }
+  return chart;
+});
 };
-
 
 var TimeseriesChart = React.createClass({
 
@@ -285,6 +354,7 @@ var TimeseriesChart = React.createClass({
       yAxisLabel: 'the y axis!',
       timezoneOffset: 0,
       tooltipUnits: '',
+      chartType: '',
     }
   },
 
@@ -336,7 +406,8 @@ var TimeSeriesChartElement = React.createClass({
         nextProps.yAxisFormatter,
         nextProps.yAxisLabel,
         this.props.timezoneOffset,
-        this.props.tooltipUnits
+        this.props.tooltipUnits,
+        this.props.chartType
       );
     }
     return false;
