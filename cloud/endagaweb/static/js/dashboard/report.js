@@ -265,7 +265,7 @@ var secondsMap = {
 
 // Builds the target chart from scratch.  NVD3 surprisingly handles this well.
 // domTarget is the SVG element's parent and data is the info that will be graphed.
-var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxisLabel, timezoneOffset, tooltipUnits, chartType) {
+var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxisLabel, timezoneOffset, tooltipUnits, chartType, domTargetId) {
   // We pass in the timezone offset and calculate a locale offset.  The former
   // is based on the UserProfile's specified timezone and the latter is the user's
   // computer's timezone offset.  We manually shift the data to work around
@@ -297,21 +297,23 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
     }
     shiftedData.push(newSeries);
   }
+  console.log("$('.domTargetId') ===========");
+  console.log($('.'+domTargetId));
 
-  $('#example').DataTable( {
-        data: tableData,
-        paging:   false,
-        ordering: false,
-        info:     false,
-        searching: false,
-        autoWidth: true,
-        scrollY: 320,
-        destroy: true,
-        columns: [
-            { title: "Title" },
-            { title: "Value" }
-        ]
-    } );
+  $('.'+domTargetId).DataTable({
+      data: tableData,
+      paging:   false,
+      ordering: false,
+      info:     false,
+      searching: false,
+      autoWidth: true,
+      scrollY: 320,
+      destroy: true,
+      columns: [
+          { title: "Title" },
+          { title: "Value" }
+      ]
+  });
 
   
   nv.addGraph(function() {
@@ -474,7 +476,8 @@ var TimeSeriesChartElement = React.createClass({
         nextProps.yAxisLabel,
         this.props.timezoneOffset,
         this.props.tooltipUnits,
-        this.props.chartType
+        this.props.chartType,
+        this.props.chartID
       );
     }
     return false;
@@ -838,7 +841,8 @@ var Table = React.createClass({
         nextProps.yAxisLabel,
         this.props.timezoneOffset,
         this.props.tooltipUnits,
-        this.props.chartType
+        this.props.chartType,
+        this.props.chartID
       );
     }
     return false;
@@ -851,7 +855,7 @@ var Table = React.createClass({
       };
       return (
           <div style={inlineStyles}>
-            <table id="example" class="display"></table>
+            <table className={this.props.chartID} class="display table"></table>
           </div>
       );
   }
