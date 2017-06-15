@@ -89,7 +89,7 @@ urlpatterns = [
     # Dashboard.
     url(r'^dashboard/card', endagaweb.views.dashboard.addcard),
     url(r'^addmoney/', endagaweb.views.dashboard.addmoney),
-    url(r'^dashboard/billing', endagaweb.views.dashboard.billing_view),
+    url(r'^dashboard/billing$', endagaweb.views.dashboard.billing_view),
     url(r'^dashboard/profile', endagaweb.views.dashboard.profile_view),
     # Tower views in the dashboard.
     # /towers -- GET a list of towers or POST here to add one
