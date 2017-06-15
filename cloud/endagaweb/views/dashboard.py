@@ -113,7 +113,7 @@ def dashboard_view(request):
     API.  We also load the server's notion of the current time so that we don't
     have to rely on the user's clock.
     """
-    print_data()
+    # print_data()
     user_profile = UserProfile.objects.get(user=request.user)
     network = user_profile.network
     timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
