@@ -33,6 +33,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
     // adjust the graph data.
     var currentTime = Math.round(new Date().getTime() / 1000);
     return {
+      title: 'title (set me!)',
       chartID: 'one',
       buttons: ['hour', 'day', 'week', 'month', 'year'],
       icons: ['graph', 'list'],
@@ -46,7 +47,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       currentTimeEpoch: currentTime,
       timezoneOffset: 0,
       tooltipUnits: '',
-      chartType: 'line-chart'
+      chartType: 'line-chart',
     }
   },
 
@@ -93,9 +94,25 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
     // Update only if the startTime has actually changed.
     if (this.state.activeView != text) {
       this.setState({
+        startTimeEpoch: this.state.startTimeEpoch,
+        endTimeEpoch: this.props.currentTimeEpoch,
+        isLoading: true,
+        activeView: text,
+      });
+      /*
+      this.setState({
         isLoading: true,
         activeView: text
       });
+      this.forceUpdate();
+      setTimeout(function() { 
+        this.setState({
+          isLoading: true,
+          activeButtonText: 'year',
+        });
+      }.bind(this), 3000);
+
+      */
     }
   },
 
@@ -178,7 +195,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
     var toDatepickerID = 'to-datepicker-' + this.props.chartID;
     return (
       <div>
-        <div>&nbsp;</div>
+        <h4>{this.props.title}</h4>
         <span>past &nbsp;&nbsp;</span>
         {this.props.buttons.map(function(buttonText, index) {
           return (
@@ -257,9 +274,12 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
   // is negative (-7hrs).
   var localeOffset = 60 * (new Date()).getTimezoneOffset();
   var shiftedData = [];
+  var tableData = [];
+
   for (var index in data) {
     var newSeries = { 'key': data[index]['key'] };
     var newValues = [];
+
     if( typeof(data[index]['values']) === 'object'){
       for (var series_index in data[index]['values']) {
         var newValue = [
@@ -273,9 +293,25 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
       newSeries['values'] = newValues;
     } else {
       newSeries['values'] = data[index]['values'];
+      tableData.push([data[index]['key'], data[index]['values']]);
     }
     shiftedData.push(newSeries);
   }
+
+  $('#example').DataTable( {
+        data: tableData,
+        paging:   false,
+        ordering: false,
+        info:     false,
+        searching: false,
+        autoWidth: true,
+        scrollY: 320,
+        destroy: true,
+        columns: [
+            { title: "Title" },
+            { title: "Value" }
+        ]
+    } );
 
   
   nv.addGraph(function() {
@@ -345,6 +381,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
     }
     // Resize the chart on window resize.
     nv.utils.windowResize(chart.update);
+
     return chart;
   });
 };
@@ -380,6 +417,7 @@ var TimeseriesChart = React.createClass({
   },
 
   render: function() {
+    
     var results = this.props.data['results'];
     var isFlatChart = !results || this.chartIsFlat(results);
     var className = ['time-series-chart-container'];
@@ -395,12 +433,24 @@ var TimeseriesChart = React.createClass({
       );
       className.push('flat');
     }
-    return (
-      <div className={className.join(' ')}>
-        {flatLineOverlay}
-        <TimeSeriesChartElement {...this.props}/>
-      </div>
-    );
+    if(this.props.activeView == 'list') {
+      console.log("TimeseriesChart rendered=== TABLE");
+      return (
+        <div className={className.join(' ')}>
+          {flatLineOverlay}
+          <Table {...this.props}/>
+        </div>
+      );
+    } 
+    else {
+      console.log("TimeseriesChart rendered=== GRAPH");
+      return (
+        <div className={className.join(' ')}>
+          {flatLineOverlay}
+          <TimeSeriesChartElement {...this.props}/>
+        </div>
+      );
+    }
   }
 });
 
@@ -411,9 +461,7 @@ var TimeSeriesChartElement = React.createClass({
   shouldComponentUpdate: function(nextProps) {
     this.props.activeView = nextProps.activeView;
 
-    console.log("nextProps = ", nextProps);
     console.log("activeView = ", nextProps.activeView, this.props.activeView);
-    console.log("this.props.chartType = ", this);
 
     var nextData = JSON.stringify(nextProps.data);
     var prevData = JSON.stringify(this.props.data);
@@ -433,36 +481,17 @@ var TimeSeriesChartElement = React.createClass({
   },
 
   render: function() {
+    console.log("TimeSeriesChartElement rendered===");
     console.log("this.props = ", this.props);
     var inlineStyles = {
       height: this.props.chartHeight
     };
-    if(this.props.activeView == 'list') {
-
-      var cols = [
-            { key: 'firstName', label: 'First Name' },
-            { key: 'lastName', label: 'Last Name' }
-        ];
-
-        var data = [
-            { id: 1, firstName: 'John', lastName: 'Doe' },
-            { id: 2, firstName: 'Clark', lastName: 'Kent' }
-        ];
-
-
-      d3.select('#call-chart').selectAll('svg').remove();
-      return (
-        <Table cols={cols} data={data}/>
-      );
-
-    } else {
-      return (
-        <svg id={this.props.chartID}
-             className="time-series-chart"
-             style={inlineStyles}>
-        </svg>
-      );
-    }
+    return (
+      <svg id={this.props.chartID}
+           className="time-series-chart"
+           style={inlineStyles}>
+      </svg>
+    );
   }
 });
 
@@ -665,14 +694,6 @@ var ViewButton = React.createClass({
 
 
 
-
-
-
-
-
-
-
-
 function exampleData() {
  return  [
     {
@@ -801,40 +822,37 @@ var data = [
 ];
 
 var Table = React.createClass({
+  shouldComponentUpdate: function(nextProps) {
+    this.props.activeView = nextProps.activeView;
 
-    render: function() {
-        var headerComponents = this.generateHeaders(),
-            rowComponents = this.generateRows();
+    console.log("TABLE -> activeView = ", nextProps.activeView, this.props.activeView);
 
-        return (
-            <table className='table table-striped table-bordered'>
-                <thead> {headerComponents} </thead>
-                <tbody> {rowComponents} </tbody>
-            </table>
-        );
-    },
-
-    generateHeaders: function() {
-        var cols = this.props.cols;  // [{key, label}]
-
-        // generate our header (th) cell components
-        return cols.map(function(colData) {
-            return <th key={colData.key}> {colData.label} </th>;
-        });
-    },
-
-    generateRows: function() {
-        var cols = this.props.cols,  // [{key, label}]
-            data = this.props.data;
-
-        return data.map(function(item) {
-            // handle the column data within each row
-            var cells = cols.map(function(colData) {
-
-                // colData.key might be "firstName"
-                return <td> {item[colData.key]} </td>;
-            });
-            return <tr key={item.id}> {cells} </tr>;
-        });
+    var nextData = JSON.stringify(nextProps.data);
+    var prevData = JSON.stringify(this.props.data);
+    if (nextData !== prevData) {
+      updateChart(
+        '#' + this.props.chartID,
+        nextProps.data['results'],
+        nextProps.xAxisFormatter,
+        nextProps.yAxisFormatter,
+        nextProps.yAxisLabel,
+        this.props.timezoneOffset,
+        this.props.tooltipUnits,
+        this.props.chartType
+      );
     }
+    return false;
+  },
+
+  render: function() {
+      var inlineStyles = {
+        'min-height': '380px',
+        'margin-top': '20px'
+      };
+      return (
+          <div style={inlineStyles}>
+            <table id="example" class="display"></table>
+          </div>
+      );
+  }
 });

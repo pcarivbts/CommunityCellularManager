@@ -22,7 +22,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% block pagestyle %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
-
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css" type="text/css"/>
 
 <style type="text/css">
   .nv-label, .nv-legend-text {
@@ -157,6 +157,10 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
 
 
+<script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+
+
+
 <script type="text/jsx" src="/static/js/dashboard/report.js"></script>
 <script type="text/jsx">
   var currentTimeEpoch = {{ current_time_epoch }};
@@ -176,6 +180,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('call-number-chart')
   );
+
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Minutes of Calls'
@@ -207,10 +212,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('sms-usage-chart')
   );
-
-/*
-  React.render(<Table cols={cols} data={data}/>, document.getElementById('basic'));
-*/
+  
 </script>
 
 {% endif %}
