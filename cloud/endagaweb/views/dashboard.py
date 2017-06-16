@@ -28,7 +28,7 @@ from django.core import urlresolvers
 from django.views.generic import View
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
-
+from endagaweb import models
 import django_tables2 as tables
 import csv
 import humanize
@@ -557,7 +557,7 @@ class SubscriberAdjustCredit(ProtectedView):
         try:
             currency = network.subscriber_currency
             amount = parse_credits(request.POST['amount'],
-                    CURRENCIES[currency]).amount_raw
+                    CURREFNCIES[currency]).amount_raw
             if abs(amount) > 2147483647:
                 raise ValueError(error_text)
         except ValueError:
@@ -946,10 +946,14 @@ class SubscriberReportView(ProtectedView):
     def get(self, request):
         print "subcriber report"
         user_profile = UserProfile.objects.get(user=request.user)
+        try:
+            towers = models.BTS.objects.filter(network=user_profile.network)
+        except models.BTS.DoesNotExist:
+            tower =None
         network = user_profile.network
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
             datetime.datetime.now()).total_seconds()
-        # Determine if there has been any activity on the network (if not, we won't
+        # Determine if there has ,towerbeen any activity on the network (if not, we won't
         # show the graphs).
         network_has_activity = UsageEvent.objects.filter(
             network=network).exists()
@@ -958,6 +962,7 @@ class SubscriberReportView(ProtectedView):
                                              klass=Network),
             'user_profile': user_profile,
             'network_id': network.id,
+            'towers':towers,
             'current_time_epoch': int(time.time()),
             'timezone_offset': timezone_offset,
             'network_has_activity': network_has_activity,

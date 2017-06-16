@@ -26,13 +26,17 @@ SMS_KINDS = stats_client.SMS_KINDS + ['sms']
 CALL_KINDS = stats_client.CALL_KINDS + ['call']
 GPRS_KINDS = ['total_data', 'uploaded_data', 'downloaded_data']
 TIMESERIES_STAT_KEYS = stats_client.TIMESERIES_STAT_KEYS
-VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS
-# Set valid intervals.
+SUBSCRIBER_KINDS = stats_client.SUBSCRIBER_KINDS
+zero_balance_subscriber =stats_client.zero_balance_subscriber
+inactive_subscriber = stats_client.inactive_subscriber
+VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + SUBSCRIBER_KINDS + zero_balance_subscriber + inactive_subscriber
+
+# zero_balance_subscriber
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
 # Set valid aggregation types.
 AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
                 'average_value']
-
+SUBSCRIBER_KINDS = stats_client.SUBSCRIBER_KINDS
 
 # Any requested start time earlier than this date will be set to this date.
 # This comes from a bug where UEs were generated at an astounding rate in
@@ -138,7 +142,13 @@ class StatsAPIView(views.APIView):
                 client_type = stats_client.GPRSStatsClient
             elif stat_type in TIMESERIES_STAT_KEYS:
                 client_type = stats_client.TimeseriesStatsClient
+            elif stat_type in SUBSCRIBER_KINDS:
+                client_type = stats_client.SubscriberStatsClient
             # Instantiate the client at an infrastructure level.
+            elif stat_type in zero_balance_subscriber:
+                client_type = stats_client.SubscriberStatsClient
+            elif stat_type in inactive_subscriber:
+                client_type = stats_client.SubscriberStatsClient
             if infrastructure_level == 'global':
                 client = client_type('global')
             elif infrastructure_level == 'network':

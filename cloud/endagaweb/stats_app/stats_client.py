@@ -15,7 +15,7 @@ from django.db.models import aggregates
 from django.db.models import Q
 import pytz
 import qsstats
-
+import django.utils.timezone
 from endagaweb import models
 
 
@@ -25,7 +25,12 @@ CALL_KINDS = [
 SMS_KINDS = [
     'local_sms', 'local_recv_sms', 'outside_sms', 'incoming_sms', 'free_sms',
     'error_sms']
-USAGE_EVENT_KINDS = CALL_KINDS + SMS_KINDS + ['gprs']
+SUBSCRIBER_KINDS = ['provisioned', 'deprovisioned']
+
+USAGE_EVENT_KINDS = CALL_KINDS + SMS_KINDS + ['gprs'] + SUBSCRIBER_KINDS
+zero_balance_subscriber =['zero_balance_subscriber']
+inactive_subscriber =['expired','first_expired','blocked_subscriber']
+
 TIMESERIES_STAT_KEYS = [
     'ccch_sdcch4_load', 'tch_f_max', 'tch_f_load', 'sdcch8_max', 'tch_f_pdch_load', 'tch_f_pdch_max', 'tch_h_load', 'tch_h_max', 'sdcch8_load', 'ccch_sdcch4_max',
     'sdcch_load', 'sdcch_available', 'tchf_load', 'tchf_available',
@@ -111,10 +116,25 @@ class StatsClientBase(object):
         if param in USAGE_EVENT_KINDS:
             objects = models.UsageEvent.objects
             filters = Q(kind=param)
+        elif param in zero_balance_subscriber:
+            objects = models.UsageEvent.objects
+            filters= Q(newamt=0)
+        elif param in inactive_subscriber:
+            aggregation ='valid_through'
+            objects = models.Subscriber.objects
+            one_minute_ago = django.utils.timezone.now()
+            filters = Q(state=param)
+            if param =='expired':
+                filters =Q(state='expired')
+            elif param =='blocked_subscriber':
+                filters = Q(state='blocked')
+            elif param == 'first_expired':
+                filters = Q(state='fexpired')
         elif param in TIMESERIES_STAT_KEYS:
             objects = models.TimeseriesStat.objects
             filters = Q(key=param)
         # Filter by infrastructure level.
+        print("level ",self.level)
         if self.level == 'tower':
             filters = filters & Q(bts__id=self.level_id)
         elif self.level == 'network':
@@ -136,6 +156,8 @@ class StatsClientBase(object):
         elif aggregation == 'average_value':
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=aggregates.Avg('value'))
+        elif aggregation == 'valid_through':
+            queryset_stats = qsstats.QuerySetStats(queryset, 'valid_through')
         else:
             queryset_stats = qsstats.QuerySetStats(queryset, 'date')
         timeseries = queryset_stats.time_series(start, end, interval=interval)
@@ -364,6 +386,25 @@ class TimeseriesStatsClient(StatsClientBase):
 
     def __init__(self, *args, **kwargs):
         super(TimeseriesStatsClient, self).__init__(*args, **kwargs)
+
+    def timeseries(self, key=None, **kwargs):
+        if 'aggregation' not in kwargs:
+            kwargs['aggregation'] = 'average_value'
+        return self.aggregate_timeseries(key, **kwargs)
+
+
+class SubscriberStatsClient(StatsClientBase):
+    """Gathers data on TimeseriesStat instances at a tower level only.
+
+    client = stats_client.TimeseriesStatsClient('tower', tower_id)
+    print client.timeseries(
+        key='gprs_utilization_percentage', interval='minutes',
+        start_time_epoch=12000, end_time_epoch=13000)
+    # [(12345, 1), (12305, 4), (12365, 6) ... ]
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(SubscriberStatsClient, self).__init__(*args, **kwargs)
 
     def timeseries(self, key=None, **kwargs):
         if 'aggregation' not in kwargs:
