@@ -99,20 +99,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
         isLoading: true,
         activeView: text,
       });
-      /*
-      this.setState({
-        isLoading: true,
-        activeView: text
-      });
-      this.forceUpdate();
-      setTimeout(function() { 
-        this.setState({
-          isLoading: true,
-          activeButtonText: 'year',
-        });
-      }.bind(this), 3000);
-
-      */
     }
   },
 
@@ -306,13 +292,13 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
       }
       newSeries['values'] = newValues;
     } else {
-      newSeries['values'] = data[index]['values'];
-      tableData.push([data[index]['key'], data[index]['values']]);
+      newSeries['total'] = data[index]['values'];
     }
+    tableData.push([newSeries['key'], newSeries['total']]);
     shiftedData.push(newSeries);
   }
-  console.log("$('.domTargetId') ===========");
-  console.log($('.'+domTargetId));
+  console.log("tableData ===========");
+  console.log(tableData);
 
   $('.'+domTargetId).DataTable({
       data: tableData,
@@ -331,7 +317,6 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
 
   
   nv.addGraph(function() {
-
     if(chartType == 'pie-chart') {
         var chart = nv.models.pieChart()
             .x(function(d) { return d.key.replace('_'," "); })
@@ -348,17 +333,15 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
        else if(chartType == 'bar-chart'){
         console.log("BAR CHART");
         var chart = nv.models.multiBarChart()
-     .x(function(d) { return d[0] })    //Specify the data accessors.
-      .y(function(d) { return d[1]})
-      //.staggerLabels(true)    //Too many bars and not enough room? Try staggering labels.
-      .tooltips(true)        //Don't show tooltips
-      //.showValues(true)       //...instead, show the bar value right on top of each bar.
-      .transitionDuration(350)
-      .stacked(false).showControls(false);
+            .x(function(d) { return d[0] })
+            .y(function(d) { return d[1]})
+            //.staggerLabels(true)    //Too many bars and not enough room? Try staggering labels.
+            .tooltips(true)        //Don't show tooltips
+            //.showValues(true)       //...instead, show the bar value right on top of each bar.
+            .transitionDuration(350)
+            .stacked(false).showControls(false);
 
-       chart.xAxis
-
-        .tickFormat(function(d) {
+       chart.xAxis.tickFormat(function(d) {
             return d3.time.format(xAxisFormatter)(new Date(d));
           });
         // Fixes x-axis time alignment.
@@ -366,8 +349,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
         var xScale =d3.time.scale.utc()
       //.domain(???help???)
 
-       chart.yAxis
-       .scale(xScale)
+       chart.yAxis.scale(xScale)
           .axisLabel(yAxisLabel)
           .axisLabelDistance(25)
           .tickFormat(d3.format(yAxisFormatter));
@@ -410,11 +392,9 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
             .datum(shiftedData)
             .transition().duration(350)
             .call(chart);
-
     }
     // Resize the chart on window resize.
     nv.utils.windowResize(chart.update);
-
     return chart;
   });
 };
@@ -743,7 +723,7 @@ var Table = React.createClass({
 
   render: function() {
       var inlineStyles = {
-        'min-height': '380px',
+        'min-height': '360px',
         'margin-top': '20px'
       };
       return (

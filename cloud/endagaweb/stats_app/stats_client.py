@@ -133,6 +133,7 @@ class StatsClientBase(object):
             objects = models.TimeseriesStat.objects
             filters = Q(key=param)
         # Filter by infrastructure level.
+        #print("level ",self.level)
         if self.level == 'tower':
             filters = filters & Q(bts__id=self.level_id)
         elif self.level == 'network':
