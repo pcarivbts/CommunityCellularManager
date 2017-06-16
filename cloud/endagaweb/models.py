@@ -514,7 +514,7 @@ class Subscriber(models.Model):
     imsi = models.CharField(max_length=50, unique=True)
     name = models.TextField()
     crdt_balance = models.TextField(default=crdt.PNCounter("default").serialize())
-    state = models.CharField(max_length=10)
+    state = models.CharField(max_length=15)
     # Time of the last received UsageEvent that's not in NON_ACTIVITIES.
     last_active = models.DateTimeField(null=True, blank=True)
     # Time of the last received UsageEvent that is in OUTBOUND_ACTIVITIES.  We

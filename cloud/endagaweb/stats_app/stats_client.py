@@ -26,12 +26,10 @@ SMS_KINDS = [
     'local_sms', 'local_recv_sms', 'outside_sms', 'incoming_sms', 'free_sms',
     'error_sms']
 SUBSCRIBER_KINDS = ['provisioned', 'deprovisioned']
-
-USAGE_EVENT_KINDS = CALL_KINDS + SMS_KINDS + ['gprs'] + SUBSCRIBER_KINDS
-ZERO_BALANCE_SUBSCRIBER =['ZERO_BALANACE_SUBSCRIBER']
+ZERO_BALANCE_SUBSCRIBER =['zero_balance_subscriber']
 INACTIVE_SUBSCRIBER =['expired', 'first_expired', 'blocked_subscriber']
 TRANSFER_KINDS = ['transfer', 'add-money']
-USAGE_EVENT_KINDS = CALL_KINDS + SMS_KINDS + ['gprs'] + TRANSFER_KINDS
+USAGE_EVENT_KINDS = CALL_KINDS + SMS_KINDS + ['gprs'] + SUBSCRIBER_KINDS + TRANSFER_KINDS
 TIMESERIES_STAT_KEYS = [
     'ccch_sdcch4_load', 'tch_f_max', 'tch_f_load', 'sdcch8_max', 'tch_f_pdch_load', 'tch_f_pdch_max', 'tch_h_load', 'tch_h_max', 'sdcch8_load', 'ccch_sdcch4_max',
     'sdcch_load', 'sdcch_available', 'tchf_load', 'tchf_available',
@@ -125,13 +123,12 @@ class StatsClientBase(object):
             aggregation ='valid_through'
             objects = models.Subscriber.objects
             one_minute_ago = django.utils.timezone.now()
-            filters = Q(state=param)
             if param =='expired':
                 filters =Q(state='expired')
             elif param =='blocked_subscriber':
                 filters = Q(state='blocked')
             elif param == 'first_expired':
-                filters = Q(state='fexpired')
+                filters = Q(state='first_expired')
         elif param in TIMESERIES_STAT_KEYS:
             objects = models.TimeseriesStat.objects
             filters = Q(key=param)
