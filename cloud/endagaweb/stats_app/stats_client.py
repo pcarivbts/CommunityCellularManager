@@ -28,9 +28,10 @@ SMS_KINDS = [
 SUBSCRIBER_KINDS = ['provisioned', 'deprovisioned']
 
 USAGE_EVENT_KINDS = CALL_KINDS + SMS_KINDS + ['gprs'] + SUBSCRIBER_KINDS
-zero_balance_subscriber =['zero_balance_subscriber']
-inactive_subscriber =['expired','first_expired','blocked_subscriber']
-
+ZERO_BALANCE_SUBSCRIBER =['ZERO_BALANACE_SUBSCRIBER']
+INACTIVE_SUBSCRIBER =['expired', 'first_expired', 'blocked_subscriber']
+TRANSFER_KINDS = ['transfer', 'add-money']
+USAGE_EVENT_KINDS = CALL_KINDS + SMS_KINDS + ['gprs'] + TRANSFER_KINDS
 TIMESERIES_STAT_KEYS = [
     'ccch_sdcch4_load', 'tch_f_max', 'tch_f_load', 'sdcch8_max', 'tch_f_pdch_load', 'tch_f_pdch_max', 'tch_h_load', 'tch_h_max', 'sdcch8_load', 'ccch_sdcch4_max',
     'sdcch_load', 'sdcch_available', 'tchf_load', 'tchf_available',
@@ -104,6 +105,7 @@ class StatsClientBase(object):
         end_time_epoch = kwargs.pop('end_time_epoch', -1)
         interval = kwargs.pop('interval', 'months')
         aggregation = kwargs.pop('aggregation', 'count')
+        report_view = kwargs.pop('report_view', 'list')
         # Turn the start and end epoch timestamps into datetimes.
         start = datetime.fromtimestamp(start_time_epoch, pytz.utc)
         if end_time_epoch != -1:
@@ -116,10 +118,10 @@ class StatsClientBase(object):
         if param in USAGE_EVENT_KINDS:
             objects = models.UsageEvent.objects
             filters = Q(kind=param)
-        elif param in zero_balance_subscriber:
+        elif param in ZERO_BALANCE_SUBSCRIBER:
             objects = models.UsageEvent.objects
             filters= Q(newamt=0)
-        elif param in inactive_subscriber:
+        elif param in INACTIVE_SUBSCRIBER:
             aggregation ='valid_through'
             objects = models.Subscriber.objects
             one_minute_ago = django.utils.timezone.now()
@@ -141,6 +143,8 @@ class StatsClientBase(object):
             filters = filters & Q(network__id=self.level_id)
         elif self.level == 'global':
             pass
+        if kwargs.has_key('subscriber'):
+            filters = filters & kwargs.pop('subscriber')
         # Create the queryset itself.
         queryset = objects.filter(filters)
         # Use qsstats to aggregate the queryset data on an interval.
@@ -158,6 +162,10 @@ class StatsClientBase(object):
                 queryset, 'date', aggregate=aggregates.Avg('value'))
         elif aggregation == 'valid_through':
             queryset_stats = qsstats.QuerySetStats(queryset, 'valid_through')
+        # Sum of change in amounts for SMS/CALL
+        elif aggregation == 'transaction_sum':
+            queryset_stats = qsstats.QuerySetStats(
+                queryset, 'date', aggregate=aggregates.Sum('change'))
         else:
             queryset_stats = qsstats.QuerySetStats(queryset, 'date')
         timeseries = queryset_stats.time_series(start, end, interval=interval)
@@ -165,6 +173,10 @@ class StatsClientBase(object):
         # to convert the datetimes to timestamps with millisecond precision and
         # then zip the pairs back together.
         datetimes, values = zip(*timeseries)
+        if report_view == 'summary':
+            # Return sum count for pie-chart and table view
+            return sum(values)
+
         timestamps = [
             int(time.mktime(dt.timetuple()) * 1e3 + dt.microsecond / 1e3)
             for dt in datetimes
@@ -410,3 +422,16 @@ class SubscriberStatsClient(StatsClientBase):
         if 'aggregation' not in kwargs:
             kwargs['aggregation'] = 'average_value'
         return self.aggregate_timeseries(key, **kwargs)
+
+
+class TransferStatsClient(StatsClientBase):
+    """ Gather retailer transfer and recharge report """
+
+    def __init__(self, *args, **kwargs):
+        super(TransferStatsClient, self).__init__(*args, **kwargs)
+
+    def timeseries(self, kind=None, **kwargs):
+        # Set queryset from subscriber role as retailer
+
+        kwargs['subscriber'] = Q(subscriber__role='retailer')
+        return self.aggregate_timeseries(kind, **kwargs)

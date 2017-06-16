@@ -7,7 +7,7 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 """
 
-from models import UserProfile, BTS, Number
+from models import UserProfile, BTS, Number, UsageEvent
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
@@ -29,3 +29,34 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     user = UserSerializer()
     class Meta:
         model = UserProfile
+
+
+class UsageEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UsageEvent
+        fields = (
+                'transaction_id',
+                'subscriber',
+                'subscriber_imsi',
+                'bts',
+                'bts_uuid',
+                'network',
+                'date',
+                'kind',
+                'reason',
+                'oldamt',
+                'newamt',
+                'change',
+                'billsec',
+                'call_duration',
+                'from_imsi',
+                'from_number',
+                'to_imsi',
+                'to_number',
+                'destination',
+                'tariff',
+                'uploaded_bytes',
+                'downloaded_bytes',
+                'timespan',
+                'date_synced',
+        )

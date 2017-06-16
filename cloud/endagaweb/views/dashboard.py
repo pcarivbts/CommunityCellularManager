@@ -916,7 +916,6 @@ class CallReportView(ProtectedView):
     """View reports on basis of Network or tower level."""
 
     def get(self, request):
-        print "call sms report"
         user_profile = UserProfile.objects.get(user=request.user)
         network = user_profile.network
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
@@ -944,7 +943,6 @@ class SubscriberReportView(ProtectedView):
     """View reports on basis of Network or tower level."""
 
     def get(self, request):
-        print "subcriber report"
         user_profile = UserProfile.objects.get(user=request.user)
         try:
             towers = models.BTS.objects.filter(network=user_profile.network)
@@ -966,7 +964,7 @@ class SubscriberReportView(ProtectedView):
             'current_time_epoch': int(time.time()),
             'timezone_offset': timezone_offset,
             'network_has_activity': network_has_activity,
-            'report_summary': 'Call and SMS'
+            'report_summary': 'Subscribers'
         }
         template = get_template("dashboard/report/subscriber-report.html")
         html = template.render(context, request)
@@ -977,7 +975,6 @@ class BillingReportView(ProtectedView):
     """View reports on basis of Network or tower level."""
 
     def get(self, request):
-        print "billing report"
         user_profile = UserProfile.objects.get(user=request.user)
         network = user_profile.network
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
@@ -994,9 +991,9 @@ class BillingReportView(ProtectedView):
             'current_time_epoch': int(time.time()),
             'timezone_offset': timezone_offset,
             'network_has_activity': network_has_activity,
-            'report_summary': 'Call and SMS'
+            'report_summary': 'Billing'
         }
-        template = get_template("dashboard/report/call-report.html")
+        template = get_template("dashboard/report/bill.html")
         html = template.render(context, request)
         return HttpResponse(html)
 
@@ -1005,7 +1002,6 @@ class HealthReportView(ProtectedView):
     """View reports on basis of Network or tower level."""
 
     def get(self, request):
-        print "health report"
         user_profile = UserProfile.objects.get(user=request.user)
         network = user_profile.network
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
@@ -1022,7 +1018,7 @@ class HealthReportView(ProtectedView):
             'current_time_epoch': int(time.time()),
             'timezone_offset': timezone_offset,
             'network_has_activity': network_has_activity,
-            'report_summary': 'Call and SMS'
+            'report_summary': 'Health'
         }
         template = get_template("dashboard/report/call-report.html")
         html = template.render(context, request)

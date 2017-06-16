@@ -22,6 +22,14 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% block pagestyle %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css" type="text/css"/>
+
+<style type="text/css">
+  .nv-label, .nv-legend-text {
+    text-transform: capitalize;
+  }
+</style>
+
 {% endblock %}
 
 {% block content %}
@@ -67,51 +75,13 @@ of patent rights can be found in the PATENTS file in the same directory.
 
             {% if network_has_activity %}
             <div class="row">
-                <h3>Number of Calls</h3>
-                <ul class="nav nav-tabs">
-                    <li class="active"><a data-toggle="tab" href="#number_call_graph">Graph View</a></li>
-                    <li><a data-toggle="tab" href="#number_call_table">Table View</a></li>
-                </ul>
-
-                <div class="tab-content">
-                    <div id="number_call_graph" class="tab-pane fade in active">
-                        <div id='call-number-chart'></div>
-                    </div>
-                    <div id="number_call_table" class="tab-pane fade">
-                        table
-                    </div>
-                </div>
+              <div id='call-number-chart'></div>
             </div>
             <div class="row">
-                <h3>Minutes of Calls</h3>
-                <ul class="nav nav-tabs">
-                    <li class="active"><a data-toggle="tab" href="#minute_call_graph">Graph View</a></li>
-                    <li><a data-toggle="tab" href="#minute_call_table">Table View</a></li>
-                </ul>
-                <div class="tab-content">
-                    <div id="minute_call_graph" class="tab-pane fade in active">
-                        <div id='call-minutes-chart'></div>
-                    </div>
-                    <div id="minute_call_table" class="tab-pane fade">
-                        table
-                    </div>
-                </div>
+              <div id='call-minutes-chart'></div>
             </div>
             <div class="row">
-                <h3>Number of SMS</h3>
-                <ul class="nav nav-tabs">
-                    <li class="active"><a data-toggle="tab" href="#number_sms_graph">Graph View</a></li>
-                    <li><a data-toggle="tab" href="#number_sms_table">Table View</a></li>
-                </ul>
-
-                <div class="tab-content">
-                    <div id="number_sms_graph" class="tab-pane fade in active">
-                        <div id='sms-usage-chart'></div>
-                    </div>
-                    <div id="number_sms_table" class="tab-pane fade">
-                        table
-                    </div>
-                </div>
+              <div id='sms-usage-chart'></div>
             </div>
 
             <div class="row ">
@@ -134,6 +104,11 @@ of patent rights can be found in the PATENTS file in the same directory.
       $('.timezone-notice').fadeIn(500);
     }, 800);
   });
+  $("#save-btn").click(function() {
+      $("#call-number-chart").get(0).toBlob(function(blob) {
+        saveAs(blob, "call-number-chart.png");
+    });
+});
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/react.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/JSXTransformer.js"></script>
@@ -142,7 +117,12 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
 
-<script type="text/jsx" src="/static/js/dashboard/report.js"></script>
+
+<script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+
+
+
+<script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
 <script type="text/jsx">
   var currentTimeEpoch = {{ current_time_epoch }};
   var timezoneOffset = {{ timezone_offset }};
@@ -150,9 +130,9 @@ of patent rights can be found in the PATENTS file in the same directory.
     <TimeseriesChartWithButtonsAndDatePickers
       title='Number of Calls'
       chartID='call-chart'
-      statTypes='call,local_call,local_recv_call,outside_call,incoming_call,free_call'
+      statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
       levelID='{{ network_id }}'
-      aggregation='duration'
+      aggregation='count'
       yAxisLabel='numbers of calls'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
@@ -166,14 +146,14 @@ of patent rights can be found in the PATENTS file in the same directory.
     <TimeseriesChartWithButtonsAndDatePickers
       title='Minutes of Calls'
       chartID='data-chart'
-      statTypes='total_data,uploaded_data,downloaded_data'
+      statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
       levelID='{{ network_id }}'
-      aggregation=''
+      aggregation='duration'
       yAxisLabel='minutes of call'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       tooltipUnits='s of'
-      chartType='line-chart'
+      chartType='pie-chart'
     />,
     document.getElementById('call-minutes-chart')
   );
@@ -182,18 +162,17 @@ of patent rights can be found in the PATENTS file in the same directory.
     <TimeseriesChartWithButtonsAndDatePickers
       title='SMS usage'
       chartID='sms-chart'
-      statTypes='sms,local_sms,local_recv_sms,outside_sms,incoming_sms,free_sms'
+      statTypes='local_sms,local_recv_sms,outside_sms,incoming_sms,free_sms,error_sms'
       levelID='{{ network_id }}'
       aggregation='count'
       yAxisLabel='number of SMS'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       tooltipUnits=''
-      chartType='bar-chart'
+      chartType='pie-chart'
     />,
     document.getElementById('sms-usage-chart')
   );
-
 
 </script>
 

@@ -23,20 +23,27 @@ from endagaweb.stats_app import stats_client
 # for these other categories: sms, call, uploaded_data, downloaded_data,
 # total_data.
 SMS_KINDS = stats_client.SMS_KINDS + ['sms']
-CALL_KINDS = stats_client.CALL_KINDS + ['call']
+CALL_KINDS = stats_client.CALL_KINDS + ['call'] #, 'oustside_call']
 GPRS_KINDS = ['total_data', 'uploaded_data', 'downloaded_data']
 TIMESERIES_STAT_KEYS = stats_client.TIMESERIES_STAT_KEYS
 SUBSCRIBER_KINDS = stats_client.SUBSCRIBER_KINDS
-zero_balance_subscriber =stats_client.zero_balance_subscriber
-inactive_subscriber = stats_client.inactive_subscriber
-VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + SUBSCRIBER_KINDS + zero_balance_subscriber + inactive_subscriber
+ZERO_BALANACE_SUBSCRIBER =stats_client.ZERO_BALANCE_SUBSCRIBER
+INACTIVE_SUBSCRIBER = stats_client.INACTIVE_SUBSCRIBER
+VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + SUBSCRIBER_KINDS + ZERO_BALANACE_SUBSCRIBER + INACTIVE_SUBSCRIBER
 
-# zero_balance_subscriber
+# ZERO_BALANACE_SUBSCRIBER
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
 # Set valid aggregation types.
 AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
                 'average_value']
-SUBSCRIBER_KINDS = stats_client.SUBSCRIBER_KINDS
+TRANSFER_KINDS = stats_client.TRANSFER_KINDS
+VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + TRANSFER_KINDS
+# Set valid intervals.
+INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
+# Set valid aggregation types.
+AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
+                'average_value', 'transaction_sum']
+
 
 # Any requested start time earlier than this date will be set to this date.
 # This comes from a bug where UEs were generated at an astounding rate in
@@ -59,6 +66,7 @@ def parse_query_params(params):
         'stat-types': ['sms'],
         'level-id': -1,
         'aggregation': 'count',
+        'report_view':'list'
     }
     # Override defaults with any query params that have been set, if the
     # query params are valid.
@@ -85,6 +93,10 @@ def parse_query_params(params):
         parsed_params['level-id'] = int(params['level-id'])
     if 'aggregation' in params and params['aggregation'] in AGGREGATIONS:
         parsed_params['aggregation'] = params['aggregation']
+    if 'report-view' in params and params['report-view'] in ['summary', 'list']:
+        parsed_params['report-view'] = params['report-view']
+    else:
+        parsed_params['report-view'] = 'list'
     return parsed_params
 
 
@@ -144,10 +156,12 @@ class StatsAPIView(views.APIView):
                 client_type = stats_client.TimeseriesStatsClient
             elif stat_type in SUBSCRIBER_KINDS:
                 client_type = stats_client.SubscriberStatsClient
+            elif stat_type in TRANSFER_KINDS:
+                client_type = stats_client.TransferStatsClient
             # Instantiate the client at an infrastructure level.
-            elif stat_type in zero_balance_subscriber:
+            elif stat_type in ZERO_BALANACE_SUBSCRIBER:
                 client_type = stats_client.SubscriberStatsClient
-            elif stat_type in inactive_subscriber:
+            elif stat_type in INACTIVE_SUBSCRIBER:
                 client_type = stats_client.SubscriberStatsClient
             if infrastructure_level == 'global':
                 client = client_type('global')
@@ -155,6 +169,8 @@ class StatsAPIView(views.APIView):
                 client = client_type('network', params['level-id'])
             elif infrastructure_level == 'tower':
                 client = client_type('tower', params['level-id'])
+            elif stat_type in TIMESERIES_STAT_KEYS:
+                client_type = stats_client.TimeseriesStatsClient
             # Get timeseries results and append it to data.
             results = client.timeseries(
                 stat_type,
@@ -171,7 +187,6 @@ class StatsAPIView(views.APIView):
         # Convert params.stat_types back to CSV and echo back the request.
         params['stat-types'] = ','.join(params['stat-types'])
         data['request'] = params
-
         # Send results and echo back the request params.
         response_status = status.HTTP_200_OK
         return response.Response(data, response_status)
@@ -191,7 +206,6 @@ class ReportsAPIView(views.APIView):
 
     def get(self, request, infrastructure_level):
         print "---------------------------------------------------------------------"
-        print request
         print "infrastructure_level ======== ", infrastructure_level
         """GET request handler.
 
@@ -227,7 +241,10 @@ class ReportsAPIView(views.APIView):
         data = {
             'results': [],
         }
+        print "params = ", params
+        print "========"
         for stat_type in params['stat-types']:
+            print "stat_type = ", stat_type
             # Setup the appropriate stats client, SMS, call or GPRS.
             if stat_type in SMS_KINDS:
                 client_type = stats_client.SMSStatsClient
@@ -251,7 +268,9 @@ class ReportsAPIView(views.APIView):
                 start_time_epoch=params['start-time-epoch'],
                 end_time_epoch=params['end-time-epoch'],
                 aggregation=params['aggregation'],
+                report_view=params['report-view'],
             )
+            print "results ===================", results
             data['results'].append({
                 "key": stat_type,
                 "values": results
