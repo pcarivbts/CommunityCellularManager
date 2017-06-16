@@ -26,8 +26,18 @@ SMS_KINDS = stats_client.SMS_KINDS + ['sms']
 CALL_KINDS = stats_client.CALL_KINDS + ['call'] #, 'oustside_call']
 GPRS_KINDS = ['total_data', 'uploaded_data', 'downloaded_data']
 TIMESERIES_STAT_KEYS = stats_client.TIMESERIES_STAT_KEYS
+SUBSCRIBER_KINDS = stats_client.SUBSCRIBER_KINDS
+ZERO_BALANACE_SUBSCRIBER =stats_client.ZERO_BALANCE_SUBSCRIBER
+INACTIVE_SUBSCRIBER = stats_client.INACTIVE_SUBSCRIBER
+VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + SUBSCRIBER_KINDS + ZERO_BALANACE_SUBSCRIBER + INACTIVE_SUBSCRIBER
+
+# ZERO_BALANACE_SUBSCRIBER
+INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
+# Set valid aggregation types.
+AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
+                'average_value']
 TRANSFER_KINDS = stats_client.TRANSFER_KINDS
-VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + TRANSFER_KINDS
+VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + TRANSFER_KINDS + SUBSCRIBER_KINDS + ZERO_BALANACE_SUBSCRIBER + INACTIVE_SUBSCRIBER
 # Set valid intervals.
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
 # Set valid aggregation types.
@@ -142,9 +152,17 @@ class StatsAPIView(views.APIView):
                 client_type = stats_client.CallStatsClient
             elif stat_type in GPRS_KINDS:
                 client_type = stats_client.GPRSStatsClient
+            elif stat_type in TIMESERIES_STAT_KEYS:
+                client_type = stats_client.TimeseriesStatsClient
+            elif stat_type in SUBSCRIBER_KINDS:
+                client_type = stats_client.SubscriberStatsClient
             elif stat_type in TRANSFER_KINDS:
                 client_type = stats_client.TransferStatsClient
             # Instantiate the client at an infrastructure level.
+            elif stat_type in ZERO_BALANACE_SUBSCRIBER:
+                client_type = stats_client.SubscriberStatsClient
+            elif stat_type in INACTIVE_SUBSCRIBER:
+                client_type = stats_client.SubscriberStatsClient
             if infrastructure_level == 'global':
                 client = client_type('global')
             elif infrastructure_level == 'network':

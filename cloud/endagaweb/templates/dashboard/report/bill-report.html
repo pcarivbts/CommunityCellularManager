@@ -41,44 +41,29 @@ of patent rights can be found in the PATENTS file in the same directory.
         <div class='content col-xs-12 col-sm-10 col-md-10'>
 
             <div class="row panel">
-                <form action="/dashboard/reports/calls" class="form-horizontal"
+                <form action="/dashboard/activity" class="form-horizontal"
                       method="post" role="form" onsubmit="setloading()">
                     {% csrf_token %}
                     <div class="form-group">
                         <label for="id_keyword"
                                class="control-label col-xs-2">Filter by</label>
                         <div class="col-xs-3">
-                            <label class="radio-inline"><input type="radio" name="level" value="network" {% if level == 'network' %} checked="checked" {% endif %}>Network</label>
-                            <label class="radio-inline"><input type="radio" name="level" value="tower" {% if level == 'tower' %} checked="checked" {% endif %}>BTS (Tower)</label>
+                            <label class="radio-inline"><input type="radio" name="optradio">BTS</label>
+                            <label class="radio-inline"><input type="radio" name="optradio">Network</label>
                         </div>
-                    </div>
-                    <div class="form-group" id="bts_list" {% if not level_id %} style="display: none;" {% endif %}>
-                        <label for="id_keyword"
-                               class="control-label col-xs-2">Tower</label>
-                        <div class="col-xs-3">
-                            <select name="level_id">
-                            <option value=""> --Select BTS--</option>
-                              {% if towers %}
-                                {% for tower in towers %}
-                                <option value="{{tower.id}}">{{ tower.nickname }}( {{tower.uuid}} )</option>
-                                {% endfor %}
-                              {% endif %}
-                            </select>
-                        </div>
-                        towers
                     </div>
                     <div class="form-group">
                         <label class="control-label col-xs-2">Reports</label>
                         <div class="col-xs-5">
-                            <label class="checkbox-inline">
-                              <input type="checkbox" name="report[]" value="call_count"/>Number of Calls
-                            </label>
-                            <label class="checkbox-inline">
-                              <input type="checkbox" name="report[]" value="call_duration"/>Minutes of Calls
-                            </label>
-                            <label class="checkbox-inline">
-                              <input type="checkbox" name="report[]" value="sms_count"/>Number of SMS
-                            </label>
+                            <label class="checkbox-inline"><input
+                                    type="checkbox" name="report[]"
+                                    value="Number of calls"/>Number of Calls</label>
+                            <label class="checkbox-inline"><input
+                                    type="checkbox" name="report[]"
+                                    value="Number of calls"/>Minutes of Calls</label>
+                            <label class="checkbox-inline"><input
+                                    type="checkbox" name="report[]"
+                                    value="Number of calls"/>Number of SMS</label>
                         </div>
                         <div class="col-xs-3">
                             <button id="submit" type="submit" name="submit" value="Filter"
@@ -131,7 +116,11 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
+
+
 <script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+
+
 
 <script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
 <script type="text/jsx">
@@ -185,20 +174,6 @@ of patent rights can be found in the PATENTS file in the same directory.
     document.getElementById('sms-usage-chart')
   );
 
-</script>
-<script type="text/javascript">
-function setloading() {
-  var $btn = $('#submit').button().button('loading');
-}
-$(document).ready(function() {
-  $('input[type=radio][name="level"]').change(function() {
-    if (this.value == 'tower') {
-        $('#bts_list').show();
-    } else {
-      $('#bts_list').hide();
-    }
-  });
-});
 </script>
 
 {% endif %}

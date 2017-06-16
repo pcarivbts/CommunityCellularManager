@@ -8,15 +8,14 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 {% endcomment %}
 {% load apptags %}
+
 {% load humanize %}
 {% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
 
 
 {% block title %}
-    {% tmpl_const "SITENAME" %} | Report
-    {% if report_summary  %}
-        | "{{ report_summary }}"
-    {% endif %}
+{% tmpl_const "SITENAME" %} | towers
 {% endblock %}
 
 {% block pagestyle %}
@@ -27,62 +26,37 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% block content %}
     {% include "dashboard/report/header.html" with network=network %}
 
+
+
     <div class='row'>
         {% include "dashboard/report/nav.html" with active_tab='subscriber_reports' %}
 
-        <div class='content col-xs-12 col-sm-10 col-md-10'>
+         <div class='content col-xs-12 col-sm-10 col-md-10'>
 
-            <div class="row panel">
-                <form action="/dashboard/activity" class="form-horizontal"
-                      method="post" role="form" onsubmit="setloading()">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label for="id_keyword"
-                               class="control-label col-xs-2">Filter by</label>
-                        <div class="col-xs-10">
-                            <label class="radio-inline"><input type="radio" name="optradio">BTS</label>
-                            <label class="radio-inline"><input type="radio" name="optradio">Network</label>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="control-label col-xs-2">Reports</label>
-                        <div class="col-xs-5">
-                            <label class="checkbox-inline"><input
-                                    type="checkbox" name="report[]"
-                                    value="Number of calls"/>Number of Calls</label>
-                            <label class="checkbox-inline"><input
-                                    type="checkbox" name="report[]"
-                                    value="Number of calls"/>Minutes of Calls</label>
-                            <label class="checkbox-inline"><input
-                                    type="checkbox" name="report[]"
-                                    value="Number of calls"/>Number of SMS</label>
-                        </div>
-                        <div class="col-xs-3">
-                            <button id="submit" type="submit" name="submit" value="Filter"
-                        class="btn btn-primary col-xs-12" data-loading-text="Loading...">Filter</button>
-                        </div>
-                    </div>
-                </form>
+
+
+            {% if network_has_activity %}
+            <div class="row">
+              <div id='chart'></div>
             </div>
+
 
             <div class="row ">
-                {% if network_has_activity %}
-                    <div id='call-usage-chart'></div>
-                    <div id='data-usage-chart'></div>
-                    <div id='sms-usage-chart'></div>
-                    {% include 'dashboard/timezone-notice.html' %}
-                {% else %}
-                    <p>There is no network activity to display.</p>
-                {% endif %}
+                {% include 'dashboard/timezone-notice.html' %}
             </div>
+            {% else %}
+                <p>There is no network activity to display.</p>
+            {% endif %}
 
         </div> <!-- /.col-md-4 -->
     </div>
+
+
 {% endblock %}
 
 
 {% block js %}
-{% if network_has_activity %}
+
 <script>
   $(function() {
     setTimeout(function() {
@@ -97,53 +71,52 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
 
-<script type="text/jsx" src="/static/js/dashboard/report.js"></script>
+
+<script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+
+
+
+<script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
+<script>
+var seltext
+$(".dropdown-menu li a").click(function(){
+alert("hi");
+  selText = $(this).text();
+  tower_id =$(this).text();
+  alert(selText)
+  $(this).parents('.btn-group').find('.dropdown-toggle').html(selText+' <span class="caret"></span>');
+});
+</script>
+
 <script type="text/jsx">
   var currentTimeEpoch = {{ current_time_epoch }};
+
   var timezoneOffset = {{ timezone_offset }};
+  var levelid =$('#drop :selected').text();
+   alert(levelid)
+
+var timezoneOffset = {{ timezone_offset }};
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
-      title='SMS usage'
-      chartID='sms-chart'
-      statTypes='sms,local_sms,local_recv_sms,outside_sms,incoming_sms,free_sms'
-      levelID='{{ network_id }}'
-      aggregation='count'
-      yAxisLabel='number of SMS'
-      currentTimeEpoch={currentTimeEpoch}
-      timezoneOffset={timezoneOffset}
-      tooltipUnits=''
-    />,
-    document.getElementById('sms-usage-chart')
-  );
-  React.render(
-    <TimeseriesChartWithButtonsAndDatePickers
-      title='Number of Calls'
+      title='Subscriber Activity'
       chartID='call-chart'
-      statTypes='call,local_call,local_recv_call,outside_call,incoming_call,free_call'
+      statTypes='provisioned,deprovisioned,zero_balance_subscriber,first_expired,blocked_subscriber,expired'
       levelID='{{ network_id }}'
-      aggregation='duration'
-      yAxisLabel='numbers of calls'
+      aggregation='valid_through'
+      yAxisLabel='numbers'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       tooltipUnits='s of'
+      chartType='bar-chart'
+      endpoint='/api/v1/stats/network'
     />,
-    document.getElementById('call-usage-chart')
+    document.getElementById('chart')
   );
-  React.render(
-    <TimeseriesChartWithButtonsAndDatePickers
-      title='Data usage'
-      chartID='data-chart'
-      statTypes='total_data,uploaded_data,downloaded_data'
-      levelID='{{ network_id }}'
-      aggregation=''
-      yAxisLabel='MB'
-      currentTimeEpoch={currentTimeEpoch}
-      timezoneOffset={timezoneOffset}
-      tooltipUnits='MB of'
-    />,
-    document.getElementById('data-usage-chart')
-  );
+
+
+
 </script>
-{% endif %}
+
+
 
 {% endblock %}

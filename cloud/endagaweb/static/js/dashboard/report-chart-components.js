@@ -330,9 +330,40 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
         .call(chart);
 
     }
-    else if(chartType == 'bar-chart'){
+       else if(chartType == 'bar-chart'){
         console.log("BAR CHART");
+        var chart = nv.models.multiBarChart()
+            .x(function(d) { return d[0] })
+            .y(function(d) { return d[1]})
+            //.staggerLabels(true)    //Too many bars and not enough room? Try staggering labels.
+            .tooltips(true)        //Don't show tooltips
+            //.showValues(true)       //...instead, show the bar value right on top of each bar.
+            .transitionDuration(350)
+            .stacked(false).showControls(false);
 
+       chart.xAxis.tickFormat(function(d) {
+            return d3.time.format(xAxisFormatter)(new Date(d));
+          });
+        // Fixes x-axis time alignment.
+
+        var xScale =d3.time.scale.utc()
+      //.domain(???help???)
+
+       chart.yAxis.scale(xScale)
+          .axisLabel(yAxisLabel)
+          .axisLabelDistance(25)
+          .tickFormat(d3.format(yAxisFormatter));
+        // Fixes the axis-labels being rendered out of the SVG element.
+        chart.margin({right: 80});
+        chart.tooltipContent(function(key, x, y) {
+          return '<p>' + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
+        });
+
+
+        d3.select(domTarget)
+            .datum(shiftedData)
+            .transition().duration(350)
+            .call(chart);
     } else {
         var chart = nv.models.lineChart()
           .x(function(d) { return d[0] })

@@ -47,6 +47,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       currentTimeEpoch: currentTime,
       timezoneOffset: 0,
       tooltipUnits: '',
+      chartType: 'line-chart',
       chartType: 'pie-chart',
     }
   },
@@ -99,6 +100,20 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
         isLoading: true,
         activeView: text,
       });
+      /*
+      this.setState({
+        isLoading: true,
+        activeView: text
+      });
+      this.forceUpdate();
+      setTimeout(function() {
+        this.setState({
+          isLoading: true,
+          activeButtonText: 'year',
+        });
+      }.bind(this), 3000);
+
+      */
     }
   },
 
@@ -247,6 +262,7 @@ var secondsMap = {
   'month': 30 * 24 * 60 * 60,
   'year': 365 * 24 * 60 * 60,
 };
+
 
 function add(a, b){
     return a + b ;
