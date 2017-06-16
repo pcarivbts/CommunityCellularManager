@@ -36,52 +36,30 @@ of patent rights can be found in the PATENTS file in the same directory.
     {% include "dashboard/report/header.html" with network=network %}
 
     <div class='row'>
-        {% include "dashboard/report/nav.html" with active_tab='call_sms' %}
+        {% include "dashboard/report/nav.html" with active_tab='billing_reports' %}
 
         <div class='content col-xs-12 col-sm-10 col-md-10'>
 
-            <div class="row panel">
-                <form action="/dashboard/activity" class="form-horizontal"
-                      method="post" role="form" onsubmit="setloading()">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label for="id_keyword"
-                               class="control-label col-xs-2">Filter by</label>
-                        <div class="col-xs-3">
-                            <label class="radio-inline"><input type="radio" name="optradio">BTS</label>
-                            <label class="radio-inline"><input type="radio" name="optradio">Network</label>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="control-label col-xs-2">Reports</label>
-                        <div class="col-xs-5">
-                            <label class="checkbox-inline"><input
-                                    type="checkbox" name="report[]"
-                                    value="Number of calls"/>Number of Calls</label>
-                            <label class="checkbox-inline"><input
-                                    type="checkbox" name="report[]"
-                                    value="Number of calls"/>Minutes of Calls</label>
-                            <label class="checkbox-inline"><input
-                                    type="checkbox" name="report[]"
-                                    value="Number of calls"/>Number of SMS</label>
-                        </div>
-                        <div class="col-xs-3">
-                            <button id="submit" type="submit" name="submit" value="Filter"
-                        class="btn btn-primary col-xs-12" data-loading-text="Loading...">Filter</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
+            {% include "dashboard/report/filter.html" with active_tab='billing_reports' %}
 
             {% if network_has_activity %}
             <div class="row">
-              <div id='call-number-chart'></div>
+              <div id='billing-waterfall-summary-chart'></div>
             </div>
             <div class="row">
-              <div id='call-minutes-chart'></div>
+              <div id='billing-waterfall-loader-chart'></div>
             </div>
             <div class="row">
-              <div id='sms-usage-chart'></div>
+              <div id='billing-waterfall-reload-rate-chart'></div>
+            </div>
+            <div class="row">
+              <div id='billing-waterfall-reload-amount-chart'></div>
+            </div>
+            <div class="row">
+              <div id='billing-waterfall-reload-transaction-chart'></div>
+            </div>
+            <div class="row">
+              <div id='billing-waterfall-average-frequency-chart'></div>
             </div>
 
             <div class="row ">
@@ -104,10 +82,6 @@ of patent rights can be found in the PATENTS file in the same directory.
       $('.timezone-notice').fadeIn(500);
     }, 800);
   });
-  $("#save-btn").click(function() {
-      $("#call-number-chart").get(0).toBlob(function(blob) {
-        saveAs(blob, "call-number-chart.png");
-    });
 });
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/react.min.js"></script>
@@ -116,11 +90,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
-
-
 <script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
-
-
 
 <script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
 <script type="text/jsx">
@@ -128,24 +98,24 @@ of patent rights can be found in the PATENTS file in the same directory.
   var timezoneOffset = {{ timezone_offset }};
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
-      title='Number of Calls'
-      chartID='call-chart'
-      statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
+      title='Waterfall Activation Summary'
+      chartID='summary-chart'
+      statTypes='local_call'
       levelID='{{ network_id }}'
       aggregation='count'
-      yAxisLabel='numbers of calls'
+      yAxisLabel='numbers of activation'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       tooltipUnits='s of'
-      chartType='pie-chart'
+      chartType='line-chart'
     />,
-    document.getElementById('call-number-chart')
+    document.getElementById('billing-waterfall-summary-chart')
   );
 
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
-      title='Minutes of Calls'
-      chartID='data-chart'
+      title='Waterfall - Loader'
+      chartID='loader-chart'
       statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
       levelID='{{ network_id }}'
       aggregation='duration'
@@ -153,27 +123,92 @@ of patent rights can be found in the PATENTS file in the same directory.
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       tooltipUnits='s of'
-      chartType='pie-chart'
+      chartType='line-chart'
     />,
-    document.getElementById('call-minutes-chart')
+    document.getElementById('billing-waterfall-loader-chart')
   );
 
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
-      title='SMS usage'
-      chartID='sms-chart'
-      statTypes='local_sms,local_recv_sms,outside_sms,incoming_sms,free_sms,error_sms'
+      title='Waterfall - Reload Rate'
+      chartID='reload-rate-chart'
+      statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
       levelID='{{ network_id }}'
       aggregation='count'
-      yAxisLabel='number of SMS'
+      yAxisLabel='minutes of call'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
-      tooltipUnits=''
-      chartType='pie-chart'
+      tooltipUnits='s of'
+      chartType='bar-chart'
     />,
-    document.getElementById('sms-usage-chart')
+    document.getElementById('billing-waterfall-reload-rate-chart')
   );
 
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Waterfall - Reload Amount'
+      chartID='reload-amount-chart'
+      statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
+      levelID='{{ network_id }}'
+      aggregation='duration'
+      yAxisLabel='minutes of call'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      tooltipUnits='s of'
+      chartType='line-chart'
+    />,
+    document.getElementById('billing-waterfall-reload-amount-chart')
+  );
+
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Waterfall - Reload Transaction Amount'
+      chartID='reload-transaction-chart'
+      statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
+      levelID='{{ network_id }}'
+      aggregation='count'
+      yAxisLabel='minutes of call'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      tooltipUnits='s of'
+      chartType='line-chart'
+    />,
+    document.getElementById('billing-waterfall-reload-transaction-chart')
+  );
+
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Waterfall - Average Frequency  Amount'
+      chartID='average-frequency-chart'
+      statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
+      levelID='{{ network_id }}'
+      aggregation='duration'
+      yAxisLabel='minutes of call'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      tooltipUnits='s of'
+      chartType='line-chart'
+    />,
+    document.getElementById('billing-waterfall-average-frequency-chart')
+  );
+
+  
+  
+
+</script>
+<script type="text/javascript">
+function setloading() {
+  var $btn = $('#submit').button().button('loading');
+}
+$(document).ready(function() {
+  $('input[type=radio][name="level"]').change(function() {
+    if (this.value == 'tower') {
+        $('#bts_list').show();
+    } else {
+      $('#bts_list').hide();
+    }
+  });
+});
 </script>
 
 {% endif %}

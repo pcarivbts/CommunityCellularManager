@@ -38,7 +38,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       buttons: ['hour', 'day', 'week', 'month', 'year'],
       icons: ['graph', 'list'],
       defaultView: 'graph',
-      defaultButtonText: 'week',
+      defaultButtonText: 'month', //'week',
       endpoint: '/api/v1/stats/network',
       statTypes: 'sms',
       levelID: 0,
