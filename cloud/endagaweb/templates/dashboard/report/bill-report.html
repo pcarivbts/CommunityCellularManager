@@ -40,7 +40,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
         <div class='content col-xs-12 col-sm-10 col-md-10'>
 
-            {% include "dashboard/report/filter.html" with active_tab='billing_reports' %}
+            {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/billing' %}
 
             {% if network_has_activity %}
             <div class="row">
@@ -100,7 +100,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     <TimeseriesChartWithButtonsAndDatePickers
       title='Waterfall Activation Summary'
       chartID='summary-chart'
-      statTypes='local_call'
+      statTypes='waterfall_summary'
       levelID='{{ network_id }}'
       aggregation='count'
       yAxisLabel='numbers of activation'
@@ -111,7 +111,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('billing-waterfall-summary-chart')
   );
-
+/*
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Waterfall - Loader'
@@ -191,8 +191,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('billing-waterfall-average-frequency-chart')
   );
-
-  
+*/
   
 
 </script>

@@ -1,5 +1,5 @@
 <div class="row panel">
-    <form action="/dashboard/reports/calls" class="form-horizontal"
+    <form action="{{ action_url }}" class="form-horizontal"
           method="post" role="form" onsubmit="setloading()">
         {% csrf_token %}
         <div class="form-group">
