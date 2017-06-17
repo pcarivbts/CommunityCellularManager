@@ -38,9 +38,10 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       buttons: ['hour', 'day', 'week', 'month', 'year'],
       icons: ['graph', 'list'],
       defaultView: 'graph',
-      defaultButtonText: 'month', //'week',
-      endpoint: '/api/v1/stats/network',
+      defaultButtonText: 'week',
+      endpoint: '/api/v1/stats/',
       statTypes: 'sms',
+      level: 'network',
       levelID: 0,
       aggregation: 'count',
       yAxisLabel: 'an axis label (set me!)',
@@ -166,7 +167,8 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       'aggregation': this.props.aggregation,
       'report-view':'summary'
     };
-    $.get(this.props.endpoint, queryParams, function(data) {
+    var endpoint = this.props.endpoint + this.props.level;
+    $.get(endpoint, queryParams, function(data) {
       this.setState({
         isLoading: false,
         chartData: data,

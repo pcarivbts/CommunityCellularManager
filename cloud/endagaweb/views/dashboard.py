@@ -806,7 +806,6 @@ class ActivityView(ProtectedView):
             'event_count': event_count,
         }
 
-
         # Setup various stuff for filter form generation.
         service_names = ["SMS", "Call", "GPRS", "Transfer", "Other"]
         if not services:
@@ -931,6 +930,8 @@ class CallReportView(ProtectedView):
          - If it's a POST, we should replace whatever is in the session.
          - If it's a GET with no page, we should blank out the session.
         """
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
         # Process parameters.
         # We want filters to persist even when someone changes pages without
         # re-submitting the form. Page changes will always come over a GET
@@ -939,13 +940,15 @@ class CallReportView(ProtectedView):
         # - If it's a POST, we should replace whatever is in the session.
         # - If it's a GET with no page variable, we should blank out the
         #   session.
-        print "request.method"
-        print request
-        print request.POST
-        print "=================="
+        default_reports = ['call_count', 'call_duration', 'sms_count']
         if request.method == "POST":
-            request.session['level_id'] = request.POST.get('level_id', None)
-            request.session['level'] = request.POST.get('level', None)
+            request.session['level'] = request.POST.get('level', "")
+            if request.session['level'] == 'tower':
+                request.session['level_id'] = request.POST.get('level_id') or 0
+            else:
+                request.session['level'] = "network"
+                request.session['level_id'] = network.id
+            request.session['reports'] = request.POST.getlist('reports', None)
             # We always just do a redirect to GET. We include page reference
             # to retain the search parameters in the session.
             return redirect(urlresolvers.reverse('call-report') + "?filter=1")
@@ -953,26 +956,26 @@ class CallReportView(ProtectedView):
         elif request.method == "GET":
             if 'filter' not in request.GET:
                 # Reset filtering params.
-                request.session['level_id'] = None
-                request.session['level'] = None
+                request.session['level'] = "network"
+                request.session['level_id'] = network.id
+                request.session['reports'] = default_reports
         else:
             return HttpResponseBadRequest()
 
-        print "request.session = ", request.session
 
-        user_profile = UserProfile.objects.get(user=request.user)
-        network = user_profile.network
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
             datetime.datetime.now()).total_seconds()
         # Read filtering params out of the session.
         level = request.session['level']
-        level_id = request.session['level_id']
+        level_id = int(request.session['level_id'])
+        reports = request.session['reports']
 
-        towers = models.BTS.objects.filter(network=user_profile.network).values('nickname','uuid','id')
 
-        print "towers = ", towers
-        # Determine if there has been any activity on the network (if not, we won't
-        # show the graphs).
+        towers = models.BTS.objects.filter(
+            network=user_profile.network).values('nickname','uuid','id')
+
+        # Determine if there has been any activity on the network (if not,
+        # we won't show the graphs).
         network_has_activity = UsageEvent.objects.filter(
             network=network).exists()
         context = {
@@ -981,6 +984,7 @@ class CallReportView(ProtectedView):
             'towers': towers,
             'level': level,
             'level_id': level_id,
+            'reports': reports,
             'user_profile': user_profile,
             'network_id': network.id,
             'current_time_epoch': int(time.time()),
@@ -1005,8 +1009,8 @@ class SubscriberReportView(ProtectedView):
         network = user_profile.network
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
             datetime.datetime.now()).total_seconds()
-        # Determine if there has ,towerbeen any activity on the network (if not, we won't
-        # show the graphs).
+        # Determine if there has been any activity on the network (if not,
+        # we won't show the graphs).
         network_has_activity = UsageEvent.objects.filter(
             network=network).exists()
         context = {
@@ -1033,8 +1037,8 @@ class BillingReportView(ProtectedView):
         network = user_profile.network
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
             datetime.datetime.now()).total_seconds()
-        # Determine if there has been any activity on the network (if not, we won't
-        # show the graphs).
+        # Determine if there has been any activity on the network (if not,
+        # we won't show the graphs).
         network_has_activity = UsageEvent.objects.filter(
             network=network).exists()
         context = {
@@ -1060,8 +1064,8 @@ class HealthReportView(ProtectedView):
         network = user_profile.network
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
             datetime.datetime.now()).total_seconds()
-        # Determine if there has been any activity on the network (if not, we won't
-        # show the graphs).
+        # Determine if there has been any activity on the network (if not,
+        # we won't show the graphs).
         network_has_activity = UsageEvent.objects.filter(
             network=network).exists()
         context = {
