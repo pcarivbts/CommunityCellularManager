@@ -456,8 +456,6 @@ var DownloadButton = React.createClass({
   },
   componentDidMount: function() {
     var domTargetId = this.props.chartID;
-    console.log("componentDidMount ========== download = ", domTargetId);
-    console.log("SHIV = ", document.getElementById(this.id));
     var btn = document.getElementById(this.id);
     var svg = document.getElementById(domTargetId);
     var canvas = document.querySelector('canvas');
@@ -466,7 +464,6 @@ var DownloadButton = React.createClass({
       console.log("addEventListener ==========");
       var canvas = document.getElementById('canvas');
       var ctx = canvas.getContext('2d');
-      console.log("svg = ", svg);
       var data = (new XMLSerializer()).serializeToString(svg);
       var DOMURL = window.URL || window.webkitURL || window;
 
@@ -481,9 +478,19 @@ var DownloadButton = React.createClass({
         var imgURI = canvas
           .toDataURL('image/png')
           .replace('image/png', 'image/octet-stream');
-          console.log("imgURI = ", imgURI);
+      
+          //triggerDownload(imgURI);
+          var evt = new MouseEvent('click', {
+            view: window,
+            bubbles: false,
+            cancelable: true
+          });
 
-          triggerDownload(imgURI);
+          var a = document.createElement('a');
+          a.setAttribute('download', 'report.png');
+          a.setAttribute('href', imgURI);
+          a.setAttribute('target', '_blank');
+          a.dispatchEvent(evt);
       };
 
       img.src = url;

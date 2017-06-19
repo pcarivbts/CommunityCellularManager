@@ -36,9 +36,9 @@ class CallReportView(ProtectedView):
         network = user_profile.network
         report_list = list({x for v in self.reports.itervalues() for x in v})
         if request.method == "POST":
-            request.session['level'] = request.POST.get('level', "")
-            if request.session['level'] == 'tower':
-                request.session['level_id'] = request.POST.get('level_id') or 0
+            request.session['level_id'] = request.POST.get('level_id', 0)
+            if request.session['level_id']:
+                request.session['level'] = 'tower'
             else:
                 request.session['level'] = "network"
                 request.session['level_id'] = network.id
