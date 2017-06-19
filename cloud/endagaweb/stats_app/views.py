@@ -170,7 +170,7 @@ class StatsAPIView(views.APIView):
                 end_time_epoch=params['end-time-epoch'],
                 aggregation=params['aggregation'],
             )
-            print "results ===================", results
+            #print "results ===================", results
             data['results'].append({
                 "key": stat_type,
                 "values": results
