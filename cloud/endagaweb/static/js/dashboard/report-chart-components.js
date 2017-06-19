@@ -209,7 +209,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
           onDatePickerChange={this.endTimeChange}
         />
         <span className='spacer'></span>
-        <span>view as&nbsp;&nbsp;&nbsp;</span>
+        <span>&nbsp;&nbsp;&nbsp;</span>
         {this.props.icons.map(function(buttonText, index) {
           return (
             <ViewButton
@@ -220,11 +220,11 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
             />
           );
         }, this)}
+        <DownloadButton />
         <span className='spacer'></span>
         <LoadingText
           visible={this.state.isLoading}
         />
-        <DownloadButton />
         <TimeseriesChart
           chartID={this.props.chartID}
           data={this.state.chartData}
@@ -653,13 +653,9 @@ var DownloadButton = React.createClass({
 
   render: function() {
     return (
-      <span className="loadingText pull-right">
-        download&nbsp;&nbsp; 
-        <a href="javascript:void(0);" title="download graph">
-          <i className='fa fa-lg fa-area-chart' aria-hidden="true"></i>
-        </a>&nbsp;&nbsp;
-        <a href="javascript:void(0);" title="download CSV">
-          <i className='fa fa-lg fa-list-ul' aria-hidden="true"></i>
+      <span className="loadingText">
+        <a href="javascript:void(0);" title="Download">
+          <i className='fa fa-lg fa-download' aria-hidden="true"></i>
         </a>
       </span>
     );
@@ -696,13 +692,13 @@ var ViewButton = React.createClass({
     }
     if(this.props.buttonText == 'graph') {
       return (
-        <a style={inlineStyles} onClick={this.onThisClick.bind(this, this.props.buttonText)}  title="view as graph">
+        <a style={inlineStyles} onClick={this.onThisClick.bind(this, this.props.buttonText)}  title="Graphical">
           <i className='fa fa-lg fa-area-chart' aria-hidden="true"></i>
         </a>
       );
     } else {
       return (
-        <a style={inlineStyles} onClick={this.onThisClick.bind(this, this.props.buttonText)}  title="view as table">
+        <a style={inlineStyles} onClick={this.onThisClick.bind(this, this.props.buttonText)}  title="Tabular">
           <i className='fa fa-lg fa-list-ul' aria-hidden="true"></i>
         </a>
       );

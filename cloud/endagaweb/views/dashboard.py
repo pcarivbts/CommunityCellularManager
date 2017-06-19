@@ -970,6 +970,7 @@ class CallReportView(ProtectedView):
         level_id = int(request.session['level_id'])
         reports = request.session['reports']
 
+        print "reports = ", reports
 
         towers = models.BTS.objects.filter(
             network=user_profile.network).values('nickname','uuid','id')

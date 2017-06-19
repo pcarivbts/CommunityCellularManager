@@ -14,7 +14,6 @@ from django.contrib import admin
 import django.contrib.auth.views
 
 import endagaweb.views
-
 import endagaweb.stats_app
 
 import rest_framework.authtoken.views
@@ -158,16 +157,16 @@ urlpatterns = [
         endagaweb.views.dashboard.ActivityView.as_view(),
         name='network-activity'),
     url(r'^dashboard/reports/calls',
-        endagaweb.views.dashboard.CallReportView.as_view(),
+        endagaweb.views.reports.CallReportView.as_view(),
         name='call-report'),
     url(r'^dashboard/reports/subscriber',
-        endagaweb.views.dashboard.SubscriberReportView.as_view(),
+        endagaweb.views.reports.SubscriberReportView.as_view(),
         name='subscriber-report'),
     url(r'^dashboard/reports/billing',
-        endagaweb.views.dashboard.BillingReportView.as_view(),
+        endagaweb.views.reports.BillingReportView.as_view(),
         name='billing-report'),
     url(r'^dashboard/reports/health',
-        endagaweb.views.dashboard.HealthReportView.as_view(),
+        endagaweb.views.reports.HealthReportView.as_view(),
         name='health-report'),
 
     # Raise a server error on-demand to test the 500 template.

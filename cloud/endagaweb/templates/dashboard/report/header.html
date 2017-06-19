@@ -6,13 +6,14 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 {% endcomment %}
+
 <div class="row">
-    <div class="col-xs-12 col-sm-12 page-header">
+    <div class="col-xs-2 col-sm-4 page-header">
         <h3 class="page-title">
-          Reports
-          {% if report_summary %}
-            <span id='name'>"{{ report_summary }}"</span>
+          {% if header %}
+            <span id='name'> {{ header }} </span>
           {% endif %}
+            Reports
         </h3>
     </div>
 </div>
