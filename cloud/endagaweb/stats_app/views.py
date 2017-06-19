@@ -52,9 +52,6 @@ JUL30_2014 = 1406680050
 
 
 def parse_query_params(params):
-    print "params", params
-    print dir(params)
-
     """Validate incoming query params."""
     # Set query defaults -- the default timespan end is 'now' (and we'll
     # represent now as -1).
@@ -196,16 +193,12 @@ class ReportsAPIView(views.APIView):
 
     # DRF sets up permissions, auth and rendering with these class-level vars.
 
-    print "ReportsAPIView CALLED"
-
     permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (authentication.SessionAuthentication,
                               authentication.TokenAuthentication)
     renderer_classes = (renderers.JSONRenderer,)
 
     def get(self, request, infrastructure_level):
-        print "---------------------------------------------------------------------"
-        print "infrastructure_level ======== ", infrastructure_level
         """GET request handler.
 
         TODO(matt): there is an interesting issue here in that this client lets
@@ -240,10 +233,7 @@ class ReportsAPIView(views.APIView):
         data = {
             'results': [],
         }
-        print "params = ", params
-        print "========"
         for stat_type in params['stat-types']:
-            print "stat_type = ", stat_type
             # Setup the appropriate stats client, SMS, call or GPRS.
             if stat_type in SMS_KINDS:
                 client_type = stats_client.SMSStatsClient
@@ -269,7 +259,6 @@ class ReportsAPIView(views.APIView):
                 aggregation=params['aggregation'],
                 report_view=params['report-view'],
             )
-            print "results ===================", results
             data['results'].append({
                 "key": stat_type,
                 "values": results

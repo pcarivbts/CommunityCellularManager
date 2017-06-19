@@ -33,7 +33,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endblock %}
 
 {% block content %}
-    {% include "dashboard/report/header.html" with network=network %}
+    {% include "dashboard/report/header.html" with header='Call & SMS' %}
 
     <div class='row'>
         {% include "dashboard/report/nav.html" with active_tab='call_sms' %}
@@ -86,12 +86,11 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
 <script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
-
 <script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
 <script type="text/jsx">
   var currentTimeEpoch = {{ current_time_epoch }};
   var timezoneOffset = {{ timezone_offset }};
-  {% if 'call_count' in reports %}
+  {% if 'Number of Calls' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Number of Calls'
@@ -109,7 +108,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     document.getElementById('call-number-chart')
   );
   {% endif %}
-  {% if 'call_duration' in reports %}
+  {% if 'Number of Minutes' in reports %}
 
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
@@ -129,7 +128,7 @@ of patent rights can be found in the PATENTS file in the same directory.
   );
 
   {% endif %}
-  {% if 'sms_count' in reports %}
+  {% if 'Total Usage' in reports %}
 
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers

@@ -9,11 +9,6 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endcomment %}
 {% load apptags %}
 
-{% load humanize %}
-{% load crispy_forms_tags %}
-{% load render_table from django_tables2 %}
-
-
 {% block title %}
 {% tmpl_const "SITENAME" %} | towers
 {% endblock %}
@@ -24,7 +19,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endblock %}
 
 {% block content %}
-    {% include "dashboard/report/header.html" with network=network %}
+    {% include "dashboard/report/header.html" with header='Subscriber' %}
 
 
 
