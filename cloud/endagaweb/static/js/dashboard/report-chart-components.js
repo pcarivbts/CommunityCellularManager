@@ -38,7 +38,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       buttons: ['hour', 'day', 'week', 'month', 'year'],
       icons: ['graph', 'list'],
       defaultView: 'graph',
-      defaultButtonText: 'year',
+      defaultButtonText: 'week',
       endpoint: '/api/v1/stats/',
       statTypes: 'sms',
       level: 'network',
@@ -91,7 +91,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
   // This handler takes the text of the view mode buttons
   // and ouputs figures out the corresponding number of seconds.
   handleViewClick: function(text) {
-    console.log("view mode CHANGED = ", text);
     // Update only if the startTime has actually changed.
     if (this.state.activeView != text) {
       this.setState({
@@ -166,7 +165,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       'level-id': this.props.levelID,
       'aggregation': this.props.aggregation
     };
-    console.log("this.props.endpoint = ", this.props.endpoint, this.props.level);
     var endpoint = this.props.endpoint + this.props.level;
     $.get(endpoint, queryParams, function(data) {
       this.setState({
@@ -299,9 +297,6 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
     tableData.push([newSeries['key'], newSeries['total']]);
     shiftedData.push(newSeries);
   }
-  console.log("tableData ===========");
-  console.log(tableData);
-
   $('.'+domTargetId).DataTable({
       data: tableData,
       paging:   false,
@@ -333,10 +328,9 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
 
     }
        else if(chartType == 'bar-chart'){
-        console.log("BAR CHART");
         var chart = nv.models.multiBarChart()
             .x(function(d) { return d[0] })
-            .y(function(d) { return d[1]})
+            .y(function(d) { return d[1] })
             //.staggerLabels(true)    //Too many bars and not enough room? Try staggering labels.
             .tooltips(true)        //Don't show tooltips
             //.showValues(true)       //...instead, show the bar value right on top of each bar.
@@ -395,19 +389,6 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
             .transition().duration(350)
             .call(chart);
     }
-    
-    d3.select(".download_graph").on("click", function(){
-        var html = d3.select(domTarget)
-        .attr("version", 1.1)
-        .attr("xmlns", "http://www.w3.org/2000/svg")
-        .node().parentNode.innerHTML;
-
-        //console.log(html);
-        var imgsrc = 'data:image/svg+xml;base64,'+ btoa(html);
-        var img = '<img src="'+imgsrc+'">'; 
-        d3.select("#svgdataurl").html(img);
-
-    });
     // Resize the chart on window resize.
     nv.utils.windowResize(chart.update);
     return chart;
@@ -462,7 +443,6 @@ var TimeseriesChart = React.createClass({
       className.push('flat');
     }
     if(this.props.activeView == 'list') {
-      console.log("TimeseriesChart rendered=== TABLE");
       return (
         <div className={className.join(' ')}>
           {flatLineOverlay}
@@ -471,7 +451,6 @@ var TimeseriesChart = React.createClass({
       );
     } 
     else {
-      console.log("TimeseriesChart rendered=== GRAPH");
       return (
         <div className={className.join(' ')}>
           {flatLineOverlay}
@@ -488,9 +467,6 @@ var TimeSeriesChartElement = React.createClass({
   // We circumvent react's typical re-render cycle for this component by returning false.
   shouldComponentUpdate: function(nextProps) {
     this.props.activeView = nextProps.activeView;
-
-    console.log("activeView = ", nextProps.activeView, this.props.activeView);
-
     var nextData = JSON.stringify(nextProps.data);
     var prevData = JSON.stringify(this.props.data);
     if (nextData !== prevData) {
@@ -510,8 +486,6 @@ var TimeSeriesChartElement = React.createClass({
   },
 
   render: function() {
-    console.log("TimeSeriesChartElement rendered===");
-    console.log("this.props = ", this.props);
     var inlineStyles = {
       height: this.props.chartHeight
     };
