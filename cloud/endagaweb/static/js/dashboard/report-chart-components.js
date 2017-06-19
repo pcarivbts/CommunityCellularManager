@@ -164,8 +164,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       'interval': interval,
       'stat-types': this.props.statTypes,
       'level-id': this.props.levelID,
-      'aggregation': this.props.aggregation,
-      'report-view':'summary'
+      'aggregation': this.props.aggregation
     };
     var endpoint = this.props.endpoint + this.props.level;
     $.get(endpoint, queryParams, function(data) {

@@ -1069,8 +1069,8 @@ class BillingReportView(ProtectedView):
             request.session['reports'] = request.POST.getlist('reports', None)
             # We always just do a redirect to GET. We include page reference
             # to retain the search parameters in the session.
-            return redirect(urlresolvers.reverse('billing-report')
-                            + "?filter=1")
+            return redirect(
+                urlresolvers.reverse('billing-report') + "?filter=1")
 
         elif request.method == "GET":
             if 'filter' not in request.GET:

@@ -62,6 +62,8 @@ of patent rights can be found in the PATENTS file in the same directory.
               <div id='billing-waterfall-average-frequency-chart'></div>
             </div>
 
+            {% include "dashboard/report/bill-waterfall-report.html" %}
+
             <div class="row ">
                 {% include 'dashboard/timezone-notice.html' %}
             </div>
@@ -82,7 +84,6 @@ of patent rights can be found in the PATENTS file in the same directory.
       $('.timezone-notice').fadeIn(500);
     }, 800);
   });
-});
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/react.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/JSXTransformer.js"></script>
@@ -100,9 +101,9 @@ of patent rights can be found in the PATENTS file in the same directory.
     <TimeseriesChartWithButtonsAndDatePickers
       title='Waterfall Activation Summary'
       chartID='summary-chart'
-      statTypes='waterfall_summary'
+      statTypes='provisioned'
       levelID='{{ network_id }}'
-      aggregation='count'
+      aggregation='valid_through'
       yAxisLabel='numbers of activation'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
@@ -111,6 +112,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('billing-waterfall-summary-chart')
   );
+
 /*
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
@@ -206,6 +208,43 @@ $(document).ready(function() {
     } else {
       $('#bts_list').hide();
     }
+  });
+  
+  $('#from_month').datetimepicker({
+    viewMode: 'years',
+    format: 'MM/YYYY'
+  });
+  $('#to_month').datetimepicker({
+    viewMode: 'years',
+    format: 'MM/YYYY'
+  });
+
+  $('#show').click(function(){
+    var from_date = moment($('#from_month').val(), 'MM/YYYY').unix();
+    var to_month = moment($('#to_month').val(), 'MM/YYYY').unix();
+
+    console.log("Date = ", from_date, to_month);
+    var tableData = [
+      [1111,2222],
+      [3333,4444],
+      [5555,6666]
+    ];
+
+    $('#loader_summary').DataTable({
+      data: tableData,
+      paging:   false,
+      ordering: false,
+      info:     false,
+      searching: false,
+      autoWidth: true,
+      scrollY: 320,
+      destroy: true,
+      columns: [
+          { title: "Title" },
+          { title: "Value" }
+      ]
+    });
+  
   });
 });
 </script>
