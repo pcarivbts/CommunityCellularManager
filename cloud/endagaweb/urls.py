@@ -55,6 +55,8 @@ urlpatterns = [
     # level id as a query param.
     url(r'^api/v1/stats/(.*)',
         endagaweb.stats_app.views.StatsAPIView.as_view()),
+    url(r'^api/v1/reports/(.*)',
+        endagaweb.stats_app.views.ReportsAPIView.as_view()),
 
     # the internal API.
     url(r'^internal/api/v1/number/',
@@ -87,7 +89,7 @@ urlpatterns = [
     # Dashboard.
     url(r'^dashboard/card', endagaweb.views.dashboard.addcard),
     url(r'^addmoney/', endagaweb.views.dashboard.addmoney),
-    url(r'^dashboard/billing', endagaweb.views.dashboard.billing_view),
+    url(r'^dashboard/billing$', endagaweb.views.dashboard.billing_view),
     url(r'^dashboard/profile', endagaweb.views.dashboard.profile_view),
     # Tower views in the dashboard.
     # /towers -- GET a list of towers or POST here to add one
@@ -157,9 +159,19 @@ urlpatterns = [
     url(r'^dashboard/activity',
         endagaweb.views.dashboard.ActivityView.as_view(),
         name='network-activity'),
-    url(r'^dashboard/callreport$',
-        endagaweb.views.dashboard.BillingReports.as_view(),
-        name='billing-reports'),
+    url(r'^dashboard/reports/calls',
+        endagaweb.views.dashboard.CallReportView.as_view(),
+        name='call-report'),
+    url(r'^dashboard/reports/subscriber',
+        endagaweb.views.dashboard.SubscriberReportView.as_view(),
+        name='subscriber-report'),
+    url(r'^dashboard/reports/billing',
+        endagaweb.views.dashboard.BillingReportView.as_view(),
+        name='billing-report'),
+    url(r'^dashboard/reports/health',
+        endagaweb.views.dashboard.HealthReportView.as_view(),
+        name='health-report'),
+
     # Raise a server error on-demand to test the 500 template.
     url(r'^insta-five-hundred$',
         endagaweb.views.static.InstaFiveHundred.as_view()),

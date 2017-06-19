@@ -1,0 +1,254 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+{% load apptags %}
+{% load humanize %}
+{% load crispy_forms_tags %}
+
+
+{% block title %}
+    {% tmpl_const "SITENAME" %} | Report
+    {% if report_summary  %}
+        | "{{ report_summary }}"
+    {% endif %}
+{% endblock %}
+
+{% block pagestyle %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css" type="text/css"/>
+
+<style type="text/css">
+  .nv-label, .nv-legend-text {
+    text-transform: capitalize;
+  }
+</style>
+
+{% endblock %}
+
+{% block content %}
+    {% include "dashboard/report/header.html" with network=network %}
+
+    <div class='row'>
+        {% include "dashboard/report/nav.html" with active_tab='billing_reports' %}
+
+        <div class='content col-xs-12 col-sm-10 col-md-10'>
+
+            {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/billing' %}
+
+            {% if network_has_activity %}
+            <div class="row">
+              <div id='billing-waterfall-summary-chart'></div>
+            </div>
+            <div class="row">
+              <div id='billing-waterfall-loader-chart'></div>
+            </div>
+            <div class="row">
+              <div id='billing-waterfall-reload-rate-chart'></div>
+            </div>
+            <div class="row">
+              <div id='billing-waterfall-reload-amount-chart'></div>
+            </div>
+            <div class="row">
+              <div id='billing-waterfall-reload-transaction-chart'></div>
+            </div>
+            <div class="row">
+              <div id='billing-waterfall-average-frequency-chart'></div>
+            </div>
+
+            {% include "dashboard/report/bill-waterfall-report.html" %}
+
+            <div class="row ">
+                {% include 'dashboard/timezone-notice.html' %}
+            </div>
+            {% else %}
+                <p>There is no network activity to display.</p>
+            {% endif %}
+
+        </div> <!-- /.col-md-4 -->
+    </div>
+{% endblock %}
+
+
+{% block js %}
+{% if network_has_activity %}
+<script>
+  $(function() {
+    setTimeout(function() {
+      $('.timezone-notice').fadeIn(500);
+    }, 800);
+  });
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/react.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/JSXTransformer.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.1.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
+<script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+
+<script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
+<script type="text/jsx">
+  var currentTimeEpoch = {{ current_time_epoch }};
+  var timezoneOffset = {{ timezone_offset }};
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Waterfall Activation Summary'
+      chartID='summary-chart'
+      statTypes='provisioned'
+      levelID='{{ network_id }}'
+      aggregation='valid_through'
+      yAxisLabel='numbers of activation'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      tooltipUnits='s of'
+      chartType='line-chart'
+    />,
+    document.getElementById('billing-waterfall-summary-chart')
+  );
+
+/*
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Waterfall - Loader'
+      chartID='loader-chart'
+      statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
+      levelID='{{ network_id }}'
+      aggregation='duration'
+      yAxisLabel='minutes of call'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      tooltipUnits='s of'
+      chartType='line-chart'
+    />,
+    document.getElementById('billing-waterfall-loader-chart')
+  );
+
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Waterfall - Reload Rate'
+      chartID='reload-rate-chart'
+      statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
+      levelID='{{ network_id }}'
+      aggregation='count'
+      yAxisLabel='minutes of call'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      tooltipUnits='s of'
+      chartType='bar-chart'
+    />,
+    document.getElementById('billing-waterfall-reload-rate-chart')
+  );
+
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Waterfall - Reload Amount'
+      chartID='reload-amount-chart'
+      statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
+      levelID='{{ network_id }}'
+      aggregation='duration'
+      yAxisLabel='minutes of call'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      tooltipUnits='s of'
+      chartType='line-chart'
+    />,
+    document.getElementById('billing-waterfall-reload-amount-chart')
+  );
+
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Waterfall - Reload Transaction Amount'
+      chartID='reload-transaction-chart'
+      statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
+      levelID='{{ network_id }}'
+      aggregation='count'
+      yAxisLabel='minutes of call'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      tooltipUnits='s of'
+      chartType='line-chart'
+    />,
+    document.getElementById('billing-waterfall-reload-transaction-chart')
+  );
+
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Waterfall - Average Frequency  Amount'
+      chartID='average-frequency-chart'
+      statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
+      levelID='{{ network_id }}'
+      aggregation='duration'
+      yAxisLabel='minutes of call'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      tooltipUnits='s of'
+      chartType='line-chart'
+    />,
+    document.getElementById('billing-waterfall-average-frequency-chart')
+  );
+*/
+  
+
+</script>
+<script type="text/javascript">
+function setloading() {
+  var $btn = $('#submit').button().button('loading');
+}
+$(document).ready(function() {
+  $('input[type=radio][name="level"]').change(function() {
+    if (this.value == 'tower') {
+        $('#bts_list').show();
+    } else {
+      $('#bts_list').hide();
+    }
+  });
+  
+  $('#from_month').datetimepicker({
+    viewMode: 'years',
+    format: 'MM/YYYY'
+  });
+  $('#to_month').datetimepicker({
+    viewMode: 'years',
+    format: 'MM/YYYY'
+  });
+
+  $('#show').click(function(){
+    var from_date = moment($('#from_month').val(), 'MM/YYYY').unix();
+    var to_month = moment($('#to_month').val(), 'MM/YYYY').unix();
+
+    console.log("Date = ", from_date, to_month);
+    var tableData = [
+      [1111,2222],
+      [3333,4444],
+      [5555,6666]
+    ];
+
+    $('#loader_summary').DataTable({
+      data: tableData,
+      paging:   false,
+      ordering: false,
+      info:     false,
+      searching: false,
+      autoWidth: true,
+      scrollY: 320,
+      destroy: true,
+      columns: [
+          { title: "Title" },
+          { title: "Value" }
+      ]
+    });
+  
+  });
+});
+</script>
+
+{% endif %}
+
+{% endblock %}

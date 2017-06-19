@@ -28,7 +28,7 @@ from django.core import urlresolvers
 from django.views.generic import View
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
-
+from endagaweb import models
 import django_tables2 as tables
 import csv
 import humanize
@@ -113,7 +113,6 @@ def dashboard_view(request):
     API.  We also load the server's notion of the current time so that we don't
     have to rely on the user's clock.
     """
-    # print_data()
     user_profile = UserProfile.objects.get(user=request.user)
     network = user_profile.network
     timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
@@ -558,7 +557,7 @@ class SubscriberAdjustCredit(ProtectedView):
         try:
             currency = network.subscriber_currency
             amount = parse_credits(request.POST['amount'],
-                    CURRENCIES[currency]).amount_raw
+                    CURREFNCIES[currency]).amount_raw
             if abs(amount) > 2147483647:
                 raise ValueError(error_text)
         except ValueError:
@@ -807,7 +806,6 @@ class ActivityView(ProtectedView):
             'event_count': event_count,
         }
 
-
         # Setup various stuff for filter form generation.
         service_names = ["SMS", "Call", "GPRS", "Transfer", "Other"]
         if not services:
@@ -912,40 +910,222 @@ class ActivityView(ProtectedView):
                 res_events |= events
             return res_events
 
-from endagaweb.serializers import UsageEventSerializer
 
+class CallReportView(ProtectedView):
+    """View reports on basis of Network or tower level."""
 
-def print_data():
-    # Return type :Dict
-    ue_d = UsageEventSerializer(UsageEvent.objects.get(id=3)).data
-    # Return type :List
-    ue_l = UsageEventSerializer(UsageEvent.objects.filter(id__lte=3),
-                                many=True).data
-    # print ue_d, ue_l
-    # usage = UsageEventSerializer(UsageEvent.objects.filter(subscriber_imsi='IMSI19999000000004').values_list('change'), many=True).data
-    outside_call = sum(UsageEvent.objects.filter(kind='outside_call').values_list('change', flat=True))
-    local_call = sum(UsageEvent.objects.filter(kind='local_call').values_list('change', flat=True))
-    print outside_call, local_call
-    print '*************************'
-    outside_sms = sum(UsageEvent.objects.filter(kind='outside_sms').values_list('change', flat=True))
-    local_sms = sum(UsageEvent.objects.filter(kind='local_sms').values_list('change', flat=True))
-    print outside_sms, local_sms
-    print '*************************'
-
-class BillingReports(ProtectedView):
-    """
-    Report Graphs of:
-    Call/SMS Billing,
-    """
     def get(self, request, *args, **kwargs):
+        return self._handle_request(request)
+
+    def post(self, request, *args, **kwargs):
+        return self._handle_request(request)
+
+    def _handle_request(self, request):
+        """Process request.
+
+        We want filters to persist even when someone changes pages without
+        re-submitting the form. Page changes will always come over a GET
+        request, not a POST.
+         - If it's a GET, we should try to pull settings from the session.
+         - If it's a POST, we should replace whatever is in the session.
+         - If it's a GET with no page, we should blank out the session.
+        """
         user_profile = UserProfile.objects.get(user=request.user)
-        # network = user_profile.network
-        # data = print_data()
-        # print data
+        network = user_profile.network
+        # Process parameters.
+        # We want filters to persist even when someone changes pages without
+        # re-submitting the form. Page changes will always come over a GET
+        # request, not a POST.
+        # - If it's a GET, we should try to pull settings from the session.
+        # - If it's a POST, we should replace whatever is in the session.
+        # - If it's a GET with no page variable, we should blank out the
+        #   session.
+        default_reports = ['call_count', 'call_duration', 'sms_count']
+        if request.method == "POST":
+            request.session['level'] = request.POST.get('level', "")
+            if request.session['level'] == 'tower':
+                request.session['level_id'] = request.POST.get('level_id') or 0
+            else:
+                request.session['level'] = "network"
+                request.session['level_id'] = network.id
+            request.session['reports'] = request.POST.getlist('reports', None)
+            # We always just do a redirect to GET. We include page reference
+            # to retain the search parameters in the session.
+            return redirect(urlresolvers.reverse('call-report') + "?filter=1")
+
+        elif request.method == "GET":
+            if 'filter' not in request.GET:
+                # Reset filtering params.
+                request.session['level'] = "network"
+                request.session['level_id'] = network.id
+                request.session['reports'] = default_reports
+        else:
+            return HttpResponseBadRequest()
+
+
+        timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
+            datetime.datetime.now()).total_seconds()
+        # Read filtering params out of the session.
+        level = request.session['level']
+        level_id = int(request.session['level_id'])
+        reports = request.session['reports']
+
+
+        towers = models.BTS.objects.filter(
+            network=user_profile.network).values('nickname','uuid','id')
+
+        # Determine if there has been any activity on the network (if not,
+        # we won't show the graphs).
+        network_has_activity = UsageEvent.objects.filter(
+            network=network).exists()
+        context = {
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=Network),
+            'towers': towers,
+            'level': level,
+            'level_id': level_id,
+            'reports': reports,
+            'user_profile': user_profile,
+            'network_id': network.id,
+            'current_time_epoch': int(time.time()),
+            'timezone_offset': timezone_offset,
+            'network_has_activity': network_has_activity,
+            'report_summary': 'Call and SMS'
+        }
+        template = get_template("dashboard/report/call-report.html")
+        html = template.render(context, request)
+        return HttpResponse(html)
+
+
+class SubscriberReportView(ProtectedView):
+    """View reports on basis of Network or tower level."""
+
+    def get(self, request):
+        user_profile = UserProfile.objects.get(user=request.user)
+        try:
+            towers = models.BTS.objects.filter(network=user_profile.network)
+        except models.BTS.DoesNotExist:
+            tower =None
+        network = user_profile.network
+        timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
+            datetime.datetime.now()).total_seconds()
+        # Determine if there has been any activity on the network (if not,
+        # we won't show the graphs).
+        network_has_activity = UsageEvent.objects.filter(
+            network=network).exists()
+        context = {
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=Network),
+            'user_profile': user_profile,
+            'network_id': network.id,
+            'towers':towers,
+            'current_time_epoch': int(time.time()),
+            'timezone_offset': timezone_offset,
+            'network_has_activity': network_has_activity,
+            'report_summary': 'Subscribers'
+        }
+        template = get_template("dashboard/report/subscriber-report.html")
+        html = template.render(context, request)
+        return HttpResponse(html)
+
+
+class BillingReportView(ProtectedView):
+    """View reports on basis of Network or tower level."""
+
+    def get(self, request, *args, **kwargs):
+        return self._handle_request(request)
+
+    def post(self, request, *args, **kwargs):
+        return self._handle_request(request)
+
+    def _handle_request(self, request):
+        """Process request.
+
+        We want filters to persist even when someone changes pages without
+        re-submitting the form. Page changes will always come over a GET
+        request, not a POST.
+         - If it's a GET, we should try to pull settings from the session.
+         - If it's a POST, we should replace whatever is in the session.
+         - If it's a GET with no page, we should blank out the session.
+        """
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        # Process parameters.
+        # We want filters to persist even when someone changes pages without
+        # re-submitting the form. Page changes will always come over a GET
+        # request, not a POST.
+        # - If it's a GET, we should try to pull settings from the session.
+        # - If it's a POST, we should replace whatever is in the session.
+        # - If it's a GET with no page variable, we should blank out the
+        #   session.
+        default_reports = ['call_count', 'call_duration', 'sms_count']
+        if request.method == "POST":
+            request.session['level'] = request.POST.get('level', "")
+            if request.session['level'] == 'tower':
+                request.session['level_id'] = request.POST.get('level_id') or 0
+            else:
+                request.session['level'] = "network"
+                request.session['level_id'] = network.id
+            request.session['reports'] = request.POST.getlist('reports', None)
+            # We always just do a redirect to GET. We include page reference
+            # to retain the search parameters in the session.
+            return redirect(
+                urlresolvers.reverse('billing-report') + "?filter=1")
+
+        elif request.method == "GET":
+            if 'filter' not in request.GET:
+                # Reset filtering params.
+                request.session['level'] = "network"
+                request.session['level_id'] = network.id
+                request.session['reports'] = default_reports
+        else:
+            return HttpResponseBadRequest()
+
+
+        timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
+            datetime.datetime.now()).total_seconds()
+        # Read filtering params out of the session.
+        level = request.session['level']
+        level_id = int(request.session['level_id'])
+        reports = request.session['reports']
+
+
+        towers = models.BTS.objects.filter(
+            network=user_profile.network).values('nickname','uuid','id')
+
+        # Determine if there has been any activity on the network (if not,
+        # we won't show the graphs).
+        network_has_activity = UsageEvent.objects.filter(
+            network=network).exists()
+        context = {
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=Network),
+            'towers': towers,
+            'level': level,
+            'level_id': level_id,
+            'reports': reports,
+            'user_profile': user_profile,
+            'network_id': network.id,
+            'current_time_epoch': int(time.time()),
+            'timezone_offset': timezone_offset,
+            'network_has_activity': network_has_activity,
+            'report_summary': 'Billing'
+        }
+        template = get_template("dashboard/report/bill-report.html")
+        html = template.render(context, request)
+        return HttpResponse(html)
+
+
+class HealthReportView(ProtectedView):
+    """View reports on basis of Network or tower level."""
+
+    def get(self, request):
         user_profile = UserProfile.objects.get(user=request.user)
         network = user_profile.network
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
             datetime.datetime.now()).total_seconds()
+        # Determine if there has been any activity on the network (if not,
+        # we won't show the graphs).
         network_has_activity = UsageEvent.objects.filter(
             network=network).exists()
         context = {
@@ -956,11 +1136,8 @@ class BillingReports(ProtectedView):
             'current_time_epoch': int(time.time()),
             'timezone_offset': timezone_offset,
             'network_has_activity': network_has_activity,
+            'report_summary': 'Health'
         }
-        # print network.id
-        template = get_template(
-            'bill.html')
+        template = get_template("dashboard/report/call-report.html")
         html = template.render(context, request)
         return HttpResponse(html)
-
-        pass
