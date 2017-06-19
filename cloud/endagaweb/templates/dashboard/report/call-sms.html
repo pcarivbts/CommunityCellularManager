@@ -52,16 +52,16 @@ of patent rights can be found in the PATENTS file in the same directory.
               <div id='sms-usage-chart'></div>
             </div>
 
-            <div class="row ">
+            <div class="row">
                 {% include 'dashboard/timezone-notice.html' %}
             </div>
             {% else %}
                 <p>There is no network activity to display.</p>
             {% endif %}
-
-            <!--button id="export">svg to png</button>
             <canvas id="canvas"></canvas>
 
+            <!--button id="export">svg to png</button>
+            
             <svg id="demo_svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="200" height="200">
             <rect x="10" y="10" width="50" height="50" />
             <text x="0" y="100">Look, i'm cool</text>
@@ -171,8 +171,9 @@ $(document).ready(function() {
 
 
 
-// ---------------------------------------------------- //
 
+// ---------------------------------------------------- //
+/*
   //var btn = document.querySelector('button');
   var btn = document.getElementById('export');
   //var svg = document.querySelector('svg');
@@ -220,6 +221,7 @@ $(document).ready(function() {
 
     img.src = url;
   });
+*/
 
 });
 
