@@ -104,7 +104,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script type="text/jsx">
   var currentTimeEpoch = {{ current_time_epoch }};
   var timezoneOffset = {{ timezone_offset }};
-
+  {% if 'Call Billing' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Call Billing Report'
@@ -121,6 +121,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('call-usage-chart')
   );
+   {% endif %}
+   { % if 'SMS Billing' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='SMS Billing Report'
@@ -137,6 +139,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('sms-usage-chart')
   );
+  {% endif %}
+  {% if 'Call and SMS Billing' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Call and SMS Billing Report'
@@ -153,6 +157,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('call-sms-usage-chart')
   );
+  {% endif %}
+  {% if 'Retailer Recharge' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Retailer Load Transfer Report'
@@ -169,6 +175,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('load-transfer-usage-chart')
   );
+  {% endif %}
+  {% if 'Retailer Load Transfer' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Retailer Recharge Report'
@@ -185,6 +193,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('add-money-usage-chart')
   );
+  {% endif %}
+  {% if 'Waterfall Activation' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Waterfall Activation Summary'
@@ -201,7 +211,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('billing-waterfall-summary-chart')
   );
-
+    {% endif %}
 
 
 </script>
@@ -256,7 +266,4 @@ $(document).ready(function() {
   });
 });
 </script>
-
-{% endif %}
-
 {% endblock %}

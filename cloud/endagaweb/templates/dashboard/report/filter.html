@@ -2,27 +2,6 @@
     <form action="{{ action_url }}" class="form-horizontal"
           method="post" role="form" onsubmit="setloading()">
         {% csrf_token %}
-        <div class="btn-group">
-            <button type="button" class="btn btn-default dropdown-toggle"
-                    data-toggle="dropdown">
-                All Towers
-                <span class="caret"></span>
-            </button>
-
-            <ul class="dropdown-menu" role="menu">
-                {% if towers %}
-                {% for tower in towers %}
-                {% if tower.id == level_id %}
-                <li><a href="{{ tower.id }}">{{ tower.nickname }} </a></li>
-                {% else %}
-                <li><a href="{{ tower.id }}">{{ tower.nickname }} </a></li>
-                </option>
-                {% endif %}
-                {% endfor %}
-                {% endif %}
-                <li class="divider"></li>
-            </ul>
-        </div>
         <div class="form-group">
             <div class="col-xs-12">
                 {% for key, values in reports.items %}
