@@ -38,7 +38,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       buttons: ['hour', 'day', 'week', 'month', 'year'],
       icons: ['graph', 'list'],
       defaultView: 'graph',
-      defaultButtonText: 'week',
+      defaultButtonText: 'year',
       endpoint: '/api/v1/stats/',
       statTypes: 'sms',
       level: 'network',
@@ -166,6 +166,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       'level-id': this.props.levelID,
       'aggregation': this.props.aggregation
     };
+    console.log("this.props.endpoint = ", this.props.endpoint, this.props.level);
     var endpoint = this.props.endpoint + this.props.level;
     $.get(endpoint, queryParams, function(data) {
       this.setState({
@@ -394,6 +395,19 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
             .transition().duration(350)
             .call(chart);
     }
+    
+    d3.select(".download_graph").on("click", function(){
+        var html = d3.select(domTarget)
+        .attr("version", 1.1)
+        .attr("xmlns", "http://www.w3.org/2000/svg")
+        .node().parentNode.innerHTML;
+
+        //console.log(html);
+        var imgsrc = 'data:image/svg+xml;base64,'+ btoa(html);
+        var img = '<img src="'+imgsrc+'">'; 
+        d3.select("#svgdataurl").html(img);
+
+    });
     // Resize the chart on window resize.
     nv.utils.windowResize(chart.update);
     return chart;
