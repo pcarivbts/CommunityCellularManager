@@ -33,46 +33,14 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endblock %}
 
 {% block content %}
-    {% include "dashboard/report/header.html" with network=network %}
+    {% include "dashboard/report/header.html" with header='Call & SMS' %}
 
     <div class='row'>
         {% include "dashboard/report/nav.html" with active_tab='call_sms' %}
 
         <div class='content col-xs-12 col-sm-10 col-md-10'>
 
-            <div class="row panel">
-                <form action="/dashboard/activity" class="form-horizontal"
-                      method="post" role="form" onsubmit="setloading()">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label for="id_keyword"
-                               class="control-label col-xs-2">Filter by</label>
-                        <div class="col-xs-3">
-                            <label class="radio-inline"><input type="radio" name="optradio">BTS</label>
-                            <label class="radio-inline"><input type="radio" name="optradio">Network</label>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="control-label col-xs-2">Reports</label>
-                        <div class="col-xs-5">
-                            <label class="checkbox-inline"><input
-                                    type="checkbox" name="report[]"
-                                    value="Number of calls"/>Number of Calls</label>
-                            <label class="checkbox-inline"><input
-                                    type="checkbox" name="report[]"
-                                    value="Number of calls"/>Minutes of Calls</label>
-                            <label class="checkbox-inline"><input
-                                    type="checkbox" name="report[]"
-                                    value="Number of calls"/>Number of SMS</label>
-                        </div>
-                        <div class="col-xs-3">
-                            <button id="submit" type="submit" name="submit" value="Filter"
-                        class="btn btn-primary col-xs-12" data-loading-text="Loading...">Filter</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-
+            {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/calls' %}
             {% if network_has_activity %}
             <div class="row">
               <div id='call-number-chart'></div>
@@ -84,13 +52,12 @@ of patent rights can be found in the PATENTS file in the same directory.
               <div id='sms-usage-chart'></div>
             </div>
 
-            <div class="row ">
+            <div class="row">
                 {% include 'dashboard/timezone-notice.html' %}
             </div>
             {% else %}
                 <p>There is no network activity to display.</p>
             {% endif %}
-
         </div> <!-- /.col-md-4 -->
     </div>
 {% endblock %}
@@ -116,22 +83,19 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
-
-
 <script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
-
-
-
 <script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
 <script type="text/jsx">
   var currentTimeEpoch = {{ current_time_epoch }};
   var timezoneOffset = {{ timezone_offset }};
+  {% if 'Number of Calls' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Number of Calls'
       chartID='call-chart'
       statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
-      levelID='{{ network_id }}'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
       aggregation='count'
       yAxisLabel='numbers of calls'
       currentTimeEpoch={currentTimeEpoch}
@@ -141,13 +105,16 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('call-number-chart')
   );
+  {% endif %}
+  {% if 'Number of Minutes' in reports %}
 
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Minutes of Calls'
       chartID='data-chart'
       statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
-      levelID='{{ network_id }}'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
       aggregation='duration'
       yAxisLabel='minutes of call'
       currentTimeEpoch={currentTimeEpoch}
@@ -158,12 +125,16 @@ of patent rights can be found in the PATENTS file in the same directory.
     document.getElementById('call-minutes-chart')
   );
 
+  {% endif %}
+  {% if 'Total Usage' in reports %}
+
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='SMS usage'
       chartID='sms-chart'
       statTypes='local_sms,local_recv_sms,outside_sms,incoming_sms,free_sms,error_sms'
-      levelID='{{ network_id }}'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
       aggregation='count'
       yAxisLabel='number of SMS'
       currentTimeEpoch={currentTimeEpoch}
@@ -173,7 +144,13 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('sms-usage-chart')
   );
+  {% endif %}
 
+</script>
+<script type="text/javascript">
+function setloading() {
+  var $btn = $('#submit').button().button('loading');
+}
 </script>
 
 {% endif %}

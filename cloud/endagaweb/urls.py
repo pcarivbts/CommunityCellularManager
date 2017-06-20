@@ -10,11 +10,10 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 from django.conf import settings
 from django.conf.urls import include, url
-from django.contrib import admin, auth
+from django.contrib import admin
 import django.contrib.auth.views
 
 import endagaweb.views
-
 import endagaweb.stats_app
 
 import rest_framework.authtoken.views
@@ -55,8 +54,6 @@ urlpatterns = [
     # level id as a query param.
     url(r'^api/v1/stats/(.*)',
         endagaweb.stats_app.views.StatsAPIView.as_view()),
-    url(r'^api/v1/reports/(.*)',
-        endagaweb.stats_app.views.ReportsAPIView.as_view()),
 
     # the internal API.
     url(r'^internal/api/v1/number/',
@@ -144,6 +141,9 @@ urlpatterns = [
     url(r'^dashboard/network/prices$',
         endagaweb.views.network.NetworkPrices.as_view(),
         name='network-prices'),
+    url(r'^dashboard/network/denominations$',
+        endagaweb.views.network.NetworkDenomination.as_view(),
+        name='network-denominations'),
     url(r'^dashboard/network/inactive-subscribers$',
         endagaweb.views.network.NetworkInactiveSubscribers.as_view(),
         name='network-inactive-subscribers'),
@@ -157,20 +157,20 @@ urlpatterns = [
         endagaweb.views.dashboard.ActivityView.as_view(),
         name='network-activity'),
     url(r'^dashboard/reports/calls',
-        endagaweb.views.dashboard.CallReportView.as_view(),
+        endagaweb.views.reports.CallReportView.as_view(),
         name='call-report'),
     url(r'^dashboard/reports/subscriber',
-        endagaweb.views.dashboard.SubscriberReportView.as_view(),
+        endagaweb.views.reports.SubscriberReportView.as_view(),
         name='subscriber-report'),
     url(r'^report/downloadcsv',
         endagaweb.views.dashboard.ReportGraphDownload.as_view(),
         ),
 
     url(r'^dashboard/reports/billing',
-        endagaweb.views.dashboard.BillingReportView.as_view(),
+        endagaweb.views.reports.BillingReportView.as_view(),
         name='billing-report'),
     url(r'^dashboard/reports/health',
-        endagaweb.views.dashboard.HealthReportView.as_view(),
+        endagaweb.views.reports.HealthReportView.as_view(),
         name='health-report'),
 
     # Raise a server error on-demand to test the 500 template.

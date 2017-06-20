@@ -39,8 +39,9 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       icons: ['graph', 'list'],
       defaultView: 'graph',
       defaultButtonText: 'week',
-      endpoint: '/api/v1/stats/network',
+      endpoint: '/api/v1/stats/',
       statTypes: 'sms',
+      level: 'network',
       levelID: 0,
       aggregation: 'count',
       yAxisLabel: 'an axis label (set me!)',
@@ -90,7 +91,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
   // This handler takes the text of the view mode buttons
   // and ouputs figures out the corresponding number of seconds.
   handleViewClick: function(text) {
-    console.log("view mode CHANGED = ", text);
     // Update only if the startTime has actually changed.
     if (this.state.activeView != text) {
       this.setState({
@@ -128,11 +128,14 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       csvURL = window.URL.createObjectURL(csvData);
      }
      var tempLink = document.createElement('a');
+     document.body.appendChild(tempLink);
      tempLink.href = csvURL;
      tempLink.setAttribute('download', filename+"-"+convertdate+'.csv');
+     tempLink.target="_self"
      tempLink.click();
    }.bind(this));
-},
+   },
+
   // Datepicker handlers, one each for changing the start and end times.
   startTimeChange: function(newTime) {
     if (newTime < this.state.endTimeEpoch && !this.state.isLoading) {
@@ -194,10 +197,10 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       'interval': interval,
       'stat-types': this.props.statTypes,
       'level-id': this.props.levelID,
-      'aggregation': this.props.aggregation,
-      'report-view':'summary'
+      'aggregation': this.props.aggregation
     };
-    $.get(this.props.endpoint, queryParams, function(data) {
+    var endpoint = this.props.endpoint + this.props.level;
+    $.get(endpoint, queryParams, function(data) {
       this.setState({
         isLoading: false,
         chartData: data,
@@ -238,7 +241,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
           onDatePickerChange={this.endTimeChange}
         />
         <span className='spacer'></span>
-        <span>view as&nbsp;&nbsp;&nbsp;</span>
+        <span>&nbsp;&nbsp;&nbsp;</span>
         {this.props.icons.map(function(buttonText, index) {
           return (
             <ViewButton
@@ -249,15 +252,17 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
             />
           );
         }, this)}
+        <DownloadButton
+          chartID={this.props.chartID}
+          startimeepoch = {this.props.starttime}
+          endTimeEpoch = {this.props.endTimeEpoch}
+          statsType = {this.props.statTypes}
+          onButtonClick={this.handleDownloadClick} />
         <span className='spacer'></span>
+        <DownloadGraphButton
+          chartID={this.props.chartID} />
         <LoadingText
           visible={this.state.isLoading}
-        />
-        <DownloadButton
-        startimeepoch = {this.props.starttime}
-        endTimeEpoch = {this.props.endTimeEpoch}
-        statsType = {this.props.statTypes}
-        onButtonClick={this.handleDownloadClick}
         />
         <TimeseriesChart
           chartID={this.props.chartID}
@@ -333,8 +338,6 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
     tableData.push([newSeries['key'], newSeries['total']]);
     shiftedData.push(newSeries);
   }
-  console.log("tableData ===========");
-  console.log(tableData);
 
   $('.'+domTargetId).DataTable({
       data: tableData,
@@ -361,18 +364,15 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
             .labelType("percent");
 
         d3.select(domTarget)
-        .datum(shiftedData)
-        .transition().duration(1200)
-        .call(chart);
-
-    }
-       else if(chartType == 'bar-chart'){
-        console.log("BAR CHART");
+          .datum(shiftedData)
+          .transition().duration(1200)
+          .call(chart);
+    } else if(chartType == 'bar-chart'){
         var chart = nv.models.multiBarChart()
             .x(function(d) { return d[0] })
-            .y(function(d) { return d[1]})
+            .y(function(d) { return d[1] })
             //.staggerLabels(true)    //Too many bars and not enough room? Try staggering labels.
-            .tooltips(true)        //Don't show tooltips
+            .tooltips(true)
             //.showValues(true)       //...instead, show the bar value right on top of each bar.
             .transitionDuration(350)
             .stacked(false).showControls(false);
@@ -382,8 +382,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
           });
         // Fixes x-axis time alignment.
 
-        var xScale =d3.time.scale.utc()
-      //.domain(???help???)
+        var xScale =d3.time.scale.utc();
 
        chart.yAxis.scale(xScale)
           .axisLabel(yAxisLabel)
@@ -436,6 +435,95 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
 };
 
 
+var DownloadGraphButton = React.createClass({
+  getDefaultProps: function() {
+    return {
+      onButtonClick: null,
+    }
+  },
+  componentWillMount() {
+    this.id = this.props.chartID + "-download";
+  },
+  triggerDownload: function(imgURI) {
+    var evt = new MouseEvent('click', {
+      view: window,
+      bubbles: false,
+      cancelable: true
+    });
+
+    var a = document.createElement('a');
+    a.setAttribute('download', 'report.png');
+    a.setAttribute('href', imgURI);
+    a.setAttribute('target', '_blank');
+    a.dispatchEvent(evt);
+  },
+  componentDidMount: function() {
+    
+    var domTargetId = this.props.chartID;
+    var btn = document.getElementById(this.id);
+    var svg = document.getElementById(domTargetId);
+    var canvas = document.querySelector('canvas');
+    
+    btn.addEventListener('click', function () {
+      // var width = $("#"+domTargetId).width();
+      // var height = $("#"+domTargetId).height();
+      // $('#canvas').width(width).height(height);
+      
+      var canvas = document.getElementById('canvas');
+      var ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = "#FFF";
+      ctx.fillRect(0, 0, parseInt($("#"+domTargetId).width()), parseInt($("#"+domTargetId).height()));
+
+      var data = (new XMLSerializer()).serializeToString(svg);
+      var DOMURL = window.URL || window.webkitURL || window;
+
+      var img = new Image();
+      var svgBlob = new Blob([data], {type: 'image/svg+xml;charset=utf-8'});
+      var url = DOMURL.createObjectURL(svgBlob);
+
+      img.onload = function() {
+        ctx.drawImage(img, 0, 0);
+        DOMURL.revokeObjectURL(url);
+
+        var imgURI = canvas
+          .toDataURL('image/png')
+          .replace('image/png', 'image/octet-stream');
+          
+          //triggerDownload(imgURI);
+          var evt = new MouseEvent('click', {
+            view: window,
+            bubbles: false,
+            cancelable: true
+          });
+
+          var a = document.createElement('a');
+          a.setAttribute('download', 'report.png');
+          a.setAttribute('href', imgURI);
+          a.setAttribute('target', '_blank');
+          a.dispatchEvent(evt);
+      };
+      img.src = url;
+    });
+  },
+
+  render: function() {
+    return (
+      <span className="loadingText">
+        <a href="javascript:void(0);" onClick={this.onThisClick.bind(this)} title="Download" id={this.id}>
+          <i className='fa fa-lg fa-download' aria-hidden="true"></i>
+        </a>
+      </span>
+    );
+  },
+
+  onThisClick: function(text) {
+    this.props.onButtonClick(text);
+  }
+});
+
+
+
 var TimeseriesChart = React.createClass({
 
   getDefaultProps: function() {
@@ -483,7 +571,6 @@ var TimeseriesChart = React.createClass({
       className.push('flat');
     }
     if(this.props.activeView == 'list') {
-      console.log("TimeseriesChart rendered=== TABLE");
       return (
         <div className={className.join(' ')}>
           {flatLineOverlay}
@@ -492,7 +579,6 @@ var TimeseriesChart = React.createClass({
       );
     } 
     else {
-      console.log("TimeseriesChart rendered=== GRAPH");
       return (
         <div className={className.join(' ')}>
           {flatLineOverlay}
@@ -509,9 +595,6 @@ var TimeSeriesChartElement = React.createClass({
   // We circumvent react's typical re-render cycle for this component by returning false.
   shouldComponentUpdate: function(nextProps) {
     this.props.activeView = nextProps.activeView;
-
-    console.log("activeView = ", nextProps.activeView, this.props.activeView);
-
     var nextData = JSON.stringify(nextProps.data);
     var prevData = JSON.stringify(this.props.data);
     if (nextData !== prevData) {
@@ -531,8 +614,6 @@ var TimeSeriesChartElement = React.createClass({
   },
 
   render: function() {
-    console.log("TimeSeriesChartElement rendered===");
-    console.log("this.props = ", this.props);
     var inlineStyles = {
       height: this.props.chartHeight
     };
@@ -626,6 +707,7 @@ var DatePicker = React.createClass({
           today: 'fa fa-circle-o',
         },
         showTodayButton: true,
+        ignoreReadonly: true,
         format: 'YYYY-MM-DD [at] h:mmA',
       },
       dateFormat: 'YYYY-MM-DD [at] h:mmA',
@@ -635,6 +717,10 @@ var DatePicker = React.createClass({
   componentDidMount: function() {
     var formattedDate = moment.unix(this.props.epochTime).format(this.props.dateFormat);
     var domTarget = '#' + this.props.pickerID;
+    $(domTarget).keydown(function(e){
+      e.preventDefault();
+      return false;
+    });
     $(domTarget)
       .datetimepicker(this.props.datePickerOptions)
       .data('DateTimePicker')
@@ -663,7 +749,6 @@ var DatePicker = React.createClass({
     );
   },
 });
-
 
 var DownloadButton = React.createClass({
   getDefaultProps: function() {
@@ -723,13 +808,13 @@ var ViewButton = React.createClass({
     }
     if(this.props.buttonText == 'graph') {
       return (
-        <a style={inlineStyles} onClick={this.onThisClick.bind(this, this.props.buttonText)}  title="view as graph">
+        <a style={inlineStyles} onClick={this.onThisClick.bind(this, this.props.buttonText)}  title="Graphical">
           <i className='fa fa-lg fa-area-chart' aria-hidden="true"></i>
         </a>
       );
     } else {
       return (
-        <a style={inlineStyles} onClick={this.onThisClick.bind(this, this.props.buttonText)}  title="view as table">
+         <a style={inlineStyles} onClick={this.onThisClick.bind(this, this.props.buttonText)}  title="view as table">
           <i className='fa fa-lg fa-list-ul' aria-hidden="true"></i>
         </a>
       );

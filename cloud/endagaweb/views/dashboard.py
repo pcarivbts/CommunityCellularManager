@@ -806,7 +806,6 @@ class ActivityView(ProtectedView):
             'event_count': event_count,
         }
 
-
         # Setup various stuff for filter form generation.
         service_names = ["SMS", "Call", "GPRS", "Transfer", "Other"]
         if not services:
@@ -1182,5 +1181,4 @@ class ReportGraphDownload(ProtectedView):
                 qs = [Q(kind__icontains=s) for s in stats_type]
                 events = events.filter(reduce(operator.or_, qs))
             return events
-
 

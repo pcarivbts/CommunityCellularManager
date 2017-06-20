@@ -1,0 +1,50 @@
+<div class="row panel">
+    <div class="container-fluid">
+        <form action="{{ action_url }}" class="form-horizontal"
+              method="post" role="form" onsubmit="setloading()">
+            {% csrf_token %}
+            {% if report_list %}
+            <div class="form-group col-xs-12">
+                <label class="control-label col-xs-1">Reports</label>
+                <div class=" col-xs-10">
+                    {% for key, values in report_list.items %}
+                       <span class="label label-default">{{ key }}</span>
+                    {% for report in values %}
+                    <label class="checkbox checkbox-inline">
+                        <input id="checkbox" type="checkbox" name="reports" value="{{ report }}" 
+                               {% if report in reports %} checked="checked" {% endif %}>
+                       {{ report }}
+                    </label>
+                    {% endfor %}
+                    <div></div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            <div class="form-group col-xs-12" id="bts_list" {% if not level_id %} style="display: none;" {% endif %}>
+                <label class="control-label col-xs-1">Tower</label>
+                <div class="col-xs-5">
+                    <select name="level_id" class="form-control">
+                      <option value="">All Towers</option>
+                      {% if towers %} 
+                        {% for tower in towers %} 
+                        {% if tower.id == level_id and level == 'tower' %}
+                        <option value="{{ tower.id }}" selected="selected">{{ tower.nickname }} ( {{tower.uuid}} )</option>
+                        {% else %} 
+                        <option value="{{ tower.id }}">{{ tower.nickname }} ( {{tower.uuid}} )</option>
+                        {% endif %}
+                        {% endfor %}
+                      {% endif %} 
+                    </select> 
+                    
+                </div> 
+                <div class="col-xs-3">
+                    <button id="submit" type="submit" name="submit" value="Filter"
+                            class="btn btn-primary col-xs-4">Filter
+                    </button>
+                </div>
+            </div>
+        </form>
+        <canvas id="canvas" width="1200" height="400" style="display: none;"></canvas>
+    </div>
+</div>

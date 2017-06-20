@@ -9,11 +9,6 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endcomment %}
 {% load apptags %}
 
-{% load humanize %}
-{% load crispy_forms_tags %}
-{% load render_table from django_tables2 %}
-
-
 {% block title %}
 {% tmpl_const "SITENAME" %} | towers
 {% endblock %}
@@ -24,39 +19,27 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endblock %}
 
 {% block content %}
-    {% include "dashboard/report/header.html" with network=network %}
+    {% include "dashboard/report/header.html" with header='Subscriber' %}
 
-
-
-    <div class='row'>
-        {% include "dashboard/report/nav.html" with active_tab='subscriber_reports' %}
-
-         <div class='content col-xs-12 col-sm-10 col-md-10'>
-
-
-
-            {% if network_has_activity %}
-            <div class="row">
-              <div id='chart'></div>
-            </div>
-
-
-            <div class="row ">
-                {% include 'dashboard/timezone-notice.html' %}
-            </div>
-            {% else %}
-                <p>There is no network activity to display.</p>
-            {% endif %}
-
-        </div> <!-- /.col-md-4 -->
+<div class='row'>
+  {% include "dashboard/report/nav.html" with active_tab='subscriber_reports' %}
+  <div class='content col-xs-12 col-sm-10 col-md-10'>
+    {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/subscriber' %}
+    {% if network_has_activity %}
+    <div class="row">
+      <div id='subscriber-chart'></div>
     </div>
-
+    <div class="row ">
+      {% include 'dashboard/timezone-notice.html' %}
+    </div>
+    {% else %}
+    <p>There is no network activity to display.</p>
+    {% endif %}
+  </div> <!-- /.col-md-4 -->
+</div>
 
 {% endblock %}
-
-
 {% block js %}
-
 <script>
   $(function() {
     setTimeout(function() {
@@ -70,51 +53,35 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
-
-
 <script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
 
-
-
 <script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
-<script>
-var seltext
-$(".dropdown-menu li a").click(function(){
-alert("hi");
-  selText = $(this).text();
-  tower_id =$(this).text();
-  $(this).parents('.btn-group').find('.dropdown-toggle').html(selText+' <span class="caret"></span>');
-});
-</script>
-
 <script type="text/jsx">
   var currentTimeEpoch = {{ current_time_epoch }};
-
   var timezoneOffset = {{ timezone_offset }};
-  var levelid =$('#drop :selected').text();
 
-var timezoneOffset = {{ timezone_offset }};
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Subscriber Activity'
       chartID='call-chart'
       statTypes='provisioned,deprovisioned,zero_balance_subscriber,first_expired,blocked_subscriber,expired'
-      levelID='{{ network_id }}'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
       aggregation='valid_through'
       yAxisLabel='numbers'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       tooltipUnits='s of'
       chartType='bar-chart'
-      endpoint='/api/v1/stats/network'
     />,
-    document.getElementById('chart')
+    document.getElementById('subscriber-chart')
   );
 
 
-
 </script>
-
-
-
+<script type="text/javascript">
+function setloading() {
+  var $btn = $('#submit').button().button('loading');
+}
+</script>
 {% endblock %}
