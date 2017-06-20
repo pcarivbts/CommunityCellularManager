@@ -169,6 +169,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       'level-id': this.props.levelID,
       'aggregation': this.props.aggregation
     };
+    console.log("this.props.endpoint = ", this.props.endpoint, this.props.level);
     var endpoint = this.props.endpoint + this.props.level;
     $.get(endpoint, queryParams, function(data) {
       this.setState({
@@ -222,7 +223,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
             />
           );
         }, this)}
-        <DownloadButton 
+        <DownloadButton
           chartID={this.props.chartID}
           onButtonClick={this.handleDownloadClick} />
         <span className='spacer'></span>
@@ -245,23 +246,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
   },
 });
 
-
-
-
-function triggerDownload(imgURI) {
-  console.log("triggerDownload OUTSIDE ==========");
-  var evt = new MouseEvent('click', {
-    view: window,
-    bubbles: false,
-    cancelable: true
-  });
-
-  var a = document.createElement('a');
-  a.setAttribute('download', 'report.png');
-  a.setAttribute('href', imgURI);
-  a.setAttribute('target', '_blank');
-  a.dispatchEvent(evt);
-}
 
 var secondsMap = {
   'hour': 60 * 60,
@@ -425,10 +409,8 @@ var DownloadButton = React.createClass({
   },
   componentWillMount() {
     this.id = this.props.chartID + "-download";
-    console.log("this.id = ", this.id);
   },
   triggerDownload: function(imgURI) {
-    console.log("triggerDownload ==========");
     var evt = new MouseEvent('click', {
       view: window,
       bubbles: false,
@@ -442,21 +424,22 @@ var DownloadButton = React.createClass({
     a.dispatchEvent(evt);
   },
   componentDidMount: function() {
+    
     var domTargetId = this.props.chartID;
     var btn = document.getElementById(this.id);
     var svg = document.getElementById(domTargetId);
     var canvas = document.querySelector('canvas');
-
-    $('#canvas').width($("#"+domTargetId).width());
-    $('#canvas').height($("#"+domTargetId).height());
-
+    
     btn.addEventListener('click', function () {
+      // var width = $("#"+domTargetId).width();
+      // var height = $("#"+domTargetId).height();
+      // $('#canvas').width(width).height(height);
+      
       var canvas = document.getElementById('canvas');
       var ctx = canvas.getContext('2d');
 
       ctx.fillStyle = "#FFF";
-      //ctx.fillStyle = '';
-      ctx.fillRect(0, 0, $("#"+domTargetId).width(), $("#"+domTargetId).height());
+      ctx.fillRect(0, 0, parseInt($("#"+domTargetId).width()), parseInt($("#"+domTargetId).height()));
 
       var data = (new XMLSerializer()).serializeToString(svg);
       var DOMURL = window.URL || window.webkitURL || window;
@@ -469,9 +452,10 @@ var DownloadButton = React.createClass({
         ctx.drawImage(img, 0, 0);
         DOMURL.revokeObjectURL(url);
 
-        var imgURI = canvas.toDataURL('image/png');
-          //.replace('image/png', 'image/octet-stream');
-      
+        var imgURI = canvas
+          .toDataURL('image/png')
+          .replace('image/png', 'image/octet-stream');
+          
           //triggerDownload(imgURI);
           var evt = new MouseEvent('click', {
             view: window,
@@ -485,11 +469,8 @@ var DownloadButton = React.createClass({
           a.setAttribute('target', '_blank');
           a.dispatchEvent(evt);
       };
-
       img.src = url;
     });
-
-    //$('.download').hide();
   },
 
   render: function() {
@@ -501,7 +482,7 @@ var DownloadButton = React.createClass({
       </span>
     );
   },
-  
+
   onThisClick: function(text) {
     this.props.onButtonClick(text);
   }
@@ -724,7 +705,7 @@ var DatePicker = React.createClass({
     return (
       <span className='datepicker'>
         <label>{this.props.label}</label>
-        <input id={this.props.pickerID} type="text" />
+        <input id={this.props.pickerID} type="text" readonly="readonly" />
       </span>
     );
   },

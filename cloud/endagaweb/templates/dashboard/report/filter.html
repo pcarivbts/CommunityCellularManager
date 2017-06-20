@@ -16,20 +16,19 @@
                 <div></div>
                 {% endfor %}
             </div>
-            <div class="form-group col-xs-12" id="bts_list" {% if not level_id %} style="display: none;" {% endif %}> 
-                <div class="col-xs-5"> 
-                    <label for="id_keyword" 
-                       class="control-label">Tower</label>
-                    <select name="level_id"> 
-                      <option value=""> -- Select Tower --</option> 
+            <div class="form-group col-xs-12" id="bts_list" {% if not level_id %} style="display: none;" {% endif %}>
+                <div class="col-xs-5">
+                    <label class="control-label">Tower</label>
+                    <select name="level_id">
+                      <option value="">All Towers</option>
                       {% if towers %} 
                         {% for tower in towers %} 
-                        {% if tower.id == level_id and level == 'tower' %} 
-                        <option value="{{ tower.id }}" selected="selected">{{ tower.nickname }} ( {{tower.uuid}} )</option> 
+                        {% if tower.id == level_id and level == 'tower' %}
+                        <option value="{{ tower.id }}" selected="selected">{{ tower.nickname }} ( {{tower.uuid}} )</option>
                         {% else %} 
-                        <option value="{{ tower.id }}">{{ tower.nickname }} ( {{tower.uuid}} )</option> 
-                        {% endif %} 
-                        {% endfor %} 
+                        <option value="{{ tower.id }}">{{ tower.nickname }} ( {{tower.uuid}} )</option>
+                        {% endif %}
+                        {% endfor %}
                       {% endif %} 
                     </select> 
                     
@@ -39,8 +38,8 @@
                             class="btn btn-primary col-xs-4">Filter
                     </button>
                 </div>
-            </div> 
-            
+            </div>
         </form>
+        <canvas id="canvas" width="1200" height="400" style="display: none;"></canvas>
     </div>
 </div>

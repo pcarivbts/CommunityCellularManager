@@ -28,7 +28,7 @@ class BaseReport(ProtectedView):
         network = user_profile.network
         report_list = list({x for v in self.reports.itervalues() for x in v})
         if request.method == "POST":
-            request.session['level_id'] = request.POST.get('level_id', 0)
+            request.session['level_id'] = request.POST.get('level_id') or 0
             if request.session['level_id']:
                 request.session['level'] = 'tower'
             else:
@@ -49,7 +49,6 @@ class BaseReport(ProtectedView):
                 request.session['reports'] = report_list
         else:
             return HttpResponseBadRequest()
-
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
             datetime.datetime.now()).total_seconds()
         level = request.session['level']
