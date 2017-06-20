@@ -447,10 +447,17 @@ var DownloadButton = React.createClass({
     var svg = document.getElementById(domTargetId);
     var canvas = document.querySelector('canvas');
 
+    $('#canvas').width($("#"+domTargetId).width());
+    $('#canvas').height($("#"+domTargetId).height());
+
     btn.addEventListener('click', function () {
-      console.log("addEventListener ==========");
       var canvas = document.getElementById('canvas');
       var ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = "#FFF";
+      //ctx.fillStyle = '';
+      ctx.fillRect(0, 0, $("#"+domTargetId).width(), $("#"+domTargetId).height());
+
       var data = (new XMLSerializer()).serializeToString(svg);
       var DOMURL = window.URL || window.webkitURL || window;
 
@@ -462,9 +469,8 @@ var DownloadButton = React.createClass({
         ctx.drawImage(img, 0, 0);
         DOMURL.revokeObjectURL(url);
 
-        var imgURI = canvas
-          .toDataURL('image/png')
-          .replace('image/png', 'image/octet-stream');
+        var imgURI = canvas.toDataURL('image/png');
+          //.replace('image/png', 'image/octet-stream');
       
           //triggerDownload(imgURI);
           var evt = new MouseEvent('click', {

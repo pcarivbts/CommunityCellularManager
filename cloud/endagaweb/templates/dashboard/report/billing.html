@@ -214,14 +214,6 @@ function setloading() {
   var $btn = $('#submit').button().button('loading');
 }
 $(document).ready(function() {
-  $('input[type=radio][name="level"]').change(function() {
-    if (this.value == 'tower') {
-        $('#bts_list').show();
-    } else {
-      $('#bts_list').hide();
-    }
-  });
-  
   $('#from_month').datetimepicker({
     viewMode: 'years',
     format: 'MM/YYYY'

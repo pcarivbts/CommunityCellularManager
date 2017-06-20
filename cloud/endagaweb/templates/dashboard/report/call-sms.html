@@ -58,7 +58,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             {% else %}
                 <p>There is no network activity to display.</p>
             {% endif %}
-            <canvas id="canvas" width="1000" height="500" style="display: none;"></canvas>
+            <canvas id="canvas" width="1024" height="768" style="background-color: #fff; display: none;"></canvas>
 
             <!--button id="export">svg to png</button>
             <svg id="demo_svg"></svg-->
@@ -155,15 +155,6 @@ of patent rights can be found in the PATENTS file in the same directory.
 function setloading() {
   var $btn = $('#submit').button().button('loading');
 }
-$(document).ready(function() {
-  $('input[type=radio][name="level"]').change(function() {
-    if (this.value == 'tower') {
-        $('#bts_list').show();
-    } else {
-      $('#bts_list').hide();
-    }
-  });
-});
 </script>
 
 {% endif %}

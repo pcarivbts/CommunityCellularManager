@@ -170,16 +170,13 @@ class StatsAPIView(views.APIView):
                 end_time_epoch=params['end-time-epoch'],
                 aggregation=params['aggregation'],
             )
-            #print "results ===================", results
             data['results'].append({
                 "key": stat_type,
                 "values": results
             })
-
         # Convert params.stat_types back to CSV and echo back the request.
         params['stat-types'] = ','.join(params['stat-types'])
         data['request'] = params
-
         # Send results and echo back the request params.
         response_status = status.HTTP_200_OK
         return response.Response(data, response_status)
