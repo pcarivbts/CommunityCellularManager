@@ -29,6 +29,8 @@ TIMESERIES_STAT_KEYS = stats_client.TIMESERIES_STAT_KEYS
 SUBSCRIBER_KINDS = stats_client.SUBSCRIBER_KINDS
 ZERO_BALANACE_SUBSCRIBER =stats_client.ZERO_BALANCE_SUBSCRIBER
 INACTIVE_SUBSCRIBER = stats_client.INACTIVE_SUBSCRIBER
+WATERFALL_KINDS = ['loader', 'reload_rate', 'reload_amount',
+                   'reload_transaction', 'average_frequency']
 
 # ZERO_BALANACE_SUBSCRIBER
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
@@ -36,7 +38,9 @@ INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
 AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
                 'average_value']
 TRANSFER_KINDS = stats_client.TRANSFER_KINDS
-VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + TRANSFER_KINDS + SUBSCRIBER_KINDS + ZERO_BALANACE_SUBSCRIBER + INACTIVE_SUBSCRIBER
+VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + \
+              TRANSFER_KINDS + SUBSCRIBER_KINDS + ZERO_BALANACE_SUBSCRIBER + \
+              INACTIVE_SUBSCRIBER + WATERFALL_KINDS
 # Set valid intervals.
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
 # Set valid aggregation types.
@@ -135,6 +139,8 @@ class StatsAPIView(views.APIView):
         data = {
             'results': [],
         }
+        print "params['stat-types'] === ", params['stat-types']
+
         for stat_type in params['stat-types']:
             # Setup the appropriate stats client, SMS, call or GPRS.
             if stat_type in SMS_KINDS:
@@ -154,6 +160,8 @@ class StatsAPIView(views.APIView):
                 client_type = stats_client.SubscriberStatsClient
             elif stat_type in INACTIVE_SUBSCRIBER:
                 client_type = stats_client.SubscriberStatsClient
+            elif stat_type in WATERFALL_KINDS:
+                client_type = stats_client.WaterfallStatsClient
             if infrastructure_level == 'global':
                 client = client_type('global')
             elif infrastructure_level == 'network':

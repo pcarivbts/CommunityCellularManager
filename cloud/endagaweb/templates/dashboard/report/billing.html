@@ -52,21 +52,14 @@ of patent rights can be found in the PATENTS file in the same directory.
             </div>
             <div class="row">
               <div id='billing-waterfall-summary-chart'></div>
-            </div>
-            <div class="row">
               <div id='billing-waterfall-loader-chart'></div>
-            </div>
-            <div class="row">
               <div id='billing-waterfall-reload-rate-chart'></div>
-            </div>
-            <div class="row">
               <div id='billing-waterfall-reload-amount-chart'></div>
-            </div>
-            <div class="row">
               <div id='billing-waterfall-reload-transaction-chart'></div>
+              <div id='billing-waterfall-average-frequency-chart'></div>
             </div>
             <div class="row">
-              <div id='billing-waterfall-average-frequency-chart'></div>
+              {% include "dashboard/report/waterfall.html" %} 
             </div>
 
             {% else %}
@@ -189,7 +182,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     document.getElementById('add-money-usage-chart')
   );
   {% endif %}
-  {% if 'Waterfall' in reports %}
+  {% if 'Activation' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Waterfall Activation Summary'
@@ -227,27 +220,36 @@ $(document).ready(function() {
     var from_date = moment($('#from_month').val(), 'MM/YYYY').unix();
     var to_month = moment($('#to_month').val(), 'MM/YYYY').unix();
 
-    console.log("Date = ", from_date, to_month);
-    var tableData = [
-      [1111,2222],
-      [3333,4444],
-      [5555,6666]
-    ];
+    var queryParams = {
+      'start-time-epoch': from_date,
+      'end-time-epoch': to_month,
+      'stat-types': 'loader',
+      'interval': 'months',
+      'level-id':2,
+      'aggregation': 'count'
+    };
+    var endpoint = '/api/v1/stats/network';
+    $.get(endpoint, queryParams, function(data) {
+      console.log(data);
+      var tableHeader = data['results'][0]['values']['header'];
+      var tableData = data['results'][0]['values']['data'];
 
-    $('#loader_summary').DataTable({
-      data: tableData,
-      paging:   false,
-      ordering: false,
-      info:     false,
-      searching: false,
-      autoWidth: true,
-      scrollY: 320,
-      destroy: true,
-      columns: [
-          { title: "Title" },
-          { title: "Value" }
-      ]
+      $('#loader_summary').DataTable({
+        data: tableData,
+        paging:   false,
+        ordering: false,
+        info:     false,
+        searching: false,
+        autoWidth: true,
+        scrollY: 320,
+        destroy: true,
+        columns: tableHeader
+      });
     });
+
+    console.log("Date = ", from_date, to_month);
+
+    
   
   });
 });

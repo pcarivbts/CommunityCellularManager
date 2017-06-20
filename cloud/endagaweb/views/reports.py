@@ -124,9 +124,10 @@ class BillingReportView(BaseReport):
         url_namespace = 'billing-report'
         reports = {'Call & SMS': ['SMS Billing', 'Call and SMS Billing',
                                   'Call Billing'],
-                   'Retailer': ['Retailer Recharge', 'Retailer Load Transfer',
-                                # 'Waterfall Activation'
-                                ],
+                   'Retailer': ['Retailer Recharge', 'Retailer Load Transfer'],
+                   'Waterfall': ['Activation', 'Loader', 'Reload Rate',
+                                 'Reload Amount', 'Reload Transaction',
+                                 'Average Frequency'],
                    }
         super(BillingReportView, self).__init__(reports, template,
                                                 url_namespace, **kwargs)

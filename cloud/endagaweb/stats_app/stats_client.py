@@ -434,3 +434,55 @@ class TransferStatsClient(StatsClientBase):
 
         kwargs['subscriber'] = Q(subscriber__role='retailer')
         return self.aggregate_timeseries(kind, **kwargs)
+
+class WaterfallStatsClient(StatsClientBase):
+    """ waterfall reports data """
+
+    def __init__(self, *args, **kwargs):
+        print "WaterfallStatsClient called"
+        super(WaterfallStatsClient, self).__init__(*args, **kwargs)
+
+    def timeseries(self, kind=None, **kwargs):
+        # Set queryset from subscriber role as retailer
+        start_time_epoch = kwargs.pop('start_time_epoch', 0)
+        end_time_epoch = kwargs.pop('end_time_epoch', -1)
+        interval = kwargs.pop('interval', 'months')
+        aggregation = kwargs.pop('aggregation', 'count')
+
+        print "start_time_epoch = ", start_time_epoch
+        print "end_time_epoch = ", end_time_epoch
+        print "interval = ", interval
+        print "aggregation = ", aggregation
+
+        from dateutil.rrule import rrule, MONTHLY
+        import random
+
+        start = datetime.fromtimestamp(start_time_epoch, pytz.utc)
+        if end_time_epoch != -1:
+            end = datetime.fromtimestamp(end_time_epoch, pytz.utc)
+        else:
+            end = datetime.fromtimestamp(time.time(), pytz.utc)
+        print "start = ", start
+        print "end = ", end
+
+        response = {'header':[{'title':"Months"}], 'data':[]};
+
+        #dates = [dt for dt in rrule(MONTHLY, dtstart=start, until=end)]
+        months = rrule(MONTHLY, dtstart=start, until=end)
+        for mnth in months:
+            print "---", mnth, mnth.strftime("%b"), mnth.strftime("%Y")
+
+            key = mnth.strftime("%b") + "-" + mnth.strftime("%Y")
+            response['header'].append({'title':key})
+            #response['data'].append([key, random.randint(0, 9)])
+            month_row = [key]
+            for col_mnth in months:
+                month_row.append(random.randint(0, 9))
+
+            response['data'].append(month_row)
+
+
+        #kwargs['subscriber'] = Q(subscriber__role='retailer')
+        kwargs['report_liew'] = 'summary'
+        return response
+        #return self.aggregate_timeseries(kind, **kwargs)
