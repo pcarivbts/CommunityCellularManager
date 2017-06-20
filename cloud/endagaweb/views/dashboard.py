@@ -557,7 +557,7 @@ class SubscriberAdjustCredit(ProtectedView):
         try:
             currency = network.subscriber_currency
             amount = parse_credits(request.POST['amount'],
-                    CURREFNCIES[currency]).amount_raw
+                    CURRENCIES[currency]).amount_raw
             if abs(amount) > 2147483647:
                 raise ValueError(error_text)
         except ValueError:
@@ -1005,8 +1005,6 @@ class SubscriberReportView(ProtectedView):
         network = user_profile.network
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
             datetime.datetime.now()).total_seconds()
-        # Determine if there has ,towerbeen any activity on the network (if not, we won't
-        # show the graphs).
         network_has_activity = UsageEvent.objects.filter(
             network=network).exists()
         context = {
@@ -1077,3 +1075,112 @@ class HealthReportView(ProtectedView):
         template = get_template("dashboard/report/call-report.html")
         html = template.render(context, request)
         return HttpResponse(html)
+
+class ReportGraphDownload(ProtectedView):
+
+
+        def get(self, request):
+            user_profile = UserProfile.objects.get(user=request.user)
+            network = user_profile.network
+            currency = CURRENCIES[network.subscriber_currency]
+            request.session['start_date'] = request.GET.get(
+                'start-time-epoch',
+                0)
+
+            request.session['end_date'] = request.GET.get('end-time-epoch',
+                                                          0)
+            request.session['stats_type'] = request.GET.get('stat-types',
+                                                            None)
+            start_date = request.session['start_date']
+            end_date = request.session['end_date']
+            stats_type = request.GET.get('stat-types')
+            stat_types = request.GET.get('stat-types').split(',')
+            start_time = datetime.datetime.fromtimestamp(
+                float(start_date)).strftime('%Y-%m-%d %H:%M:%S.%f')
+            end_time = datetime.datetime.fromtimestamp(
+                float(end_date)).strftime('%Y-%m-%d %H:%M:%S.%f')
+
+            events = self._get_reportValues(user_profile, start_time,
+                                            end_time,
+                                            stat_types)
+            headers = [
+                'Transaction ID',
+                'Day',
+                'Time',
+                'Time Zone',
+                'Subscriber IMSI',
+                'BTS Identifier',
+                'BTS Name',
+                'Type of Event',
+                'Description',
+                'From Number',
+                'To Number',
+                'Billable Call Duration (sec)',
+                'Total Call Duration (sec)',
+                'Tariff (%s)' % (currency,),
+                'Cost (%s)' % (currency,),
+                'Prior Balance (%s)' % (currency,),
+                'Final Balance (%s)' % (currency,),
+                'Bytes Uploaded',
+                'Bytes Downloaded',
+            ]
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = ('attachment;filename='
+                                               '"etage-%s.csv"') \
+                                              % (
+                                                  datetime.datetime.now().date(),)
+            writer = csv.writer(response)
+            writer.writerow(headers)
+            timezone = pytz.timezone(user_profile.timezone)
+            for e in events[:7000]:
+                subscriber = e.subscriber_imsi
+                if e.subscriber_imsi.startswith('IMSI'):
+                    subscriber = e.subscriber_imsi[4:]
+
+                tz_date = django_utils_timezone.localtime(e.date, timezone)
+
+                writer.writerow([
+                    e.transaction_id,
+                    tz_date.date().strftime("%m-%d-%Y"),
+                    tz_date.time().strftime("%I:%M:%S %p"),
+                    timezone,
+                    subscriber,
+                    e.bts_uuid,
+                    e.bts.nickname if e.bts else "<deleted BTS>",
+                    e.kind,
+                    e.reason,
+                    e.from_number,
+                    e.to_number,
+                    e.billsec,
+                    e.call_duration,
+                    humanize_credits(e.tariff,
+                                     currency=currency).amount_str()
+                    if e.tariff else None,
+                    humanize_credits(e.change,
+                                     currency=currency).amount_str()
+                    if e.change else None,
+                    humanize_credits(e.oldamt,
+                                     currency=currency).amount_str()
+                    if e.oldamt else None,
+                    humanize_credits(e.newamt,
+                                     currency=currency).amount_str()
+                    if e.newamt else None,
+                    e.uploaded_bytes,
+                    e.downloaded_bytes,
+                ])
+            return response
+
+        def _get_reportValues(self, user_profile, start_date=None,
+                              end_date=None, stats_type=None):
+            network = user_profile.network
+            events = UsageEvent.objects.filter(
+                network=network).order_by('-date')
+            if start_date or end_date:
+                events = events.filter(
+                    date__range=(str(start_date), str(end_date)))
+            if stats_type:
+                qs = [Q(kind__icontains=s) for s in stats_type]
+                events = events.filter(reduce(operator.or_, qs))
+            return events
+
+

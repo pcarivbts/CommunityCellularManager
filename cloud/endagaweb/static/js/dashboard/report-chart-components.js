@@ -102,6 +102,37 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
     }
   },
 
+  handleDownloadClick: function(text) {
+    var queryParams = {
+      'start-time-epoch': this.state.startTimeEpoch,
+      'end-time-epoch': this.state.endTimeEpoch,
+      'stat-types': this.props.statTypes,
+      'level-id': this.props.levelID,
+
+    };
+    $.get('/report/downloadcsv', queryParams, function(data,response) {
+
+     var todayTime = new Date(); var month = (todayTime .getMonth() + 1); var day = (todayTime .getDate()); var year = (todayTime .getFullYear());
+     var convertdate =  year+ "-" +  month + "-" +day;
+       this.setState({
+        isLoading: false,
+        data: data,
+        title:this.props.title
+   });
+     var filename = this.state.title
+     var csvData = new Blob([data], {type: 'text/csv;charset=utf-8;'});
+     var csvURL =  null;
+      if (navigator.msSaveBlob) {
+      csvURL = navigator.msSaveBlob(csvData, filename+"-"+convertdate+'.csv');
+      } else {
+      csvURL = window.URL.createObjectURL(csvData);
+     }
+     var tempLink = document.createElement('a');
+     tempLink.href = csvURL;
+     tempLink.setAttribute('download', filename+"-"+convertdate+'.csv');
+     tempLink.click();
+   }.bind(this));
+},
   // Datepicker handlers, one each for changing the start and end times.
   startTimeChange: function(newTime) {
     if (newTime < this.state.endTimeEpoch && !this.state.isLoading) {
@@ -222,7 +253,12 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
         <LoadingText
           visible={this.state.isLoading}
         />
-        <DownloadButton />
+        <DownloadButton
+        startimeepoch = {this.props.starttime}
+        endTimeEpoch = {this.props.endTimeEpoch}
+        statsType = {this.props.statTypes}
+        onButtonClick={this.handleDownloadClick}
+        />
         <TimeseriesChart
           chartID={this.props.chartID}
           data={this.state.chartData}
@@ -633,24 +669,30 @@ var DownloadButton = React.createClass({
   getDefaultProps: function() {
     return {
       visible: false,
+      startimeepoch:'',
+      endTimeEpoch:'',
+      defaultButtonText: 'week',
+      statsType:'',
+      onButtonClick: null,
     }
   },
-
   render: function() {
     return (
       <span className="loadingText pull-right">
         download&nbsp;&nbsp; 
-        <a href="javascript:void(0);" title="download graph">
+         <a href="javascript:void(0);" title="download graph">
           <i className='fa fa-lg fa-area-chart' aria-hidden="true"></i>
         </a>&nbsp;&nbsp;
-        <a href="javascript:void(0);" title="download CSV">
+        <a  href="#" title = "download CSV" onClick={this.onThisClick.bind(this)}>
           <i className='fa fa-lg fa-list-ul' aria-hidden="true"></i>
         </a>
       </span>
     );
   },
+  onThisClick: function(text) {
+    this.props.onButtonClick();
+  },
 });
-
 
 var ViewButton = React.createClass({
   propTypes: {
