@@ -44,7 +44,7 @@ class BaseReport(ProtectedView):
                 request.session['level'] = 'network'
                 # TODO(Piyush/Shiv): Need to fix this subscriber report
                 if self.url_namespace == 'subscriber-report':
-                    request.session['level'] = ""
+                    request.session['level'] = ''
                 request.session['level_id'] = network.id
                 request.session['reports'] = report_list
         else:
