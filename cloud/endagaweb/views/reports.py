@@ -44,7 +44,7 @@ class BaseReport(ProtectedView):
                 request.session['level'] = 'network'
                 # TODO(Piyush/Shiv): Need to fix this subscriber report
                 if self.url_namespace == 'subscriber-report':
-                    request.session['level'] = ''
+                    request.session['level'] = 'network'
                 request.session['level_id'] = network.id
                 request.session['reports'] = report_list
         else:
@@ -84,9 +84,8 @@ class CallReportView(BaseReport):
     def __init__(self, **kwargs):
         template = "dashboard/report/call-sms.html"
         url_namespace = "call-report"
-        reports = {'Call': ['Number of Calls', 'Number of Minutes'],
-                   'SMS': ['Total Usage'],
-                   }
+        reports = {'Call': ['Number of Calls', 'Minutes of Call'],
+                   'SMS': ['Number of SMS']}
         super(CallReportView, self).__init__(reports, template,
                                              url_namespace, **kwargs)
 
@@ -103,11 +102,17 @@ class SubscriberReportView(BaseReport):
     def __init__(self, **kwargs):
         template = "dashboard/report/subscriber.html"
         url_namespace = "subscriber-report"
-        reports = {}
-        super(SubscriberReportView, self).__init__(reports, template,
+        reports = {'Subscriber': ['Number of activations',
+                                  'Number of deactivations',
+                                  'Zero balance subscribers',
+                                  'Inactive subscriber', 'Blocked users']}
+        super(SubscriberReportView, self).__init__({}, template,
                                                    url_namespace, **kwargs)
 
     def get(self, request):
+        return self.handle_request(request)
+
+    def post(self, request):
         return self.handle_request(request)
 
 

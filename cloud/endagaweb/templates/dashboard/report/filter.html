@@ -3,23 +3,28 @@
         <form action="{{ action_url }}" class="form-horizontal"
               method="post" role="form" onsubmit="setloading()">
             {% csrf_token %}
+            {% if report_list %}
             <div class="form-group col-xs-12">
-                {% for key, values in report_list.items %}
-                   <span class="label label-default">{{ key }}</span>
-                {% for report in values %}
-                <label class="checkbox checkbox-inline">
-                    <input id="checkbox" type="checkbox" name="reports"
-                           value="{{ report }}" {% if report in reports %}
-                           checked="checked" {% endif %}>{{ report }}
-                </label>
-                {% endfor %}
-                <div></div>
-                {% endfor %}
+                <label class="control-label col-xs-1">Reports</label>
+                <div class=" col-xs-10">
+                    {% for key, values in report_list.items %}
+                       <span class="label label-default">{{ key }}</span>
+                    {% for report in values %}
+                    <label class="checkbox checkbox-inline">
+                        <input id="checkbox" type="checkbox" name="reports" value="{{ report }}" 
+                               {% if report in reports %} checked="checked" {% endif %}>
+                       {{ report }}
+                    </label>
+                    {% endfor %}
+                    <div></div>
+                    {% endfor %}
+                </div>
             </div>
+            {% endif %}
             <div class="form-group col-xs-12" id="bts_list" {% if not level_id %} style="display: none;" {% endif %}>
+                <label class="control-label col-xs-1">Tower</label>
                 <div class="col-xs-5">
-                    <label class="control-label">Tower</label>
-                    <select name="level_id">
+                    <select name="level_id" class="form-control">
                       <option value="">All Towers</option>
                       {% if towers %} 
                         {% for tower in towers %} 

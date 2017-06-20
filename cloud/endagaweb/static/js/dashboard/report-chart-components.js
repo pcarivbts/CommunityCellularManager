@@ -169,7 +169,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       'level-id': this.props.levelID,
       'aggregation': this.props.aggregation
     };
-    console.log("this.props.endpoint = ", this.props.endpoint, this.props.level);
     var endpoint = this.props.endpoint + this.props.level;
     $.get(endpoint, queryParams, function(data) {
       this.setState({
@@ -673,6 +672,7 @@ var DatePicker = React.createClass({
           today: 'fa fa-circle-o',
         },
         showTodayButton: true,
+        ignoreReadonly: true,
         format: 'YYYY-MM-DD [at] h:mmA',
       },
       dateFormat: 'YYYY-MM-DD [at] h:mmA',
@@ -682,6 +682,10 @@ var DatePicker = React.createClass({
   componentDidMount: function() {
     var formattedDate = moment.unix(this.props.epochTime).format(this.props.dateFormat);
     var domTarget = '#' + this.props.pickerID;
+    $(domTarget).keydown(function(e){
+      e.preventDefault();
+      return false;
+    });
     $(domTarget)
       .datetimepicker(this.props.datePickerOptions)
       .data('DateTimePicker')
@@ -705,7 +709,7 @@ var DatePicker = React.createClass({
     return (
       <span className='datepicker'>
         <label>{this.props.label}</label>
-        <input id={this.props.pickerID} type="text" readonly="readonly" />
+        <input id={this.props.pickerID} type="text" />
       </span>
     );
   },

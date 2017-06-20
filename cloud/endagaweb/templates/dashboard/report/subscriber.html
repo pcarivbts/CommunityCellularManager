@@ -24,7 +24,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 <div class='row'>
   {% include "dashboard/report/nav.html" with active_tab='subscriber_reports' %}
   <div class='content col-xs-12 col-sm-10 col-md-10'>
-    <!--{% include "dashboard/report/filter.html" with action_url='/dashboard/reports/subscriber' %}-->
+    {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/subscriber' %}
     {% if network_has_activity %}
     <div class="row">
       <div id='subscriber-chart'></div>
@@ -73,14 +73,15 @@ of patent rights can be found in the PATENTS file in the same directory.
       timezoneOffset={timezoneOffset}
       tooltipUnits='s of'
       chartType='bar-chart'
-      endpoint='/api/v1/stats/network'
     />,
     document.getElementById('subscriber-chart')
   );
 
 
 </script>
-
-
-
+<script type="text/javascript">
+function setloading() {
+  var $btn = $('#submit').button().button('loading');
+}
+</script>
 {% endblock %}
