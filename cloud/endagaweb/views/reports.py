@@ -104,12 +104,13 @@ class SubscriberReportView(ProtectedView):
             'networks': get_objects_for_user(request.user, 'view_network',
                                              klass=Network),
             'user_profile': user_profile,
-            'network_id': network.id,
+            'level': '',
+            'level_id': network.id,
             'towers': towers,
             'current_time_epoch': int(time.time()),
             'timezone_offset': timezone_offset,
             'network_has_activity': network_has_activity,
-            'reports': self.reports
+            # 'reports': self.reports
         }
         template = get_template("dashboard/report/subscriber.html")
         html = template.render(context, request)
@@ -138,6 +139,7 @@ class BillingReportView(ProtectedView):
     def _handle_request(self, request):
         user_profile = UserProfile.objects.get(user=request.user)
         network = user_profile.network
+        report_list = list({x for v in self.reports.itervalues() for x in v})
         if request.method == "POST":
             request.session['level'] = request.POST.get('level', "")
             if request.session['level'] == 'tower':
@@ -156,7 +158,7 @@ class BillingReportView(ProtectedView):
                 # Reset filtering params.
                 request.session['level'] = "network"
                 request.session['level_id'] = network.id
-                request.session['reports'] = self.reports
+                request.session['reports'] = report_list
         else:
             return HttpResponseBadRequest()
 
@@ -164,6 +166,7 @@ class BillingReportView(ProtectedView):
             datetime.datetime.now()).total_seconds()
         level = request.session['level']
         level_id = int(request.session['level_id'])
+        reports = request.session['reports']
 
         towers = models.BTS.objects.filter(
             network=user_profile.network).values('nickname', 'uuid', 'id')
@@ -181,7 +184,8 @@ class BillingReportView(ProtectedView):
             'current_time_epoch': int(time.time()),
             'timezone_offset': timezone_offset,
             'network_has_activity': network_has_activity,
-            'reports': self.reports
+            'reports': reports,
+            'report_list': self.reports,
         }
         template = get_template("dashboard/report/billing.html")
         html = template.render(context, request)

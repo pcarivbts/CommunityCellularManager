@@ -24,7 +24,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 <div class='row'>
   {% include "dashboard/report/nav.html" with active_tab='subscriber_reports' %}
   <div class='content col-xs-12 col-sm-10 col-md-10'>
-    {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/subscriber' %}
+    <!--{% include "dashboard/report/filter.html" with action_url='/dashboard/reports/subscriber' %}-->
     {% if network_has_activity %}
     <div class="row">
       <div id='subscriber-chart'></div>
@@ -65,7 +65,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       title='Subscriber Activity'
       chartID='call-chart'
       statTypes='provisioned,deprovisioned,zero_balance_subscriber,first_expired,blocked_subscriber,expired'
-      level='subscriber'
+      level='{{ level }}'
       levelID='{{ level_id }}'
       aggregation='valid_through'
       yAxisLabel='numbers'

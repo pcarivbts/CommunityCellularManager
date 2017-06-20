@@ -38,7 +38,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       buttons: ['hour', 'day', 'week', 'month', 'year'],
       icons: ['graph', 'list'],
       defaultView: 'graph',
-      defaultButtonText: 'year',
+      defaultButtonText: 'week',
       endpoint: '/api/v1/stats/',
       statTypes: 'sms',
       level: 'network',
@@ -91,7 +91,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
   // This handler takes the text of the view mode buttons
   // and ouputs figures out the corresponding number of seconds.
   handleViewClick: function(text) {
-    console.log("view mode CHANGED = ", text);
     // Update only if the startTime has actually changed.
     if (this.state.activeView != text) {
       this.setState({
@@ -170,7 +169,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       'level-id': this.props.levelID,
       'aggregation': this.props.aggregation
     };
-    console.log("this.props.endpoint = ", this.props.endpoint, this.props.level);
     var endpoint = this.props.endpoint + this.props.level;
     $.get(endpoint, queryParams, function(data) {
       this.setState({
@@ -354,7 +352,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
     } else if(chartType == 'bar-chart'){
         var chart = nv.models.multiBarChart()
             .x(function(d) { return d[0] })
-            .y(function(d) { return d[1]})
+            .y(function(d) { return d[1] })
             //.staggerLabels(true)    //Too many bars and not enough room? Try staggering labels.
             .tooltips(true)
             //.showValues(true)       //...instead, show the bar value right on top of each bar.
@@ -412,17 +410,6 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
             .transition().duration(350)
             .call(chart);
     }
-
-    //console.log("$(domTarget+'.download') =========", $("#"+domTargetId+'.download'));
-
-    //$("#"+domTargetId+'.download').hide();
-
-    
-
-    
-
-
-
     // Resize the chart on window resize.
     nv.utils.windowResize(chart.update);
     return chart;
@@ -587,9 +574,6 @@ var TimeSeriesChartElement = React.createClass({
   // We circumvent react's typical re-render cycle for this component by returning false.
   shouldComponentUpdate: function(nextProps) {
     this.props.activeView = nextProps.activeView;
-
-    console.log("activeView = ", nextProps.activeView, this.props.activeView);
-
     var nextData = JSON.stringify(nextProps.data);
     var prevData = JSON.stringify(this.props.data);
     if (nextData !== prevData) {
