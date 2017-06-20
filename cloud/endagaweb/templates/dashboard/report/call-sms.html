@@ -52,12 +52,13 @@ of patent rights can be found in the PATENTS file in the same directory.
               <div id='sms-usage-chart'></div>
             </div>
 
-            <div class="row ">
+            <div class="row">
                 {% include 'dashboard/timezone-notice.html' %}
             </div>
             {% else %}
                 <p>There is no network activity to display.</p>
             {% endif %}
+            <canvas id="canvas" width="1000" height="500" style="display: none;"></canvas>
 
         </div> <!-- /.col-md-4 -->
     </div>
@@ -161,6 +162,7 @@ $(document).ready(function() {
     }
   });
 });
+
 </script>
 
 {% endif %}
