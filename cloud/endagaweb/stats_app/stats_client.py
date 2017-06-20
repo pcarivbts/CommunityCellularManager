@@ -18,7 +18,6 @@ import qsstats
 import django.utils.timezone
 from endagaweb import models
 
-
 CALL_KINDS = [
     'local_call', 'local_recv_call', 'outside_call', 'incoming_call',
     'free_call', 'error_call']
@@ -26,12 +25,15 @@ SMS_KINDS = [
     'local_sms', 'local_recv_sms', 'outside_sms', 'incoming_sms', 'free_sms',
     'error_sms']
 SUBSCRIBER_KINDS = ['provisioned', 'deprovisioned']
-ZERO_BALANCE_SUBSCRIBER =['zero_balance_subscriber']
-INACTIVE_SUBSCRIBER =['expired', 'first_expired', 'blocked_subscriber']
+ZERO_BALANCE_SUBSCRIBER = ['zero_balance_subscriber']
+INACTIVE_SUBSCRIBER = ['expired', 'first_expired', 'blocked_subscriber']
 TRANSFER_KINDS = ['transfer', 'add-money']
-USAGE_EVENT_KINDS = CALL_KINDS + SMS_KINDS + ['gprs'] + SUBSCRIBER_KINDS + TRANSFER_KINDS
+USAGE_EVENT_KINDS = CALL_KINDS + SMS_KINDS + [
+    'gprs'] + SUBSCRIBER_KINDS + TRANSFER_KINDS
 TIMESERIES_STAT_KEYS = [
-    'ccch_sdcch4_load', 'tch_f_max', 'tch_f_load', 'sdcch8_max', 'tch_f_pdch_load', 'tch_f_pdch_max', 'tch_h_load', 'tch_h_max', 'sdcch8_load', 'ccch_sdcch4_max',
+    'ccch_sdcch4_load', 'tch_f_max', 'tch_f_load', 'sdcch8_max',
+    'tch_f_pdch_load', 'tch_f_pdch_max', 'tch_h_load', 'tch_h_max',
+    'sdcch8_load', 'ccch_sdcch4_max',
     'sdcch_load', 'sdcch_available', 'tchf_load', 'tchf_available',
     'pch_active', 'pch_total', 'agch_active', 'agch_pending',
     'gprs_current_pdchs', 'gprs_utilization_percentage', 'noise_rssi_db',
@@ -118,14 +120,14 @@ class StatsClientBase(object):
             filters = Q(kind=param)
         elif param in ZERO_BALANCE_SUBSCRIBER:
             objects = models.UsageEvent.objects
-            filters= Q(newamt=0)
+            filters = Q(newamt=0)
         elif param in INACTIVE_SUBSCRIBER:
-            aggregation ='valid_through'
+            aggregation = 'valid_through'
             objects = models.Subscriber.objects
             one_minute_ago = django.utils.timezone.now()
-            if param =='expired':
-                filters =Q(state='expired')
-            elif param =='blocked_subscriber':
+            if param == 'expired':
+                filters = Q(state='expired')
+            elif param == 'blocked_subscriber':
                 filters = Q(state='blocked')
             elif param == 'first_expired':
                 filters = Q(state='first_expired')
@@ -133,7 +135,7 @@ class StatsClientBase(object):
             objects = models.TimeseriesStat.objects
             filters = Q(key=param)
         # Filter by infrastructure level.
-        #print("level ",self.level)
+        # print("level ",self.level)
         if self.level == 'tower':
             filters = filters & Q(bts__id=self.level_id)
         elif self.level == 'network':
@@ -370,7 +372,7 @@ class GPRSStatsClient(StatsClientBase):
     def convert_to_megabytes(self, timeseries):
         """Converts values in a [(time, value) .. ] timeseries to MB."""
         times, values = zip(*timeseries)
-        values = [v / 2.**20 for v in values]
+        values = [v / 2. ** 20 for v in values]
         return zip(times, values)
 
 
