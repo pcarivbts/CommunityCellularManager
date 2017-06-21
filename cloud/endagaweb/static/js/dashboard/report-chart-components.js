@@ -11,7 +11,6 @@
 
 
 var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
-
   getInitialState: function() {
     // We expect many of these values to be overridden before the chart is
     // first rendered -- see componentDidMount.
@@ -26,7 +25,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       activeView:''
     }
   },
-
   getDefaultProps: function() {
     // Load the current time with the user's clock if nothing is specified.  We
     // also specify the user's computer's timezone offset and use that to
@@ -38,7 +36,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       buttons: ['hour', 'day', 'week', 'month', 'year'],
       icons: ['graph', 'list'],
       defaultView: 'graph',
-      defaultButtonText: 'week',
+      defaultButtonText: 'month',
       endpoint: '/api/v1/stats/',
       statTypes: 'sms',
       level: 'network',
@@ -103,7 +101,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
   },
 
   handleDownloadClick: function(text) {
-    console.log("Download called = ", text);
   },
 
   // Datepicker handlers, one each for changing the start and end times.
@@ -167,9 +164,11 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       'interval': interval,
       'stat-types': this.props.statTypes,
       'level-id': this.props.levelID,
-      'aggregation': this.props.aggregation
+      'aggregation': this.props.aggregation,
+      'extras': this.props.extras,
+      'dynamic-stat': this.props.dynamicStat,
+      'topup-percent': this.props.topupPercent
     };
-    console.log("this.props.endpoint = ", this.props.endpoint, this.props.level);
     var endpoint = this.props.endpoint + this.props.level;
     $.get(endpoint, queryParams, function(data) {
       this.setState({
@@ -250,7 +249,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
 
 
 function triggerDownload(imgURI) {
-  console.log("triggerDownload OUTSIDE ==========");
   var evt = new MouseEvent('click', {
     view: window,
     bubbles: false,
@@ -426,10 +424,8 @@ var DownloadButton = React.createClass({
   },
   componentWillMount() {
     this.id = this.props.chartID + "-download";
-    console.log("this.id = ", this.id);
   },
   triggerDownload: function(imgURI) {
-    console.log("triggerDownload ==========");
     var evt = new MouseEvent('click', {
       view: window,
       bubbles: false,
@@ -449,7 +445,6 @@ var DownloadButton = React.createClass({
     var canvas = document.querySelector('canvas');
 
     btn.addEventListener('click', function () {
-      console.log("addEventListener ==========");
       var canvas = document.getElementById('canvas');
       var ctx = canvas.getContext('2d');
       var data = (new XMLSerializer()).serializeToString(svg);

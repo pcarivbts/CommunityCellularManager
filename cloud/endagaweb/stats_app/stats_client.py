@@ -28,6 +28,7 @@ SUBSCRIBER_KINDS = ['provisioned', 'deprovisioned']
 ZERO_BALANCE_SUBSCRIBER = ['zero_balance_subscriber']
 INACTIVE_SUBSCRIBER = ['expired', 'first_expired', 'blocked_subscriber']
 TRANSFER_KINDS = ['transfer', 'add-money']
+DENOMINATION_KINDS = ['start_amount', 'end_amount']
 USAGE_EVENT_KINDS = CALL_KINDS + SMS_KINDS + [
     'gprs'] + SUBSCRIBER_KINDS + TRANSFER_KINDS
 TIMESERIES_STAT_KEYS = [
@@ -40,6 +41,7 @@ TIMESERIES_STAT_KEYS = [
     'noise_ms_rssi_target_db', 'cpu_percent', 'memory_percent', 'disk_percent',
     'bytes_sent_delta', 'bytes_received_delta',
 ]
+from operator import itemgetter, attrgetter, methodcaller
 
 
 class StatsClientBase(object):
@@ -124,7 +126,6 @@ class StatsClientBase(object):
         elif param in INACTIVE_SUBSCRIBER:
             aggregation = 'valid_through'
             objects = models.Subscriber.objects
-            one_minute_ago = django.utils.timezone.now()
             if param == 'expired':
                 filters = Q(state='expired')
             elif param == 'blocked_subscriber':
@@ -134,16 +135,19 @@ class StatsClientBase(object):
         elif param in TIMESERIES_STAT_KEYS:
             objects = models.TimeseriesStat.objects
             filters = Q(key=param)
+        else:
+            # For Dynamic Kinds coming from Database currently for Top Up
+            objects = models.UsageEvent.objects
+            filters = Q(kind='transfer')
         # Filter by infrastructure level.
-        # print("level ",self.level)
         if self.level == 'tower':
             filters = filters & Q(bts__id=self.level_id)
         elif self.level == 'network':
             filters = filters & Q(network__id=self.level_id)
         elif self.level == 'global':
             pass
-        if kwargs.has_key('subscriber'):
-            filters = filters & kwargs.pop('subscriber')
+        if kwargs.has_key('query'):
+            filters = filters & kwargs.pop('query')
         # Create the queryset itself.
         queryset = objects.filter(filters)
         # Use qsstats to aggregate the queryset data on an interval.
@@ -164,10 +168,38 @@ class StatsClientBase(object):
         # Sum of change in amounts for SMS/CALL
         elif aggregation == 'transaction_sum':
             queryset_stats = qsstats.QuerySetStats(
-                queryset, 'date', aggregate=aggregates.Sum('change'))
+                # Change is in negative so graphs make as positive
+                queryset, 'date', aggregate=(aggregates.Sum('change') * -1))
+            ###################################################################
+            try:
+                print 'INSIDE TRY'
+                # percentage = float(kwargs['topup_percent'])
+                percentage = float(50)
+                if percentage > 0:
+                    subscribers = {}
+                    # Create subscribers dict
+                    for a in queryset:
+                        subscribers[a.subscriber_imsi] = 0
+                    for a in queryset_stats.qs:
+                        subscribers[a.subscriber_imsi] += (a.change * -1)
+                    top_count_of_subscribers = (len(subscribers) * percentage)
+                    top_imsis= int(round(top_count_of_subscribers))
+                    # Get top n subscribers for TOP UP
+                    top_subscribers = list(dict(
+                        sorted(subscribers.iteritems(), key=itemgetter(1),
+                               reverse=True)[:top_imsis]).keys())
+                    queryset = queryset_stats.qs.filter(
+                        Q(subscriber_imsi__in=top_subscribers))
+                    queryset_stats = qsstats.QuerySetStats(
+                        queryset, 'date', aggregate=(aggregates.Sum('change') * -1))
+            except:
+                pass  # Do nothing
+            ###################################################################
+
         else:
             queryset_stats = qsstats.QuerySetStats(queryset, 'date')
         timeseries = queryset_stats.time_series(start, end, interval=interval)
+
         # The timeseries results is a list of (datetime, value) pairs.  We need
         # to convert the datetimes to timestamps with millisecond precision and
         # then zip the pairs back together.
@@ -431,6 +463,18 @@ class TransferStatsClient(StatsClientBase):
 
     def timeseries(self, kind=None, **kwargs):
         # Set queryset from subscriber role as retailer
+        kwargs['query'] = Q(subscriber__role='retailer')
+        return self.aggregate_timeseries(kind, **kwargs)
 
-        kwargs['subscriber'] = Q(subscriber__role='retailer')
+
+class TopUpStatsClient(StatsClientBase):
+    def __init__(self, *args, **kwargs):
+        super(TopUpStatsClient, self).__init__(*args, **kwargs)
+
+    def timeseries(self, kind=None, **kwargs):
+        # Change is negative convert to compare
+        raw_amount = [(float(denom) * -1 / 10000) for denom in
+                      kwargs['extras'].split('-')]
+        kwargs['query'] = Q(change__gte=raw_amount[1]) & Q(
+            change__lte=raw_amount[0]) & Q(subscriber__role='retailer')
         return self.aggregate_timeseries(kind, **kwargs)

@@ -37,13 +37,11 @@ of patent rights can be found in the PATENTS file in the same directory.
 
     <div class='row'>
         {% include "dashboard/report/nav.html" with active_tab='billing_reports' %}
-
         <div class='content col-xs-12 col-sm-10 col-md-10'>
-
             {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/billing' %}
-
             {% if network_has_activity %}
-            <div class="row">
+                <div id='top-up-subscriber-chart'></div>
+                <div id='top-up-chart'></div>
                 <div id='call-usage-chart'></div>
                 <div id='sms-usage-chart'></div>
                 <div id='call-sms-usage-chart'></div>
@@ -98,8 +96,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script type="text/jsx">
   var currentTimeEpoch = {{ current_time_epoch }};
   var timezoneOffset = {{ timezone_offset }};
-
-{% if 'Call Billing' in reports %}
+  {% if 'Call Billing' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Call Billing Report'
@@ -116,8 +113,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('call-usage-chart')
   );
-{% endif %}
-{% if 'SMS Billing' in reports %}
+  {% endif %}
+  {% if 'SMS Billing' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='SMS Billing Report'
@@ -207,7 +204,52 @@ of patent rights can be found in the PATENTS file in the same directory.
     document.getElementById('billing-waterfall-summary-chart')
   );
   {% endif %}
-
+  {% if 'Top Up Report' in reports %}
+  React.render(
+  <TimeseriesChartWithButtonsAndDatePickers
+    title='Top Up Report'
+    chartID='topup-chart'
+    //statTypes='start_amount,end_amount'
+    statTypes='{{ kinds }}'
+    level='{{ level }}'
+    levelID='{{ level_id }}'
+    aggregation='count'
+    yAxisLabel='Count'
+    buttons={['month','year']}
+    defaultButtonText='month'
+    currentTimeEpoch={currentTimeEpoch}
+    timezoneOffset={timezoneOffset}
+    chartType='bar-chart'
+    tooltipUnits=' top ups in range of '
+    extras='{{ extra_param }}'
+    dynamicStat='true'
+  />,
+  document.getElementById('top-up-chart')
+  );
+ {% endif %}
+ {% if 'Top Up Report for Subscriber' in reports %}
+  React.render(
+  <TimeseriesChartWithButtonsAndDatePickers
+    title='Top Up Report for Subscriber'
+    chartID='topupSubscriber-chart'
+    statTypes='{{ kinds }}'
+    level='{{ level }}'
+    levelID='{{ level_id }}'
+    aggregation='transaction_sum'
+    yAxisLabel='Total amount of top ups'
+    buttons={['month','year']}
+    defaultButtonText='month'
+    currentTimeEpoch={currentTimeEpoch}
+    timezoneOffset={timezoneOffset}
+    chartType='bar-chart'
+    tooltipUnits=' amount in range '
+    extras='{{ extra_param }}'
+    dynamicStat='true'
+    topupPercent='{{ topup_percent }}'
+  />,
+  document.getElementById('top-up-subscriber-chart')
+);
+  {% endif %}
 </script>
 <script type="text/javascript">
 function setloading() {

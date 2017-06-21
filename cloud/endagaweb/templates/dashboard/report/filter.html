@@ -1,3 +1,4 @@
+
 <div class="row panel">
     <div class="container-fluid">
         <form action="{{ action_url }}" class="form-horizontal"
@@ -30,16 +31,23 @@
                         {% endif %}
                         {% endfor %}
                       {% endif %} 
-                    </select> 
-                    
-                </div> 
+                    </select>
+                    <div></div>
+                    {% if 'Top Up Report for Subscriber' in reports %}
+                    <p></p>
+                    <b>Top Transfers:</b>
+                    <div class="input-group col-xs-4">
+                        <input name ="top_percent" id="top_percent" type="number" class="form-control" min="1" max="100" placeholder="10">
+                        <span class="input-group-addon">%</span>
+                    </div>
+                    {% endif %}
+                </div>
                 <div class="col-xs-3">
                     <button id="submit" type="submit" name="submit" value="Filter"
                             class="btn btn-primary col-xs-4">Filter
                     </button>
                 </div>
-            </div> 
-            
+            </div>
         </form>
     </div>
 </div>

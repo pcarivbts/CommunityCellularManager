@@ -4,7 +4,7 @@ Copyright (c) 2016-present, Facebook, Inc.
 All rights reserved.
 
 This source code is licensed under the BSD-style license found in the
-LICENSE file in the root directory of this source tree. An additional grant 
+LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 """
 
@@ -27,18 +27,14 @@ CALL_KINDS = stats_client.CALL_KINDS + ['call'] #, 'oustside_call']
 GPRS_KINDS = ['total_data', 'uploaded_data', 'downloaded_data']
 TIMESERIES_STAT_KEYS = stats_client.TIMESERIES_STAT_KEYS
 SUBSCRIBER_KINDS = stats_client.SUBSCRIBER_KINDS
-ZERO_BALANACE_SUBSCRIBER =stats_client.ZERO_BALANCE_SUBSCRIBER
+ZERO_BALANACE_SUBSCRIBER = stats_client.ZERO_BALANCE_SUBSCRIBER
 INACTIVE_SUBSCRIBER = stats_client.INACTIVE_SUBSCRIBER
-
+DENOMINATION_KINDS = stats_client.DENOMINATION_KINDS
 # ZERO_BALANACE_SUBSCRIBER
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
-# Set valid aggregation types.
-AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
-                'average_value']
 TRANSFER_KINDS = stats_client.TRANSFER_KINDS
-VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + TRANSFER_KINDS + SUBSCRIBER_KINDS + ZERO_BALANACE_SUBSCRIBER + INACTIVE_SUBSCRIBER
+VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + TRANSFER_KINDS + SUBSCRIBER_KINDS + ZERO_BALANACE_SUBSCRIBER + INACTIVE_SUBSCRIBER + DENOMINATION_KINDS
 # Set valid intervals.
-INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
 # Set valid aggregation types.
 AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
                 'average_value', 'transaction_sum']
@@ -61,7 +57,9 @@ def parse_query_params(params):
         'interval': 'months',
         'stat-types': ['sms'],
         'level-id': -1,
-        'aggregation': 'count'
+        'aggregation': 'count',
+        'extras': [],
+        'topup-percent': -1,
     }
     # Override defaults with any query params that have been set, if the
     # query params are valid.
@@ -84,10 +82,18 @@ def parse_query_params(params):
         # If nothing validated, we just leave the stat-types as the default.
         if validated_types:
             parsed_params['stat-types'] = validated_types
+        # Check if stat-type is dynamic currently for denominations
+        if params.has_key('dynamic-stat') and bool(params['dynamic-stat']):
+            parsed_params['stat-types'] = stat_types
+            # For filtering top topups as per percentage
+            if params.has_key('topup-percent'):
+                parsed_params['topup-percent'] = params['topup-percent']
     if 'level-id' in params:
         parsed_params['level-id'] = int(params['level-id'])
     if 'aggregation' in params and params['aggregation'] in AGGREGATIONS:
         parsed_params['aggregation'] = params['aggregation']
+    if 'extras' in params:
+        parsed_params['extras'] = params['extras'].split(',')
     return parsed_params
 
 
@@ -135,7 +141,7 @@ class StatsAPIView(views.APIView):
         data = {
             'results': [],
         }
-        for stat_type in params['stat-types']:
+        for index, stat_type in enumerate(params['stat-types']):
             # Setup the appropriate stats client, SMS, call or GPRS.
             if stat_type in SMS_KINDS:
                 client_type = stats_client.SMSStatsClient
@@ -149,19 +155,27 @@ class StatsAPIView(views.APIView):
                 client_type = stats_client.SubscriberStatsClient
             elif stat_type in TRANSFER_KINDS:
                 client_type = stats_client.TransferStatsClient
-            # Instantiate the client at an infrastructure level.
             elif stat_type in ZERO_BALANACE_SUBSCRIBER:
                 client_type = stats_client.SubscriberStatsClient
             elif stat_type in INACTIVE_SUBSCRIBER:
                 client_type = stats_client.SubscriberStatsClient
+            elif stat_type in TIMESERIES_STAT_KEYS:
+                client_type = stats_client.TimeseriesStatsClient
+            else:
+                client_type = stats_client.TopUpStatsClient
+
+            # Instantiate the client at an infrastructure level.
             if infrastructure_level == 'global':
                 client = client_type('global')
             elif infrastructure_level == 'network':
                 client = client_type('network', params['level-id'])
             elif infrastructure_level == 'tower':
                 client = client_type('tower', params['level-id'])
-            elif stat_type in TIMESERIES_STAT_KEYS:
-                client_type = stats_client.TimeseriesStatsClient
+            try:
+                extra_param = params['extras'][index]
+            except IndexError:
+                extra_param = None
+
             # Get timeseries results and append it to data.
             results = client.timeseries(
                 stat_type,
@@ -169,6 +183,8 @@ class StatsAPIView(views.APIView):
                 start_time_epoch=params['start-time-epoch'],
                 end_time_epoch=params['end-time-epoch'],
                 aggregation=params['aggregation'],
+                extras=extra_param,
+                topup_percent=params['topup-percent']
             )
             data['results'].append({
                 "key": stat_type,

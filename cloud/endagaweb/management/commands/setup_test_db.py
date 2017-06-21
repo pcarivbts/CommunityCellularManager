@@ -189,12 +189,13 @@ class Command(BaseCommand):
             else:
                 name = ''
             balance = random.randint(40000000, 60000000)
+            # role = random.choice(['subscriber', 'retailer', 'test-sim'])
             state = "active"
             bts = BTS.objects.filter(
                 network=user_profile.network).order_by('?').first()
             subscriber = Subscriber(network=user_profile.network, imsi=imsi,
                                     name=name, balance=balance, state=state,
-                                    bts=bts, last_camped=bts.last_active)
+                                    bts=bts, last_camped=bts.last_active)#, role=role)
             subscriber.save()
             added_subscribers.append(subscriber)
             # And attach some numbers.
@@ -231,7 +232,9 @@ class Command(BaseCommand):
                     ('outside_call', 8000), ('incoming_call', 3000),
                     ('local_call', 2000),
                     ('local_recv_call', 1000),
-                    ('free_call', 0), ('error_call', 0), ('gprs', 5000)]
+                    ('free_call', 0), ('error_call', 0), ('gprs', 5000),
+                    ('transfer', 2000), ('add-money', 2111),
+                ]
                 (kind, tariff) = random.choice(kinds)
                 to_number, billsec, up_bytes, call_duration = 4 * [None]
                 from_number, down_bytes, timespan, change = 4 * [None]
@@ -255,6 +258,17 @@ class Command(BaseCommand):
                     timespan = 60
                     reason = 'gprs_usage, %sB uploaded, %sB downloaded' % (
                         up_bytes, down_bytes)
+                elif kind == 'transfer' :
+                    change = tariff - random.randint(500, tariff)
+                    to_number = str(random.randint(1234567890, 9876543210))
+                    from_number = str(random.randint(1234567890, 9876543210))
+                    reason = '%s to %s' % (kind, to_number)
+
+                elif kind == 'add-money':
+                    change = tariff
+                    to_number = str(random.randint(1234567890, 9876543210))
+                    from_number = str(random.randint(1234567890, 9876543210))
+                    reason = '%s to %s' % (kind, to_number)
                 old_amount = random_sub.balance
                 random_sub.change_balance(change)
                 usage_event = UsageEvent(

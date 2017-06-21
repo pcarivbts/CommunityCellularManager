@@ -20,22 +20,23 @@ import logging
 import time
 import uuid
 
-from django.conf import settings
-from django.contrib.auth.models import Group, User
-from django.contrib.gis.db import models as geomodels
-from django.core.validators import MinValueValidator
-from django.core.exceptions import ValidationError
-from django.db import connection
-from django.db import models
-from django.db import transaction
-from django.db.models import F
-from django.db.models.signals import post_save
-from guardian.shortcuts import (assign_perm, get_users_with_perms)
-from rest_framework.authtoken.models import Token
 import django.utils.timezone
 import itsdangerous
 import pytz
 import stripe
+from django.conf import settings
+from django.contrib.auth.models import Group, User
+from django.contrib.gis.db import models as geomodels
+from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
+from django.db import connection
+from django.db import models
+from django.db import transaction
+from django.db.models import F
+from django.db.models.signals import post_save, pre_save
+from guardian.shortcuts import (assign_perm, get_users_with_perms)
+from rest_framework.authtoken.models import Token
 
 from ccm.common import crdt, logger
 from ccm.common.currency import humanize_credits, CURRENCIES
@@ -47,7 +48,6 @@ from endagaweb.util import dbutils as dbutils
 
 stripe.api_key = settings.STRIPE_API_KEY
 
-
 # These UsageEvent kinds do not count towards subscriber activity.
 NON_ACTIVITIES = (
     'deactivate_number', 'deactivate_subscriber', 'add_money',
@@ -58,6 +58,9 @@ NON_ACTIVITIES = (
 OUTBOUND_ACTIVITIES = (
     'outside_call', 'outside_sms', 'local_call', 'local_sms',
 )
+# These UsageEvent events are not allowed block the Subscriber if repeated
+# for 3 times
+INVALID_EVENTS = ('error_call', 'error_sms')
 
 
 class UserProfile(models.Model):
@@ -77,7 +80,10 @@ class UserProfile(models.Model):
     # because a user may have permissions on other Network instances.
     # For example to get a list of networks the user can view:
     # >>> get_objects_for_user(user_profile.user, 'view_network', klass=Network)
-    network = models.ForeignKey('Network', null=True, on_delete=models.SET_NULL)
+    network = models.ForeignKey('Network', null=True,
+                                on_delete=models.SET_NULL)
+    # Added for Password Expiry
+    last_pwd_update = models.DateTimeField(auto_now=True)
 
     def __str__(self):
           return "%s's profile" % self.user
@@ -506,7 +512,6 @@ class ChargingEntity(models.Model):
     class Meta:
         abstract = True
 
-
 class Subscriber(models.Model):
     network = models.ForeignKey('Network', on_delete=models.CASCADE)
     bts = models.ForeignKey(
@@ -525,8 +530,22 @@ class Subscriber(models.Model):
     # When toggled, this will protect a subsriber from getting "vacuumed."  You
     # can still delete subs with the usual "deactivate" button.
     prevent_automatic_deactivation = models.BooleanField(default=False)
+    # Block subscriber if repeated unauthorized events.
+    is_blocked = models.BooleanField(default=False)
+    block_reason = models.TextField(default='No reason to block yet!',
+                                    max_length=255)
+    block_time = models.DateTimeField(null=True, blank=True)
     valid_through = models.DateTimeField(null=True, auto_now_add=True)
     role = models.TextField(default='retailer')
+
+    class Meta:
+        default_permissions = ()
+        permissions = (
+            ('view_subscriber', 'View subscriber list'),
+            ('change_subscriber', 'Edit subscriber'),
+            ('deactive_subscriber', 'Deactive subscriber'),
+        )
+
 
     @classmethod
     def update_balance(cls, imsi, other_bal):
@@ -767,7 +786,7 @@ class UsageEvent(models.Model):
       downloaded_bytes: number of downloaded bytes for a GPRS event
       timespan: the duration of time over which the GPRS data was sampled
     """
-    transaction_id = models.UUIDField(editable=False, default=uuid.uuid4)
+    transaction_id = models.TextField()
     subscriber = models.ForeignKey(Subscriber, null=True,
                                    on_delete=models.SET_NULL)
     subscriber_imsi = models.TextField(null=True)
@@ -870,10 +889,73 @@ class UsageEvent(models.Model):
         event.subscriber.last_active = event.date
         event.subscriber.save()
 
+    @staticmethod
+    def if_invalid_events(sender, instance=None, created=False, **kwargs):
+        # Check for any invalid event and make an entry
+        if not created:
+            return
+        event = instance
+        if event.kind in INVALID_EVENTS:
+            subscriber = Subscriber.objects.get(imsi=event.subscriber_imsi)
+            if SubscriberInvalidEvents.objects.filter(
+                    subscriber=event.subscriber).exists():
+                # Subscriber is blocked after 3 counts i.e there won't be UEs
+                # unless unblocked
+                subscriber_event = SubscriberInvalidEvents.objects.get(
+                    subscriber=event.subscriber)
+                # if it is a 3rd event in 24hr block the subscriber
+                negative_transactions_ids = subscriber_event.negative_transactions + [
+                    event.transaction_id]
+                subscriber_event.count = subscriber_event.count + 1
+                subscriber_event.event_time = event.date
+                subscriber_event.negative_transactions = negative_transactions_ids
+                subscriber_event.save()
+
+                max_transactions = event.subscriber.network.max_failure_transaction
+                if subscriber_event.count == max_transactions:
+                    subscriber.is_blocked = True
+                    subscriber.block_reason = 'Repeated %s within 24 hours ' % (
+                        '/'.join(INVALID_EVENTS),)
+                    subscriber.block_time = django.utils.timezone.now()
+                    subscriber.save()
+                    logger.info('Subscriber %s blocked for 30 minutes, '
+                                'repeated invalid transactions within 24 '
+                                'hours' % (
+                                    subscriber.imsi))
+            else:
+                subscriber_event = SubscriberInvalidEvents.objects.create(
+                    subscriber=event.subscriber, count=1)
+                subscriber_event.event_time = event.date
+                subscriber_event.negative_transactions = [event.transaction_id]
+                subscriber_event.save()
+        elif SubscriberInvalidEvents.objects.filter(
+                subscriber=event.subscriber).count() > 0:
+            # Delete the event if events are non-consecutive
+            if not event.subscriber.is_blocked:
+                subscriber_event = SubscriberInvalidEvents.objects.get(
+                    subscriber=event.subscriber)
+                logger.info('Subscriber %s invalid event removed' % (
+                    event.subscriber_imsi))
+                subscriber_event.delete()
+
+    @staticmethod
+    def set_transaction_id(sender, instance=None, **kwargs):
+        """
+        Create transaction id to some readable format
+        Set transaction as negative transaction if error event
+        """
+        event = instance
+        if event.kind in INVALID_EVENTS:
+            negative = True
+        else:
+            negative = False
+        event.transaction_id = dbutils.format_transaction(instance.date,
+                                                          negative)
 
 post_save.connect(UsageEvent.set_imsi_and_uuid_and_network, sender=UsageEvent)
 post_save.connect(UsageEvent.set_subscriber_last_active, sender=UsageEvent)
-
+post_save.connect(UsageEvent.if_invalid_events, sender=UsageEvent)
+pre_save.connect(UsageEvent.set_transaction_id, sender=UsageEvent)
 
 class PendingCreditUpdate(models.Model):
     """A credit update that has yet to be acked by a BTS.
@@ -942,7 +1024,8 @@ class Network(models.Model):
     # Whether or not to automatically delete inactive subscribers, and
     # associated parameters.
     sub_vacuum_enabled = models.BooleanField(default=False)
-    sub_vacuum_inactive_days = models.IntegerField(default=180)
+    sub_vacuum_inactive_days = models.PositiveIntegerField(default=180)
+    sub_vacuum_grace_days = models.PositiveIntegerField(default=30)
 
     # csv of endpoints to notify for downtime
     notify_emails = models.TextField(blank=True, default='')
@@ -980,6 +1063,9 @@ class Network(models.Model):
     # Network environments let you specify things like "prod", "test", "dev",
     # etc so they can be filtered out of alerts. For internal use.
     environment = models.TextField(default="default")
+    # Added for Network Balance Limit
+    max_balance = models.BigIntegerField(default=10000)
+    max_failure_transaction = models.PositiveIntegerField(blank=True, default=3)
 
     class Meta:
         permissions = (
@@ -1492,8 +1578,7 @@ class ConfigurationKey(models.Model):
     Can be associated with many things.
     """
     bts = models.ForeignKey(BTS, null=True, blank=True, on_delete=models.CASCADE)
-    network = models.ForeignKey(Network, null=True, blank=True,
-                                on_delete=models.CASCADE)
+    network = models.ForeignKey(Network, null=True, blank=True, on_delete=models.CASCADE)
     category = models.TextField()  # "endaga", "openbts", etc..
     key = models.TextField()
     value = models.TextField()
@@ -1795,3 +1880,11 @@ class FileUpload(models.Model):
     created_time = models.DateTimeField(auto_now_add=True)
     modified_time = models.DateTimeField(auto_now_add=True)
     accessed_time = models.DateTimeField(auto_now=True)
+
+
+class SubscriberInvalidEvents(models.Model):
+    """ Invalid Events logs by Subscriber"""
+    subscriber = models.ForeignKey(Subscriber, on_delete=models.CASCADE)
+    count = models.PositiveIntegerField()
+    event_time = models.DateTimeField(auto_now_add=True)
+    negative_transactions = ArrayField(models.TextField(), null=True)
