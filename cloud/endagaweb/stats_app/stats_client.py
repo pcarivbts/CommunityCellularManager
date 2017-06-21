@@ -26,7 +26,7 @@ SMS_KINDS = [
     'error_sms']
 SUBSCRIBER_KINDS = ['provisioned', 'deprovisioned']
 ZERO_BALANCE_SUBSCRIBER = ['zero_balance_subscriber']
-INACTIVE_SUBSCRIBER = ['expired', 'first_expired', 'blocked_subscriber']
+INACTIVE_SUBSCRIBER = ['expired', 'first_expired', 'blocked']
 TRANSFER_KINDS = ['transfer', 'add-money']
 USAGE_EVENT_KINDS = CALL_KINDS + SMS_KINDS + [
     'gprs'] + SUBSCRIBER_KINDS + TRANSFER_KINDS
@@ -120,22 +120,15 @@ class StatsClientBase(object):
             filters = Q(kind=param)
         elif param in ZERO_BALANCE_SUBSCRIBER:
             objects = models.UsageEvent.objects
-            filters = Q(newamt=0)
+            filters = Q(oldamt__gt=0,newamt__lte=0)
         elif param in INACTIVE_SUBSCRIBER:
             aggregation = 'valid_through'
             objects = models.Subscriber.objects
-            one_minute_ago = django.utils.timezone.now()
-            if param == 'expired':
-                filters = Q(state='expired')
-            elif param == 'blocked_subscriber':
-                filters = Q(state='blocked')
-            elif param == 'first_expired':
-                filters = Q(state='first_expired')
+            filters =Q(state = param)
         elif param in TIMESERIES_STAT_KEYS:
             objects = models.TimeseriesStat.objects
             filters = Q(key=param)
         # Filter by infrastructure level.
-        # print("level ",self.level)
         if self.level == 'tower':
             filters = filters & Q(bts__id=self.level_id)
         elif self.level == 'network':

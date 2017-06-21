@@ -28,10 +28,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     {% if network_has_activity %}
     <div class="row">
       <div id='subscriber-chart'></div>
-    </div>
-    <div class="row ">
-      {% include 'dashboard/timezone-notice.html' %}
-    </div>
+      <div id='subscriber-status'></div>
+    {% include 'dashboard/timezone-notice.html' %}
     {% else %}
     <p>There is no network activity to display.</p>
     {% endif %}
@@ -59,15 +57,15 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script type="text/jsx">
   var currentTimeEpoch = {{ current_time_epoch }};
   var timezoneOffset = {{ timezone_offset }};
-
+  {% if 'Subscriber Activity' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Subscriber Activity'
       chartID='call-chart'
-      statTypes='provisioned,deprovisioned,zero_balance_subscriber,first_expired,blocked_subscriber,expired'
+      statTypes='provisioned,deprovisioned,zero_balance_subscriber'
       level='{{ level }}'
       levelID='{{ level_id }}'
-      aggregation='valid_through'
+      aggregation='count'
       yAxisLabel='numbers'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
@@ -76,6 +74,25 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('subscriber-chart')
   );
+  {% endif %}
+  {% if 'Subscriber Status' in reports %}
+    React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Subscriber Status'
+      chartID='status-chart'
+      statTypes='expired,first_expired,blocked'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
+      aggregation='count'
+      yAxisLabel='numbers'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      tooltipUnits='s of'
+      chartType='bar-chart'
+    />,
+    document.getElementById('subscriber-status')
+  );
+  {% endif %}
 
 
 </script>
@@ -83,5 +100,43 @@ of patent rights can be found in the PATENTS file in the same directory.
 function setloading() {
   var $btn = $('#submit').button().button('loading');
 }
+$(document).ready(function() {
+  $('#from_month').datetimepicker({
+    viewMode: 'years',
+    format: 'MM/YYYY'
+  });
+  $('#to_month').datetimepicker({
+    viewMode: 'years',
+    format: 'MM/YYYY'
+  });
+
+  $('#show').click(function(){
+    var from_date = moment($('#from_month').val(), 'MM/YYYY').unix();
+    var to_month = moment($('#to_month').val(), 'MM/YYYY').unix();
+
+    console.log("Date = ", from_date, to_month);
+    var tableData = [
+      [1111,2222],
+      [3333,4444],
+      [5555,6666]
+    ];
+
+    $('#loader_summary').DataTable({
+      data: tableData,
+      paging:   false,
+      ordering: false,
+      info:     false,
+      searching: false,
+      autoWidth: true,
+      scrollY: 320,
+      destroy: true,
+      columns: [
+          { title: "Title" },
+          { title: "Value" }
+      ]
+    });
+
+  });
+});
 </script>
 {% endblock %}

@@ -1090,15 +1090,67 @@ class ReportGraphDownload(ProtectedView):
                                                           0)
             request.session['stats_type'] = request.GET.get('stat-types',
                                                             None)
+            request.session['level'] = request.GET.get('level',None)
+            request.session['level_id'] =  request.GET.get('level_id',0 )
             start_date = request.session['start_date']
             end_date = request.session['end_date']
-            stats_type = request.GET.get('stat-types')
-            stat_types = request.GET.get('stat-types').split(',')
+            stats_type = request.session['stats_type']
+            stat_types = stats_type.split(',')
             start_time = datetime.datetime.fromtimestamp(
                 float(start_date)).strftime('%Y-%m-%d %H:%M:%S.%f')
             end_time = datetime.datetime.fromtimestamp(
                 float(end_date)).strftime('%Y-%m-%d %H:%M:%S.%f')
+            report_type = request.GET.get('report-type')
+            level = request.session['level']
+            level_id = request.session['level_id']
 
+            if(report_type=='Subscriber Status'):
+                subscriber_events = self._get_subscriber_report(level,level_id, user_profile, start_time,
+                                            end_time,
+                                            stat_types)
+                headers = [
+                    'Subscriber IMSI',
+                    'Subscriber Name',
+                    'Credit Balance(%s' % (currency,),
+                    'Type of State',
+                    'Last Active',
+                    'Last Outbound Activity',
+                    'Last Camped',
+                    'Automatic Deactivation',
+                    'Valid Duration',
+                    'Subscriber Role',
+
+                ]
+                response = HttpResponse(content_type='text/csv')
+                response['Content-Disposition'] = ('attachment;filename='
+                                                   '"etage-%s.csv"') \
+                                                  % (
+                                                      datetime.datetime.now().date(),)
+                writer = csv.writer(response)
+                writer.writerow(headers)
+                timezone = pytz.timezone(user_profile.timezone)
+                for e in subscriber_events[:7000]:
+                    subscriber = e.imsi
+                    if e.imsi.startswith('IMSI'):
+                        subscriber = e.imsi[4:]
+
+                    #tz_date = django_utils_timezone.localtime(e.date, timezone)
+
+                    writer.writerow([
+                        subscriber,
+                        e.name,
+                        humanize_credits(e.balance,
+                                         currency=currency).amount_str(),
+                        e.state,
+                        django_utils_timezone.localtime(e.last_active, timezone).strftime("%Y-%m-%d at %I:%M%p")if e.last_active else '' ,
+                        django_utils_timezone.localtime(e.last_outbound_activity,timezone).strftime("%Y-%m-%d at %I:%M%p") if e.last_outbound_activity else '',
+                        django_utils_timezone.localtime(e.last_camped, timezone).strftime("%Y-%m-%d at %I:%M%p")if e.last_camped else '',
+                        e.prevent_automatic_deactivation,
+                        e.valid_through,
+                        e.role,
+
+                    ])
+                return response
             events = self._get_reportValues(user_profile, start_time,
                                             end_time,
                                             stat_types)
@@ -1178,7 +1230,27 @@ class ReportGraphDownload(ProtectedView):
                 events = events.filter(
                     date__range=(str(start_date), str(end_date)))
             if stats_type:
-                qs = [Q(kind__icontains=s) for s in stats_type]
+                qs = ([Q(kind__icontains=s)for s in stats_type] )
+                qs.append((Q(oldamt__gt=0,newamt__lte=0)))
                 events = events.filter(reduce(operator.or_, qs))
+
             return events
+
+        def _get_subscriber_report(self, level, level_id, user_profile, start_date=None,
+                              end_date=None, stats_type=None):
+            network =  user_profile.network
+            subscriber_events = Subscriber.objects.filter(
+                valid_through__range=(str(start_date), str(end_date)))
+            if stats_type:
+                qs =([Q(state=s)for s in stats_type])
+                subscriber_events = subscriber_events.filter(reduce(operator.or_, qs))
+            # Filter by infrastructure level.
+            # print("level ",self.level)
+            if level == 'tower':
+                subscriber_events = subscriber_events.filter(bts__id=level_id)
+            elif level == 'network':
+                subscriber_events = subscriber_events.filter(network__id=level_id)
+            return subscriber_events
+
+
 

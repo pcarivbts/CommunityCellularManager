@@ -103,11 +103,14 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
   },
 
   handleDownloadClick: function(text) {
+  console.log("download csv")
     var queryParams = {
       'start-time-epoch': this.state.startTimeEpoch,
       'end-time-epoch': this.state.endTimeEpoch,
       'stat-types': this.props.statTypes,
-      'level-id': this.props.levelID,
+      'level':this.props.level,
+      'level_id': this.props.levelID,
+      'report-type':this.props.title,
 
     };
     $.get('/report/downloadcsv', queryParams, function(data,response) {
@@ -257,6 +260,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
           startimeepoch = {this.props.starttime}
           endTimeEpoch = {this.props.endTimeEpoch}
           statsType = {this.props.statTypes}
+          reporttype = {this.props.title}
           onButtonClick={this.handleDownloadClick} />
         <span className='spacer'></span>
         <DownloadGraphButton
