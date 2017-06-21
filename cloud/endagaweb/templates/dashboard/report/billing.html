@@ -28,6 +28,9 @@ of patent rights can be found in the PATENTS file in the same directory.
   .nv-label, .nv-legend-text {
     text-transform: capitalize;
   }
+  td {
+    text-align: center;
+  }
 </style>
 
 {% endblock %}
@@ -52,14 +55,17 @@ of patent rights can be found in the PATENTS file in the same directory.
             </div>
             <div class="row">
               <div id='billing-waterfall-summary-chart'></div>
-              <div id='billing-waterfall-loader-chart'></div>
-              <div id='billing-waterfall-reload-rate-chart'></div>
-              <div id='billing-waterfall-reload-amount-chart'></div>
-              <div id='billing-waterfall-reload-transaction-chart'></div>
-              <div id='billing-waterfall-average-frequency-chart'></div>
             </div>
             <div class="row">
-              {% include "dashboard/report/waterfall.html" %} 
+              <div id="loader_summary">
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Loader" %} 
+              </div>
+            </div>
+            <div class="row">&nbsp;</div>
+            <div class="row">
+              <div id="loader_transaction">
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Loader Transactions" %} 
+              </div>
             </div>
 
             {% else %}
@@ -205,28 +211,37 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script type="text/javascript">
 function setloading() {
   var $btn = $('#submit').button().button('loading');
+  var $btn = $('.submit').button().button('loading');
 }
-$(document).ready(function() {
-  $('#from_month').datetimepicker({
-    viewMode: 'years',
-    format: 'MM/YYYY'
-  });
-  $('#to_month').datetimepicker({
-    viewMode: 'years',
-    format: 'MM/YYYY'
+function renderTable(tableId, aggregation) {
+
+  $('#'+tableId+' .from_month').datetimepicker({
+    viewMode: 'months',
+    format: 'MM/YYYY',
+    defaultDate:'01/01/2016'
   });
 
-  $('#show').click(function(){
-    var from_date = moment($('#from_month').val(), 'MM/YYYY').unix();
-    var to_month = moment($('#to_month').val(), 'MM/YYYY').unix();
+  $('#'+tableId+' .to_month').datetimepicker({
+    viewMode: 'months',
+    format: 'MM/YYYY',
+    defaultDate:'01/06/2017'
+  });
+
+  $('#'+tableId+' .submit').click(function(){
+    console.log("Filter called for ", tableId);
+  });
+
+  $('#'+tableId+' .submit').click(function(){
+    var from_date = moment.utc($('#'+tableId+' .from_month').val(), 'MM/YYYY').unix();
+    var to_month = moment.utc($('#'+tableId+' .to_month').val(), 'MM/YYYY').unix();
 
     var queryParams = {
       'start-time-epoch': from_date,
       'end-time-epoch': to_month,
-      'stat-types': 'loader',
+      'stat-types': aggregation,
       'interval': 'months',
-      'level-id':2,
-      'aggregation': 'count'
+      'level-id':{{ level_id }},
+      'aggregation': aggregation
     };
     var endpoint = '/api/v1/stats/network';
     $.get(endpoint, queryParams, function(data) {
@@ -234,24 +249,36 @@ $(document).ready(function() {
       var tableHeader = data['results'][0]['values']['header'];
       var tableData = data['results'][0]['values']['data'];
 
-      $('#loader_summary').DataTable({
+      $('#'+tableId+' .table').DataTable({
         data: tableData,
         paging:   false,
         ordering: false,
         info:     false,
         searching: false,
         autoWidth: true,
-        scrollY: 320,
+        scrollY: 500,
+        //scrollX: 'auto',
         destroy: true,
-        columns: tableHeader
+        columns: tableHeader,
+        scrollX: true,
+        // fixedColumns: true
+        // fixedColumns: {leftColumns: 2}
       });
     });
-
     console.log("Date = ", from_date, to_month);
 
-    
-  
   });
+
+}
+$(document).ready(function() {
+  
+  renderTable('loader_summary', 'loader');
+  //renderTable('loader_transaction', 'reload_rate');
+  //renderTable('loader_transaction', 'reload_amount');
+  renderTable('loader_transaction', 'reload_transaction');
+  //renderTable('loader_transaction', 'average_frequency');
+  
+  
 });
 </script>
 

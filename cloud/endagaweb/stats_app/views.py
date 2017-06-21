@@ -139,7 +139,7 @@ class StatsAPIView(views.APIView):
         data = {
             'results': [],
         }
-        print "params['stat-types'] === ", params['stat-types']
+        print "params === ", params
 
         for stat_type in params['stat-types']:
             # Setup the appropriate stats client, SMS, call or GPRS.
@@ -155,21 +155,19 @@ class StatsAPIView(views.APIView):
                 client_type = stats_client.SubscriberStatsClient
             elif stat_type in TRANSFER_KINDS:
                 client_type = stats_client.TransferStatsClient
-            # Instantiate the client at an infrastructure level.
             elif stat_type in ZERO_BALANACE_SUBSCRIBER:
                 client_type = stats_client.SubscriberStatsClient
             elif stat_type in INACTIVE_SUBSCRIBER:
                 client_type = stats_client.SubscriberStatsClient
             elif stat_type in WATERFALL_KINDS:
                 client_type = stats_client.WaterfallStatsClient
+            # Instantiate the client at an infrastructure level.
             if infrastructure_level == 'global':
                 client = client_type('global')
             elif infrastructure_level == 'network':
                 client = client_type('network', params['level-id'])
             elif infrastructure_level == 'tower':
                 client = client_type('tower', params['level-id'])
-            elif stat_type in TIMESERIES_STAT_KEYS:
-                client_type = stats_client.TimeseriesStatsClient
             # Get timeseries results and append it to data.
             results = client.timeseries(
                 stat_type,
