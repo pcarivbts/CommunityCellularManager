@@ -147,7 +147,6 @@ class BillingReportView(ProtectedView):
         user_profile = UserProfile.objects.get(user=request.user)
         network = user_profile.network
         report_list = list({x for v in self.reports.itervalues() for x in v})
-        topup_percent = request.POST.get('top_percent') or 100
         if request.method == "POST":
             request.session['topup_percent'] = request.POST.get(
                 'top_percent') or 100
