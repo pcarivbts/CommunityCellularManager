@@ -214,8 +214,28 @@ class Command(BaseCommand):
                                 state='active')
         subscriber.save()
 
+        imsi = "IMSI%d1888000000000" % usernum
+        name = 'test name (no activity)'
+        subscriber2 = Subscriber(network=user_profile.network, imsi=imsi,
+                                bts=bts, name=name, balance=1000,
+                                state='first_expired')
+        subscriber2.save()
+
+        imsi = "IMSI%d8848000000000" % usernum
+        name = 'test name (no activity)'
+        subscriber3 = Subscriber(network=user_profile.network, imsi=imsi,
+                                bts=bts, name=name, balance=1000,
+                                state='expired')
+        subscriber3.save()
+        imsi = "IMSI%d8828000000000" % usernum
+        name = 'test name (no activity)'
+        subscriber4 = Subscriber(network=user_profile.network, imsi=imsi,
+                                bts=bts, name=name, balance=1000,
+                                state='blocked')
+        subscriber4.save()
+
         # Add some UsageEvents attached to random subscribers.
-        events_to_add = random.randint(100, 4000)
+        events_to_add = random.randint(100, 2000)
         sys.stdout.write("adding %s usage events..\n" % events_to_add)
         all_destinations = list(Destination.objects.all())
         with transaction.atomic():
@@ -233,7 +253,8 @@ class Command(BaseCommand):
                     ('local_call', 2000),
                     ('local_recv_call', 1000),
                     ('free_call', 0), ('error_call', 0), ('gprs', 5000),
-                    ('transfer', 2000), ('add-money', 2111),
+                    ('transfer', 2000), ('add-money', 43333),
+                    ('provisioned', 1000), ('deprovisioned', 4000),
                 ]
                 (kind, tariff) = random.choice(kinds)
                 to_number, billsec, up_bytes, call_duration = 4 * [None]
@@ -263,12 +284,22 @@ class Command(BaseCommand):
                     to_number = str(random.randint(1234567890, 9876543210))
                     from_number = str(random.randint(1234567890, 9876543210))
                     reason = '%s to %s' % (kind, to_number)
-
                 elif kind == 'add-money':
                     change = tariff
                     to_number = str(random.randint(1234567890, 9876543210))
                     from_number = str(random.randint(1234567890, 9876543210))
                     reason = '%s to %s' % (kind, to_number)
+                elif kind == 'provisioned':
+                    change = tariff
+                    to_number = str(random.randint(1234567890, 9876543210))
+                    from_number = str(random.randint(1234567890, 9876543210))
+                    reason = '%s to %s' % (kind, to_number)
+                elif kind == 'deprovisioned':
+                    change = tariff
+                    to_number = str(random.randint(1234567890, 9876543210))
+                    from_number = str(random.randint(1234567890, 9876543210))
+                    reason = '%s to %s' % (kind, to_number)
+
                 old_amount = random_sub.balance
                 random_sub.change_balance(change)
                 usage_event = UsageEvent(
@@ -281,6 +312,7 @@ class Command(BaseCommand):
                     timespan=timespan, to_number=to_number,
                     from_number=from_number,
                     destination=random.choice(all_destinations), tariff=tariff)
+
                 try:
                     usage_event.save()
                 except DataError:
@@ -293,7 +325,7 @@ class Command(BaseCommand):
                 subscriber=random_sub, bts=random.choice(added_towers),
                 date=date, kind='local_sms',
                 reason='negative oldamt', oldamt=-200000,
-                newamt=0, change=200000,
+                newamt=0, change=400000,
                 billsec=0, to_number='19195551234',
                 destination=random.choice(all_destinations))
             usage_event.save()
