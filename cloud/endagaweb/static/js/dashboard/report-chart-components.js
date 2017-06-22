@@ -77,9 +77,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
   handleButtonClick: function(text) {
     // Update only if the startTime has actually changed.
     var newStartTimeEpoch = this.props.currentTimeEpoch - secondsMap[text];
-    console.log(newStartTimeEpoch);
-    console.log(this.props.currentTimeEpoch);
-    console.log(secondsMap[text]);
     if (this.state.startTimeEpoch != newStartTimeEpoch) {
       this.setState({
         startTimeEpoch: newStartTimeEpoch,
@@ -497,6 +494,7 @@ var TimeseriesChart = React.createClass({
       className.push('flat');
     }
     if(this.props.activeView == 'list') {
+      $('#'+this.props.chartID + "-download").hide();
       return (
         <div className={className.join(' ')}>
           {flatLineOverlay}
@@ -505,6 +503,7 @@ var TimeseriesChart = React.createClass({
       );
     } 
     else {
+      $('#'+this.props.chartID + "-download").show();
       return (
         <div className={className.join(' ')}>
           {flatLineOverlay}
@@ -695,12 +694,6 @@ var DownloadButton = React.createClass({
     var btn = document.getElementById(this.id);
     var svg = document.getElementById(domTargetId);
     var canvas = document.querySelector('canvas');
-
-    if(this.props.activeView == 'list') {
-        console.log("LIST VIEW");
-    } else {
-        console.log("GRAPH VIEW");
-    }
 
     btn.addEventListener('click', function () {
 
