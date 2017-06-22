@@ -125,7 +125,7 @@ class StatsClientBase(object):
         elif param in INACTIVE_SUBSCRIBER:
             aggregation = 'valid_through'
             objects = models.Subscriber.objects
-            filters =Q(state = param)
+            filters = Q(state = param)
         elif param in TIMESERIES_STAT_KEYS:
             objects = models.TimeseriesStat.objects
             filters = Q(key=param)
@@ -157,7 +157,6 @@ class StatsClientBase(object):
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=aggregates.Avg('value'))
         elif aggregation == 'valid_through':
-
             queryset_stats = qsstats.QuerySetStats(queryset, 'valid_through')
         # Sum of change in amounts for SMS/CALL
         elif aggregation == 'transaction_sum':
@@ -403,14 +402,7 @@ class TimeseriesStatsClient(StatsClientBase):
 
 
 class SubscriberStatsClient(StatsClientBase):
-    """Gathers data on TimeseriesStat instances at a tower level only.
-
-    client = stats_client.TimeseriesStatsClient('tower', tower_id)
-    print client.timeseries(
-        key='gprs_utilization_percentage', interval='minutes',
-        start_time_epoch=12000, end_time_epoch=13000)
-    # [(12345, 1), (12305, 4), (12365, 6) ... ]
-    """
+    """Gathers data on SubscriberStats instance at tower and network level"""
 
     def __init__(self, *args, **kwargs):
         super(SubscriberStatsClient, self).__init__(*args, **kwargs)
@@ -435,14 +427,7 @@ class TransferStatsClient(StatsClientBase):
 
 
 class BTSStatsClient(StatsClientBase):
-    """Gathers data on TimeseriesStat instances at a tower level only.
-
-    client = stats_client.TimeseriesStatsClient('tower', tower_id)
-    print client.timeseries(
-        key='gprs_utilization_percentage', interval='minutes',
-        start_time_epoch=12000, end_time_epoch=13000)
-    # [(12345, 1), (12305, 4), (12365, 6) ... ]
-    """
+    """Gathers data on BTSStats instances at a tower and network level"""
 
     def __init__(self, *args, **kwargs):
         super(BTSStatsClient, self).__init__(*args, **kwargs)

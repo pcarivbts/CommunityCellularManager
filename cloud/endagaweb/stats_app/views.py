@@ -34,7 +34,7 @@ CALL_KINDS = stats_client.CALL_KINDS + ['call'] #, 'oustside_call']
 GPRS_KINDS = ['total_data', 'uploaded_data', 'downloaded_data']
 TIMESERIES_STAT_KEYS = stats_client.TIMESERIES_STAT_KEYS
 SUBSCRIBER_KINDS = stats_client.SUBSCRIBER_KINDS
-ZERO_BALANACE_SUBSCRIBER =stats_client.ZERO_BALANCE_SUBSCRIBER
+ZERO_BALANACE_SUBSCRIBER = stats_client.ZERO_BALANCE_SUBSCRIBER
 INACTIVE_SUBSCRIBER = stats_client.INACTIVE_SUBSCRIBER
 HEALTH_STATUS = stats_client.HEALTH_STATUS
 
@@ -45,7 +45,9 @@ INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
 AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
                 'average_value']
 TRANSFER_KINDS = stats_client.TRANSFER_KINDS
-VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + TRANSFER_KINDS + SUBSCRIBER_KINDS + ZERO_BALANACE_SUBSCRIBER + INACTIVE_SUBSCRIBER + HEALTH_STATUS
+VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + \
+              TRANSFER_KINDS + SUBSCRIBER_KINDS +\
+              ZERO_BALANACE_SUBSCRIBER + INACTIVE_SUBSCRIBER + HEALTH_STATUS
 # Set valid intervals.
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
 # Set valid aggregation types.
