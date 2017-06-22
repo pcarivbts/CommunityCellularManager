@@ -102,7 +102,7 @@ class Command(BaseCommand):
         user_profile.save()
 
         # Add some towers.
-        towers_to_add = random.randint(4, 7)
+        towers_to_add = random.randint(4, 20)
         added_towers = []
         print 'adding %s towers..' % towers_to_add
 
@@ -136,7 +136,7 @@ class Command(BaseCommand):
             bts.package_versions = json.dumps(versions)
             bts.save()
             # Add some TimeseriesStats for each tower.
-            stats_to_add = random.randint(100, 1000)
+            stats_to_add = random.randint(100, 10000)
             print 'adding %s TimeseriesStats..' % stats_to_add
             for _ in range(stats_to_add):
                 date = (
@@ -155,7 +155,7 @@ class Command(BaseCommand):
                                       network=user_profile.network)
                 stat.save()
             # Add some SystemEvents for each tower (either small or large number)
-            number_of_events = [0,1,2,5,18,135,264]
+            number_of_events = [0,1,2,5,18,135,264,500]
             events_to_add = random.choice(number_of_events)
             print 'adding %s SystemEvents..' % events_to_add
             for _ in range(events_to_add):
@@ -182,7 +182,7 @@ class Command(BaseCommand):
         # Add some subscribers.
         sys.stdout.write("adding subscribers and numbers..\n")
         added_subscribers = []
-        for index in range(random.randint(3, 20)):
+        for index in range(random.randint(3, 200)):
             imsi = "IMSI%d999900000000%s" % (usernum, index)
             if random.random() < 0.5:
                 name = "test name %s" % index
@@ -214,8 +214,28 @@ class Command(BaseCommand):
                                 state='active')
         subscriber.save()
 
+        imsi = "IMSI%d1888000000000" % usernum
+        name = 'test name (no activity)'
+        subscriber2 = Subscriber(network=user_profile.network, imsi=imsi,
+                                bts=bts, name=name, balance=1000,
+                                state='first_expired')
+        subscriber2.save()
+
+        imsi = "IMSI%d8848000000000" % usernum
+        name = 'test name (no activity)'
+        subscriber3 = Subscriber(network=user_profile.network, imsi=imsi,
+                                bts=bts, name=name, balance=1000,
+                                state='expired')
+        subscriber3.save()
+        imsi = "IMSI%d8828000000000" % usernum
+        name = 'test name (no activity)'
+        subscriber4 = Subscriber(network=user_profile.network, imsi=imsi,
+                                bts=bts, name=name, balance=1000,
+                                state='blocked')
+        subscriber4.save()
+
         # Add some UsageEvents attached to random subscribers.
-        events_to_add = random.randint(100, 4000)
+        events_to_add = random.randint(100, 40000)
         sys.stdout.write("adding %s usage events..\n" % events_to_add)
         all_destinations = list(Destination.objects.all())
         with transaction.atomic():
@@ -263,7 +283,6 @@ class Command(BaseCommand):
                     to_number = str(random.randint(1234567890, 9876543210))
                     from_number = str(random.randint(1234567890, 9876543210))
                     reason = '%s to %s' % (kind, to_number)
-
                 elif kind == 'add-money':
                     change = tariff
                     to_number = str(random.randint(1234567890, 9876543210))
@@ -275,7 +294,7 @@ class Command(BaseCommand):
                     subscriber=random_sub, bts=random.choice(added_towers),
                     date=date, kind=kind,
                     reason=reason, oldamt=old_amount,
-                    newamt=random_sub.balance, change=-change, billsec=billsec,
+                    newamt=random.randint(0,random_sub.balance), change=-change, billsec=billsec,
                     call_duration=call_duration, uploaded_bytes=up_bytes,
                     downloaded_bytes=down_bytes,
                     timespan=timespan, to_number=to_number,
@@ -300,7 +319,7 @@ class Command(BaseCommand):
 
         # Add some transaction history.
         sys.stdout.write("adding transactions..\n")
-        for _ in range(random.randint(10, 50)):
+        for _ in range(random.randint(10, 500)):
             time_delta = datetime.timedelta(
                 minutes=random.randint(0, 60000))
             date = (timezone.now() - time_delta)
