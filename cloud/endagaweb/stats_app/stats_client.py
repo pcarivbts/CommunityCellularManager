@@ -8,15 +8,15 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 """
 
-from datetime import datetime, timedelta
 import time
-from dateutil.rrule import rrule, MONTHLY
+from datetime import datetime, timedelta
 
-from django.db.models import aggregates
-from django.db.models import Q
+import django.utils.timezone
 import pytz
 import qsstats
-import django.utils.timezone
+from dateutil.rrule import rrule, MONTHLY
+from django.db.models import Q
+from django.db.models import aggregates
 from endagaweb import models
 
 CALL_KINDS = [
@@ -180,13 +180,6 @@ class StatsClientBase(object):
         else:
             queryset_stats = qsstats.QuerySetStats(queryset, 'date')
         timeseries = queryset_stats.time_series(start, end, interval=interval)
-        # ---------------------------
-        print "==========================="
-        print "start = ", start
-        print "end = ", end
-        print "timeseries = ", timeseries
-        # ---------------------------
-
         # The timeseries results is a list of (datetime, value) pairs.  We need
         # to convert the datetimes to timestamps with millisecond precision and
         # then zip the pairs back together.
@@ -459,40 +452,31 @@ class WaterfallStatsClient(StatsClientBase):
     """ waterfall reports data """
 
     def __init__(self, *args, **kwargs):
-        print "WaterfallStatsClient called"
         super(WaterfallStatsClient, self).__init__(*args, **kwargs)
 
     def timeseries(self, kind=None, **kwargs):
-        # Set queryset from subscriber role as retailer
+        # Get report data in timeseries format
         start_time_epoch = kwargs.pop('start_time_epoch', 0)
         end_time_epoch = kwargs.pop('end_time_epoch', -1)
-        interval = kwargs.pop('interval', 'months')
-        aggregation = kwargs.pop('aggregation', 'count')
 
         start = datetime.fromtimestamp(start_time_epoch, pytz.utc)
         if end_time_epoch != -1:
             end = datetime.fromtimestamp(end_time_epoch, pytz.utc)
         else:
             end = datetime.fromtimestamp(time.time(), pytz.utc)
-        print "start = ", start, " -------------- end = ", end
 
         response = {'header': [{'title': "Months"}, {'title': "Activation"}],
                     'data': []};
 
-        #months = [dt for dt in rrule(MONTHLY, dtstart=start, until=end)]
         months = rrule(MONTHLY, dtstart=start, until=end)
         for mnth in months:
             key = mnth.strftime("%b") + "-" + mnth.strftime("%Y")
             response['header'].append({'title':key})
 
-            # Get last/first date of month from current date
+            # Get last/first date of month from selected month
             next_month = mnth.replace(day=28) + timedelta(days=4)
             stats_end_dt = next_month - timedelta(days=next_month.day)
             stats_start_dt = mnth
-
-            print "---------------------------------------------------------"
-            print "STATS_start_date = ", stats_start_dt
-            print "STATS_end_date = ", stats_end_dt
 
             kwargs['start_time_epoch'] = int(stats_start_dt.strftime("%s"))
             kwargs['end_time_epoch'] = int(stats_end_dt.strftime("%s"))
@@ -501,17 +485,12 @@ class WaterfallStatsClient(StatsClientBase):
             kwargs['report_view'] = 'value'
             subscribers = self.aggregate_timeseries(kind_key, **kwargs)
 
-            print "subsribers ========== ", subscribers
-
-            #response['data'].append([key, random.randint(0, 9)])
             month_row = [key, len(subscribers)]
             for col_mnth in months:
                 month_start_dt = col_mnth
-                # Get last date of month from current date
+                # Get last date of month from selected month
                 next_month = col_mnth.replace(day=28) + timedelta(days=4)
                 month_end_dt = next_month - timedelta(days=next_month.day)
-                print "ROW month_start_date = ", month_start_dt
-                print "ROW month_end_date = ", month_end_dt
 
                 kwargs['start_time_epoch'] = int(month_start_dt.strftime("%s"))
                 kwargs['end_time_epoch'] = int(month_end_dt.strftime("%s"))
@@ -522,19 +501,21 @@ class WaterfallStatsClient(StatsClientBase):
                     kwargs['aggregation'] = 'count'
                     kwargs['report_view'] = 'summary'
                 elif kind == 'reload_amount':
-                    kwargs['aggregation'] = 'loader'
-                    kwargs['report_view'] = 'value'
+                    kwargs['aggregation'] = 'transaction_sum'
+                    kwargs['report_view'] = 'summary'
+                elif kind == 'reload_rate':
+                    kwargs['aggregation'] = 'transaction_sum'
+                    kwargs['report_view'] = 'summary'
+                elif kind == 'average_frequency':
+                    kwargs['aggregation'] = 'transaction_sum'
+                    kwargs['report_view'] = 'summary'
                 kwargs['subscriber'] = Q(subscriber_id__in=subscribers)
                 kind_row = 'transfer'
                 result = self.aggregate_timeseries(kind_row, **kwargs)
 
                 if isinstance(result, (list, tuple)):
-                    print "CELL VALUE = ", len(result)
                     month_row.append(len(result))
                 else:
-                    print "CELL VALUE = ", result
                     month_row.append(result)
-                #month_row.append(random.randint(0, 9))
-            subscribers = []
             response['data'].append(month_row)
         return response

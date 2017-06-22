@@ -82,7 +82,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             {% if 'Reload Transaction' in reports %}
             <div class="row">&nbsp;</div>
             <div class="row">
-              <div id="loader_transaction">
+              <div id="reload_transaction">
                 {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Transaction" %} 
               </div>
             </div>
@@ -276,7 +276,7 @@ function renderTable(reportId) {
       'level-id':{{ level_id }},
       'aggregation': reportId
     };
-    var endpoint = '/api/v1/stats/network';
+    var endpoint = '/api/v1/stats/{{ level }}';
     $.get(endpoint, queryParams, function(data) {
       
       var tableHeader = data['results'][0]['values']['header'];
@@ -309,8 +309,6 @@ $(document).ready(function() {
   renderTable('reload_amount');
   renderTable('reload_transaction');
   renderTable('average_frequency');
-
-  
   
 });
 </script>

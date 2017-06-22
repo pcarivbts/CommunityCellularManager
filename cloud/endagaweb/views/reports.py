@@ -8,11 +8,10 @@ from django.core import urlresolvers
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.template.loader import get_template
-from guardian.shortcuts import get_objects_for_user
-
 from endagaweb import models
 from endagaweb.models import (UserProfile, UsageEvent, Network)
 from endagaweb.views.dashboard import ProtectedView
+from guardian.shortcuts import get_objects_for_user
 
 
 class BaseReport(ProtectedView):
@@ -42,7 +41,6 @@ class BaseReport(ProtectedView):
             if 'filter' not in request.GET:
                 # Reset filtering params.
                 request.session['level'] = 'network'
-                # TODO(Piyush/Shiv): Need to fix this subscriber report
                 if self.url_namespace == 'subscriber-report':
                     request.session['level'] = 'network'
                 request.session['level_id'] = network.id
@@ -125,9 +123,9 @@ class BillingReportView(BaseReport):
         reports = {'Call & SMS': ['SMS Billing', 'Call and SMS Billing',
                                   'Call Billing'],
                    'Retailer': ['Retailer Recharge', 'Retailer Load Transfer'],
-                   'Waterfall': ['Activation', 'Loader', 'Reload Rate',
-                                 'Reload Amount', 'Reload Transaction',
-                                 'Average Frequency'],
+                   'Waterfall': ['Activation', 'Loader',
+                                 'Reload Amount', 'Reload Transaction',]
+                                 #'Reload Rate', 'Average Frequency'],
                    }
         super(BillingReportView, self).__init__(reports, template,
                                                 url_namespace, **kwargs)
