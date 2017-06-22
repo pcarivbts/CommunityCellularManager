@@ -515,10 +515,13 @@ class WaterfallStatsClient(StatsClientBase):
 
                 kwargs['start_time_epoch'] = int(month_start_dt.strftime("%s"))
                 kwargs['end_time_epoch'] = int(month_end_dt.strftime("%s"))
-                if kind == 'reload_transaction':
+                if kind == 'loader':
+                    kwargs['aggregation'] = 'loader'
+                    kwargs['report_view'] = 'value'
+                elif kind == 'reload_transaction':
                     kwargs['aggregation'] = 'count'
                     kwargs['report_view'] = 'summary'
-                elif kind == 'loader':
+                elif kind == 'reload_amount':
                     kwargs['aggregation'] = 'loader'
                     kwargs['report_view'] = 'value'
                 kwargs['subscriber'] = Q(subscriber_id__in=subscribers)
