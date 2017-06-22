@@ -4,18 +4,19 @@ Copyright (c) 2016-present, Facebook, Inc.
 All rights reserved.
 
 This source code is licensed under the BSD-style license found in the
-LICENSE file in the root directory of this source tree. An additional grant 
+LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 """
 
-from datetime import datetime
 import time
+from datetime import datetime
+from operator import itemgetter
 
-from django.db.models import aggregates
-from django.db.models import Q
 import pytz
 import qsstats
-import django.utils.timezone
+from django.db.models import Q
+from django.db.models import aggregates
+
 from endagaweb import models
 
 CALL_KINDS = [
@@ -41,7 +42,7 @@ TIMESERIES_STAT_KEYS = [
     'noise_ms_rssi_target_db', 'cpu_percent', 'memory_percent', 'disk_percent',
     'bytes_sent_delta', 'bytes_received_delta',
 ]
-from operator import itemgetter, attrgetter, methodcaller
+
 
 
 class StatsClientBase(object):
@@ -168,34 +169,29 @@ class StatsClientBase(object):
         # Sum of change in amounts for SMS/CALL
         elif aggregation == 'transaction_sum':
             queryset_stats = qsstats.QuerySetStats(
-                # Change is in negative so graphs make as positive
+                # Change is negative value, set positive for charts
                 queryset, 'date', aggregate=(aggregates.Sum('change') * -1))
-            ###################################################################
-            try:
-                print 'INSIDE TRY'
-                # percentage = float(kwargs['topup_percent'])
-                percentage = float(50)
-                if percentage > 0:
-                    subscribers = {}
-                    # Create subscribers dict
-                    for a in queryset:
-                        subscribers[a.subscriber_imsi] = 0
-                    for a in queryset_stats.qs:
-                        subscribers[a.subscriber_imsi] += (a.change * -1)
-                    top_count_of_subscribers = (len(subscribers) * percentage)
-                    top_imsis= int(round(top_count_of_subscribers))
-                    # Get top n subscribers for TOP UP
-                    top_subscribers = list(dict(
-                        sorted(subscribers.iteritems(), key=itemgetter(1),
-                               reverse=True)[:top_imsis]).keys())
-                    queryset = queryset_stats.qs.filter(
-                        Q(subscriber_imsi__in=top_subscribers))
-                    queryset_stats = qsstats.QuerySetStats(
-                        queryset, 'date', aggregate=(aggregates.Sum('change') * -1))
-            except:
-                pass  # Do nothing
-            ###################################################################
-
+            # Do this if percentage if set for top top-up
+            percentage = kwargs['topup_percent']
+            if percentage is not None:
+                subscribers = {}
+                percentage = float(percentage)/100
+                # Create subscribers dict
+                for query in queryset:
+                    subscribers[query.subscriber_imsi] = 0
+                for query in queryset_stats.qs:
+                    subscribers[query.subscriber_imsi] += (query.change * -1)
+                top_count_of_subscribers = (len(subscribers) * percentage)
+                top_imsis = int(round(top_count_of_subscribers))
+                # Get top percentage of subscribers for TOP UP
+                top_subscribers = list(dict(
+                    sorted(subscribers.iteritems(), key=itemgetter(1),
+                           reverse=True)[:top_imsis]).keys())
+                queryset = queryset_stats.qs.filter(
+                    Q(subscriber_imsi__in=top_subscribers))
+                queryset_stats = qsstats.QuerySetStats(
+                    queryset, 'date', aggregate=(
+                        aggregates.Sum('change') * -1))
         else:
             queryset_stats = qsstats.QuerySetStats(queryset, 'date')
         timeseries = queryset_stats.time_series(start, end, interval=interval)

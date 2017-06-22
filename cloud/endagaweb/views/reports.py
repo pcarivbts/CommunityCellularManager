@@ -10,7 +10,9 @@ from django.shortcuts import redirect
 from django.template.loader import get_template
 from guardian.shortcuts import get_objects_for_user
 
+from ccm.common.currency import humanize_credits
 from endagaweb import models
+from endagaweb.models import NetworkDenomination
 from endagaweb.models import (UserProfile, UsageEvent, Network)
 from endagaweb.views.dashboard import ProtectedView
 
@@ -84,8 +86,7 @@ class CallReportView(BaseReport):
         template = "dashboard/report/call-sms.html"
         url_namespace = "call-report"
         reports = {'Call': ['Number of Calls', 'Number of Minutes'],
-                   'SMS': ['Total Usage'],
-                   }
+                   'SMS': ['Total Usage'],}
         super(CallReportView, self).__init__(reports, template,
                                              url_namespace, **kwargs)
 
@@ -110,36 +111,10 @@ class SubscriberReportView(BaseReport):
         return self.handle_request(request)
 
 
-class BillingReportView(BaseReport):
-    """View Billing reports on basis of Network or tower level."""
-
-    def __init__(self, *args, **kwargs):
-        template = "dashboard/report/billing.html"
-        url_namespace = 'billing-report'
-        reports = {'Call & SMS': ['SMS Billing', 'Call and SMS Billing',
-                                  'Call Billing'],
-                   'Retailer': ['Retailer Recharge', 'Retailer Load Transfer',
-                                # 'Waterfall Activation'
-                                ],
-                   'Top Up': ['Monthly', 'Yearly',
-                              ],
-                   }
-        super(BillingReportView, self).__init__(reports, template,
-                                                url_namespace, **kwargs)
-
-    def get(self, request):
-        ob = TopUpReportView()
-        return ob.handle_request(request)
-        # return self.handle_request(request)
-
-    def post(self, request):
-        return self.handle_request(request)
-
-
 class HealthReportView(BaseReport):
     """View System health reports."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         template = "404.html"  # Fix once done
         url_namespace = 'health-report'
         reports = {}
@@ -150,33 +125,32 @@ class HealthReportView(BaseReport):
         return self.handle_request(request)
 
 
-from endagaweb.models import NetworkDenomination
-from ccm.common.currency import humanize_credits
-
-
-class TopUpReportView(ProtectedView):
-    def __init__(self, *args, **kwargs):
-        super(TopUpReportView, self).__init__(**kwargs)
+class BillingReportView(ProtectedView):
+    def __init__(self, **kwargs):
+        super(BillingReportView, self).__init__(**kwargs)
         self.template = "dashboard/report/billing.html"
         self.url_namespace = 'billing-report'
         self.reports = {'Call & SMS': ['SMS Billing', 'Call and SMS Billing',
                                        'Call Billing'],
                         'Retailer': ['Retailer Recharge',
-                                     'Retailer Load Transfer',
-                                     # 'Waterfall Activation'
-                                     ],
+                                     'Retailer Load Transfer',],
                         'Top Up': ['Top Up Report for Subscriber',
-                                   'Top Up Report',
-                                   ],
-                        }
+                                   'Top Up Report',],}
+
+    def get(self, request):
+        return self.handle_request(request)
+
+    def post(self, request):
+        return self.handle_request(request)
 
     def handle_request(self, request):
         user_profile = UserProfile.objects.get(user=request.user)
         network = user_profile.network
         report_list = list({x for v in self.reports.itervalues() for x in v})
-        # TODO: FIX THE REQUEST PARAM FOR PERCENTAGE
-        topup_percent = 20 #
+        topup_percent = request.POST.get('top_percent') or 100
         if request.method == "POST":
+            request.session['topup_percent'] = request.POST.get(
+                'top_percent') or 100
             request.session['level_id'] = request.POST.get('level_id') or 0
             if request.session['level_id']:
                 request.session['level'] = 'tower'
@@ -188,30 +162,6 @@ class TopUpReportView(ProtectedView):
                 urlresolvers.reverse(self.url_namespace) + '?filter=1')
 
         elif request.method == "GET":
-            denom_list = []
-            denom_list2 = []
-            denomination = NetworkDenomination.objects.filter(
-                network_id=network.id)
-
-            for denom in denomination:
-                start_amount = humanize_credits(denom.start_amount)
-                end_amount = humanize_credits(denom.end_amount)
-                denom_list.append(
-                    (start_amount.amount_raw, end_amount.amount_raw))
-            # print denom_list
-
-            formatted_denomnation = []
-            for denom in denom_list:
-                # Now format to mark them as kinds
-                formatted_denomnation.append(
-                    str(humanize_credits(denom[0])).replace(',', '')
-                    + ' - ' +
-                    str(humanize_credits(denom[1])).replace(',', ''))
-                denom_list2.append(
-                    str(denom[0])
-                     + '-' +
-                     str(denom[1]))
-
             if 'filter' not in request.GET:
                 # Reset filtering params.
                 request.session['level'] = 'network'
@@ -220,19 +170,45 @@ class TopUpReportView(ProtectedView):
                     request.session['level'] = ''
                 request.session['level_id'] = network.id
                 request.session['reports'] = report_list
+                request.session['topup_percent'] = 100
         else:
             return HttpResponseBadRequest()
+
+        # For top top-up percentage
+        denom_list = []
+        denom_list2 = []
+        denomination = NetworkDenomination.objects.filter(
+            network_id=network.id)
+
+        for denom in denomination:
+            start_amount = humanize_credits(denom.start_amount)
+            end_amount = humanize_credits(denom.end_amount)
+            denom_list.append(
+                (start_amount.amount_raw, end_amount.amount_raw))
+        formatted_denomnation = []
+        for denom in denom_list:
+            # Now format to mark them as kinds
+            formatted_denomnation.append(
+                str(humanize_credits(denom[0])).replace(',', '')
+                + ' - ' +
+                str(humanize_credits(denom[1])).replace(',', ''))
+            denom_list2.append(
+                str(denom[0])
+                + '-' +
+                str(denom[1]))
+
+
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
             datetime.datetime.now()).total_seconds()
         level = request.session['level']
         level_id = int(request.session['level_id'])
         reports = request.session['reports']
+        topup_percent = float(request.session['topup_percent'])
 
         towers = models.BTS.objects.filter(
             network=user_profile.network).values('nickname', 'uuid', 'id')
         network_has_activity = UsageEvent.objects.filter(
             network=network).exists()
-
         context = {
             'networks': get_objects_for_user(request.user, 'view_network',
                                              klass=Network),
@@ -247,7 +223,7 @@ class TopUpReportView(ProtectedView):
             'network_has_activity': network_has_activity,
             'kinds': ','.join(formatted_denomnation),
             'extra_param': ','.join(denom_list2),
-            'topup_percent' : (topup_percent)/100.00,
+            'topup_percent': topup_percent,
         }
         template = get_template(self.template)
         html = template.render(context, request)
