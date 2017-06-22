@@ -53,8 +53,7 @@ VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + \
 # Set valid aggregation types.
 AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
                 'average_value', 'transaction_sum']
-
-
+REPORT_VIEWS = ['summary', 'list']
 
 # Any requested start time earlier than this date will be set to this date.
 # This comes from a bug where UEs were generated at an astounding rate in
@@ -74,6 +73,7 @@ def parse_query_params(params):
         'stat-types': ['sms'],
         'level-id': -1,
         'aggregation': 'count',
+        'report-view': 'list',
         'extras': [],
         'topup-percent': None,
     }
@@ -110,6 +110,8 @@ def parse_query_params(params):
         parsed_params['aggregation'] = params['aggregation']
     if 'extras' in params:
         parsed_params['extras'] = params['extras'].split(',')
+    if 'report-view' in params and params['report-view'] in REPORT_VIEWS:
+        parsed_params['report-view'] = params['report-view']
     return parsed_params
 
 
@@ -205,6 +207,7 @@ class StatsAPIView(views.APIView):
                 start_time_epoch=params['start-time-epoch'],
                 end_time_epoch=params['end-time-epoch'],
                 aggregation=params['aggregation'],
+                report_view=params['report-view'],
                 extras=extra_param,
                 topup_percent=params['topup-percent']
             )

@@ -47,6 +47,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       timezoneOffset: 0,
       tooltipUnits: '',
       chartType: 'line-chart',
+      reportView: 'list'
     }
   },
 
@@ -201,7 +202,8 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       'aggregation': this.props.aggregation,
       'extras': this.props.extras,
       'dynamic-stat': this.props.dynamicStat,
-      'topup-percent': this.props.topupPercent
+      'topup-percent': this.props.topupPercent,
+      'report-view': this.props.reportView
     };
     var endpoint = this.props.endpoint + this.props.level;
     $.get(endpoint, queryParams, function(data) {
