@@ -14,7 +14,6 @@ from operator import itemgetter
 
 import pytz
 import qsstats
-
 from dateutil.rrule import rrule, MONTHLY
 from django.db.models import Q
 from django.db.models import aggregates
@@ -212,6 +211,9 @@ class StatsClientBase(object):
         datetimes, values = zip(*timeseries)
         if report_view == 'summary':
             # Return sum count for pie-chart and table view
+            if aggregation == 'transaction_sum':
+                # When kind is change
+                return sum(values) * 0.000001
             return sum(values)
 
         timestamps = [

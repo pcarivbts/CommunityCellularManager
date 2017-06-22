@@ -77,6 +77,9 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
   handleButtonClick: function(text) {
     // Update only if the startTime has actually changed.
     var newStartTimeEpoch = this.props.currentTimeEpoch - secondsMap[text];
+    console.log(newStartTimeEpoch);
+    console.log(this.props.currentTimeEpoch);
+    console.log(secondsMap[text]);
     if (this.state.startTimeEpoch != newStartTimeEpoch) {
       this.setState({
         startTimeEpoch: newStartTimeEpoch,
@@ -92,13 +95,19 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
   handleViewClick: function(text) {
     // Update only if the startTime has actually changed.
     if (this.state.activeView != text) {
+
       this.setState({
         startTimeEpoch: this.state.startTimeEpoch,
         endTimeEpoch: this.props.currentTimeEpoch,
         isLoading: true,
         activeView: text,
       });
-      this.handleButtonClick();
+      var interval = this.props.defaultButtonText;
+      setTimeout(function(){
+        //this.handleButtonClick(interval);
+        this.forceUpdate()
+      }.bind(this), 1000);
+
     }
   },
 
@@ -265,6 +274,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
           endTimeEpoch = {this.props.endTimeEpoch}
           statsType = {this.props.statTypes}
           reporttype = {this.props.title}
+          activeView = {this.props.activeView}
           onButtonClick={this.handleDownloadClick} />
         <span className='spacer'></span>
         <LoadingText
@@ -674,6 +684,7 @@ var DownloadButton = React.createClass({
       defaultButtonText: 'week',
       statsType:'',
       onButtonClick: null,
+      activeView:'graph'
     }
   },
   componentWillMount() {
@@ -685,7 +696,14 @@ var DownloadButton = React.createClass({
     var svg = document.getElementById(domTargetId);
     var canvas = document.querySelector('canvas');
 
+    if(this.props.activeView == 'list') {
+        console.log("LIST VIEW");
+    } else {
+        console.log("GRAPH VIEW");
+    }
+
     btn.addEventListener('click', function () {
+
       var width = $("#"+domTargetId).width();
       var height = $("#"+domTargetId).height();
 
@@ -774,13 +792,13 @@ var ViewButton = React.createClass({
     }
     if(this.props.buttonText == 'graph') {
       return (
-        <a style={inlineStyles} onClick={this.onThisClick.bind(this, this.props.buttonText)}  title="Graphical">
+        <a style={inlineStyles} onClick={this.onThisClick.bind(this, this.props.buttonText)}  title="Graphical view">
           <i className='fa fa-lg fa-area-chart' aria-hidden="true"></i>
         </a>
       );
     } else {
       return (
-        <a style={inlineStyles} onClick={this.onThisClick.bind(this, this.props.buttonText)}  title="Tabular">
+        <a style={inlineStyles} onClick={this.onThisClick.bind(this, this.props.buttonText)}  title="Table view">
           <i className='fa fa-lg fa-list-ul' aria-hidden="true"></i>
         </a>
       );

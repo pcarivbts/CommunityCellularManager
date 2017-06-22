@@ -40,16 +40,13 @@ HEALTH_STATUS = stats_client.HEALTH_STATUS
 WATERFALL_KINDS = ['loader', 'reload_rate', 'reload_amount',
                    'reload_transaction', 'average_frequency']
 DENOMINATION_KINDS = stats_client.DENOMINATION_KINDS
-# ZERO_BALANACE_SUBSCRIBER
+# Set valid intervals.
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
-# Set valid aggregation types.
-AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
-                'average_value']
+
 TRANSFER_KINDS = stats_client.TRANSFER_KINDS
 VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + \
               TRANSFER_KINDS + SUBSCRIBER_KINDS + ZERO_BALANACE_SUBSCRIBER + \
               INACTIVE_SUBSCRIBER + WATERFALL_KINDS + HEALTH_STATUS + DENOMINATION_KINDS
-# Set valid intervals.
 # Set valid aggregation types.
 AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
                 'average_value', 'transaction_sum']
