@@ -15,6 +15,11 @@ from guardian.shortcuts import get_objects_for_user
 
 
 class BaseReport(ProtectedView):
+    """The base Report class.
+
+        Process request and response for report view pages.This class used for
+        handling filter by network, tower and report list.
+        """
     def __init__(self, reports, template, url_namespace='call-report',
                  **kwargs):
         super(BaseReport, self).__init__(**kwargs)
@@ -23,9 +28,26 @@ class BaseReport(ProtectedView):
         self.url_namespace = url_namespace
 
     def handle_request(self, request):
+        """Process request.
+
+        We want filters to persist even when someone changes pages without
+        re-submitting the form. Page changes will always come over a GET
+        request, not a POST.
+         - If it's a GET, we should try to pull settings from the session.
+         - If it's a POST, we should replace whatever is in the session.
+         - If it's a GET with no page, we should blank out the session.
+         """
         user_profile = UserProfile.objects.get(user=request.user)
         network = user_profile.network
         report_list = list({x for v in self.reports.itervalues() for x in v})
+        # Process parameters.
+        # We want filters to persist even when someone changes pages without
+        # re-submitting the form. Page changes will always come over a GET
+        # request, not a POST.
+        # - If it's a GET, we should try to pull settings from the session.
+        # - If it's a POST, we should replace whatever is in the session.
+        # - If it's a GET with no page variable, we should blank out the
+        #   session.
         if request.method == "POST":
             request.session['level_id'] = request.POST.get('level_id') or 0
             if request.session['level_id']:
@@ -34,6 +56,8 @@ class BaseReport(ProtectedView):
                 request.session['level'] = "network"
                 request.session['level_id'] = network.id
             request.session['reports'] = request.POST.getlist('reports', None)
+            # We always just do a redirect to GET. We include page reference
+            # to retain the search parameters in the session.
             return redirect(
                 urlresolvers.reverse(self.url_namespace) + '?filter=1')
 
