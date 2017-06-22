@@ -43,6 +43,7 @@ of patent rights can be found in the PATENTS file in the same directory.
         <div class='content col-xs-12 col-sm-10 col-md-10'>
             {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/billing' %}
             {% if network_has_activity %}
+            <div class="row">
                 <div id='top-up-subscriber-chart'></div>
                 <div id='top-up-chart'></div>
                 <div id='call-usage-chart'></div>

@@ -256,6 +256,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
             />
           );
         }, this)}
+        <span className='spacer'></span>
         <DownloadButton
           chartID={this.props.chartID}
           startimeepoch = {this.props.starttime}
@@ -264,8 +265,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
           reporttype = {this.props.title}
           onButtonClick={this.handleDownloadClick} />
         <span className='spacer'></span>
-        <DownloadGraphButton
-          chartID={this.props.chartID} />
         <LoadingText
           visible={this.state.isLoading}
         />
@@ -437,82 +436,6 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
     return chart;
   });
 };
-
-
-var DownloadGraphButton = React.createClass({
-  getDefaultProps: function() {
-    return {
-      onButtonClick: null,
-    }
-  },
-  componentWillMount() {
-    this.id = this.props.chartID + "-download";
-  },
-  componentDidMount: function() {
-    var domTargetId = this.props.chartID;
-    var btn = document.getElementById(this.id);
-    var svg = document.getElementById(domTargetId);
-    var canvas = document.querySelector('canvas');
-
-    btn.addEventListener('click', function () {
-      var width = $("#"+domTargetId).width();
-      var height = $("#"+domTargetId).height();
-
-      var canvas = document.getElementById('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      var ctx = canvas.getContext('2d');
-
-      ctx.fillStyle = "#FFF";
-      ctx.fillRect(0, 0, width, height);
-
-      var data = (new XMLSerializer()).serializeToString(svg);
-      var DOMURL = window.URL || window.webkitURL;
-
-      var img = new Image();
-      var svgBlob = new Blob([data], {type: 'image/svg+xml;charset=utf-8'});
-      var url = DOMURL.createObjectURL(svgBlob);
-
-      img.onload = function() {
-        ctx.drawImage(img, 0, 0);
-        DOMURL.revokeObjectURL(url);
-
-        var imgURI = canvas
-          .toDataURL('image/png')
-          .replace('image/png', 'image/octet-stream');
-
-          var evt = new MouseEvent('click', {
-            view: window,
-            bubbles: false,
-            cancelable: true
-          });
-
-          var a = document.createElement('a');
-          a.setAttribute('download', 'report.png');
-          a.setAttribute('href', imgURI);
-          a.setAttribute('target', '_blank');
-          a.dispatchEvent(evt);
-      };
-      img.src = url;
-      //img.setAttribute("src", "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(data))) );
-    });
-  },
-
-  render: function() {
-    return (
-      <span className="loadingText">
-        <a href="javascript:void(0);" onClick={this.onThisClick.bind(this)} title="Download" id={this.id}>
-          <i className='fa fa-lg fa-download' aria-hidden="true"></i>
-        </a>
-      </span>
-    );
-  },
-
-  onThisClick: function(text) {
-    this.props.onButtonClick(text);
-  }
-});
-
 
 
 var TimeseriesChart = React.createClass({
@@ -751,22 +674,73 @@ var DownloadButton = React.createClass({
       onButtonClick: null,
     }
   },
+  componentWillMount() {
+    this.id = this.props.chartID + "-download";
+  },
+  componentDidMount: function() {
+    var domTargetId = this.props.chartID;
+    var btn = document.getElementById(this.id);
+    var svg = document.getElementById(domTargetId);
+    var canvas = document.querySelector('canvas');
+
+    btn.addEventListener('click', function () {
+      var width = $("#"+domTargetId).width();
+      var height = $("#"+domTargetId).height();
+
+      var canvas = document.getElementById('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      var ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = "#FFF";
+      ctx.fillRect(0, 0, width, height);
+
+      var data = (new XMLSerializer()).serializeToString(svg);
+      var DOMURL = window.URL || window.webkitURL;
+
+      var img = new Image();
+      var svgBlob = new Blob([data], {type: 'image/svg+xml;charset=utf-8'});
+      var url = DOMURL.createObjectURL(svgBlob);
+
+      img.onload = function() {
+        ctx.drawImage(img, 0, 0);
+        DOMURL.revokeObjectURL(url);
+
+        var imgURI = canvas
+          .toDataURL('image/png')
+          .replace('image/png', 'image/octet-stream');
+
+          var evt = new MouseEvent('click', {
+            view: window,
+            bubbles: false,
+            cancelable: true
+          });
+
+          var a = document.createElement('a');
+          a.setAttribute('download', 'report.png');
+          a.setAttribute('href', imgURI);
+          a.setAttribute('target', '_blank');
+          a.dispatchEvent(evt);
+      };
+      img.src = url;
+      //img.setAttribute("src", "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(data))) );
+    });
+  },
   render: function() {
     return (
-      <span className="loadingText pull-right">
-        download&nbsp;&nbsp;
-         <a href="javascript:void(0);" title="download graph">
-          <i className='fa fa-lg fa-area-chart' aria-hidden="true"></i>
+      <span className="loadingText">
+        <a href="javascript:void(0);" title="download graph" id={this.id}>
+          <i className='fa fa-lg fa-file-image-o' aria-hidden="true"></i>
         </a>&nbsp;&nbsp;
-        <a  href="#" title = "download CSV" onClick={this.onThisClick.bind(this)}>
-          <i className='fa fa-lg fa-list-ul' aria-hidden="true"></i>
+        <a href="javascript:void(0);" title = "download CSV" onClick={this.onThisClick.bind(this)}>
+          <i className='fa fa-lg fa-file-excel-o' aria-hidden="true"></i>
         </a>
       </span>
     );
   },
   onThisClick: function(text) {
     this.props.onButtonClick();
-  },
+  }
 });
 
 var ViewButton = React.createClass({
