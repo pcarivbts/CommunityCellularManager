@@ -37,7 +37,8 @@ SUBSCRIBER_KINDS = stats_client.SUBSCRIBER_KINDS
 ZERO_BALANACE_SUBSCRIBER = stats_client.ZERO_BALANCE_SUBSCRIBER
 INACTIVE_SUBSCRIBER = stats_client.INACTIVE_SUBSCRIBER
 HEALTH_STATUS = stats_client.HEALTH_STATUS
-
+WATERFALL_KINDS = ['loader', 'reload_rate', 'reload_amount',
+                   'reload_transaction', 'average_frequency']
 
 # ZERO_BALANACE_SUBSCRIBER
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
@@ -46,8 +47,8 @@ AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
                 'average_value']
 TRANSFER_KINDS = stats_client.TRANSFER_KINDS
 VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + \
-              TRANSFER_KINDS + SUBSCRIBER_KINDS +\
-              ZERO_BALANACE_SUBSCRIBER + INACTIVE_SUBSCRIBER + HEALTH_STATUS
+              TRANSFER_KINDS + SUBSCRIBER_KINDS + ZERO_BALANACE_SUBSCRIBER + \
+              INACTIVE_SUBSCRIBER + WATERFALL_KINDS + HEALTH_STATUS
 # Set valid intervals.
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
 # Set valid aggregation types.
@@ -147,6 +148,8 @@ class StatsAPIView(views.APIView):
         data = {
             'results': [],
         }
+        print "params === ", params
+
         for stat_type in params['stat-types']:
             # Setup the appropriate stats client, SMS, call or GPRS.
             if stat_type in SMS_KINDS:
@@ -161,21 +164,21 @@ class StatsAPIView(views.APIView):
                 client_type = stats_client.SubscriberStatsClient
             elif stat_type in TRANSFER_KINDS:
                 client_type = stats_client.TransferStatsClient
-            # Instantiate the client at an infrastructure level.
             elif stat_type in ZERO_BALANACE_SUBSCRIBER:
                 client_type = stats_client.SubscriberStatsClient
             elif stat_type in INACTIVE_SUBSCRIBER:
                 client_type = stats_client.SubscriberStatsClient
             elif stat_type in HEALTH_STATUS:
                 client_type = stats_client.BTSStatsClient
+            elif stat_type in WATERFALL_KINDS:
+                client_type = stats_client.WaterfallStatsClient
+            # Instantiate the client at an infrastructure level.
             if infrastructure_level == 'global':
                 client = client_type('global')
             elif infrastructure_level == 'network':
                 client = client_type('network', params['level-id'])
             elif infrastructure_level == 'tower':
                 client = client_type('tower', params['level-id'])
-            elif stat_type in TIMESERIES_STAT_KEYS:
-                client_type = stats_client.TimeseriesStatsClient
             # Get timeseries results and append it to data.
             results = client.timeseries(
                 stat_type,
@@ -191,13 +194,10 @@ class StatsAPIView(views.APIView):
                 "values": results
             })
 
-
         # Convert params.stat_types back to CSV and echo back the request.
         params['stat-types'] = ','.join(params['stat-types'])
         data['request'] = params
         # Send results and echo back the request params.
         response_status = status.HTTP_200_OK
         return response.Response(data, response_status)
-
-
 

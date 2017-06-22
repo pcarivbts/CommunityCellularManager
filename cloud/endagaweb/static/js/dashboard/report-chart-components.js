@@ -99,6 +99,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
         isLoading: true,
         activeView: text,
       });
+      this.handleButtonClick();
     }
   },
 
@@ -446,39 +447,26 @@ var DownloadGraphButton = React.createClass({
   componentWillMount() {
     this.id = this.props.chartID + "-download";
   },
-  triggerDownload: function(imgURI) {
-    var evt = new MouseEvent('click', {
-      view: window,
-      bubbles: false,
-      cancelable: true
-    });
-
-    var a = document.createElement('a');
-    a.setAttribute('download', 'report.png');
-    a.setAttribute('href', imgURI);
-    a.setAttribute('target', '_blank');
-    a.dispatchEvent(evt);
-  },
   componentDidMount: function() {
-    
     var domTargetId = this.props.chartID;
     var btn = document.getElementById(this.id);
     var svg = document.getElementById(domTargetId);
     var canvas = document.querySelector('canvas');
     
     btn.addEventListener('click', function () {
-      // var width = $("#"+domTargetId).width();
-      // var height = $("#"+domTargetId).height();
-      // $('#canvas').width(width).height(height);
+      var width = $("#"+domTargetId).width();
+      var height = $("#"+domTargetId).height();
       
       var canvas = document.getElementById('canvas');
+      canvas.width = width;
+      canvas.height = height;
       var ctx = canvas.getContext('2d');
 
       ctx.fillStyle = "#FFF";
-      ctx.fillRect(0, 0, parseInt($("#"+domTargetId).width()), parseInt($("#"+domTargetId).height()));
+      ctx.fillRect(0, 0, width, height);
 
       var data = (new XMLSerializer()).serializeToString(svg);
-      var DOMURL = window.URL || window.webkitURL || window;
+      var DOMURL = window.URL || window.webkitURL;
 
       var img = new Image();
       var svgBlob = new Blob([data], {type: 'image/svg+xml;charset=utf-8'});
@@ -492,7 +480,6 @@ var DownloadGraphButton = React.createClass({
           .toDataURL('image/png')
           .replace('image/png', 'image/octet-stream');
           
-          //triggerDownload(imgURI);
           var evt = new MouseEvent('click', {
             view: window,
             bubbles: false,
@@ -506,6 +493,7 @@ var DownloadGraphButton = React.createClass({
           a.dispatchEvent(evt);
       };
       img.src = url;
+      //img.setAttribute("src", "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(data))) );
     });
   },
 
@@ -862,3 +850,4 @@ var Table = React.createClass({
       );
   }
 });
+

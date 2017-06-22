@@ -93,7 +93,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     <TimeseriesChartWithButtonsAndDatePickers
       title='Number of Calls'
       chartID='call-chart'
-      statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
+      statTypes='free_call,outside_call,local_call,local_recv_call,incoming_call,error_call'
       level='{{ level }}'
       levelID='{{ level_id }}'
       aggregation='count'
@@ -106,13 +106,13 @@ of patent rights can be found in the PATENTS file in the same directory.
     document.getElementById('call-number-chart')
   );
   {% endif %}
-  {% if 'Number of Minutes' in reports %}
+  {% if 'Minutes of Call' in reports %}
 
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Minutes of Calls'
       chartID='data-chart'
-      statTypes='free_call,oustside_call,local_call,local_recv_call,incoming_call,error_call'
+      statTypes='free_call,outside_call,local_call,local_recv_call,incoming_call,error_call'
       level='{{ level }}'
       levelID='{{ level_id }}'
       aggregation='duration'
@@ -126,11 +126,11 @@ of patent rights can be found in the PATENTS file in the same directory.
   );
 
   {% endif %}
-  {% if 'Total Usage' in reports %}
+  {% if 'Number of SMS' in reports %}
 
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
-      title='SMS usage'
+      title='Number of SMS '
       chartID='sms-chart'
       statTypes='local_sms,local_recv_sms,outside_sms,incoming_sms,free_sms,error_sms'
       level='{{ level }}'

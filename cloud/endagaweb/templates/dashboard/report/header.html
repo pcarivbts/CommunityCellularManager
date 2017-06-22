@@ -8,31 +8,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endcomment %}
 
 <div class="row">
-    <!--div class="pull-right col-sm-1">
-        <div class="btn-group ">
-            <button type="button" class="btn btn-default dropdown-toggle"
-                    data-toggle="dropdown">
-                All Towers
-                <span class="caret"></span>
-            </button>
-
-            <ul class="dropdown-menu" role="menu">
-                {% if towers %}
-                {% for tower in towers %}
-                {% if tower.id == level_id %}
-                <li><a href="javascript:void(0);">{{ tower.nickname }} </a></li>
-                {% else %}
-                <li><a href="javascript:void(0);">{{ tower.nickname }} </a></li>
-                </option>
-                {% endif %}
-                {% endfor %}
-                {% endif %}
-                <li class="divider"></li>
-            </ul>
-        </div>
-    </div-->
     <div class="col-xs-2 col-sm-4 page-header">
-
         <h3 class="page-title">
           {% if header %}
             <span id='name'> {{ header }} </span>
