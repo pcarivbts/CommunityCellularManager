@@ -102,7 +102,7 @@ class Command(BaseCommand):
         user_profile.save()
 
         # Add some towers.
-        towers_to_add = random.randint(4, 20)
+        towers_to_add = random.randint(4, 7)
         added_towers = []
         print 'adding %s towers..' % towers_to_add
 
@@ -136,7 +136,7 @@ class Command(BaseCommand):
             bts.package_versions = json.dumps(versions)
             bts.save()
             # Add some TimeseriesStats for each tower.
-            stats_to_add = random.randint(100, 10000)
+            stats_to_add = random.randint(100, 1000)
             print 'adding %s TimeseriesStats..' % stats_to_add
             for _ in range(stats_to_add):
                 date = (
@@ -155,7 +155,7 @@ class Command(BaseCommand):
                                       network=user_profile.network)
                 stat.save()
             # Add some SystemEvents for each tower (either small or large number)
-            number_of_events = [0,1,2,5,18,135,264,500]
+            number_of_events = [0,1,2,5,18,135,264]
             events_to_add = random.choice(number_of_events)
             print 'adding %s SystemEvents..' % events_to_add
             for _ in range(events_to_add):
@@ -182,7 +182,7 @@ class Command(BaseCommand):
         # Add some subscribers.
         sys.stdout.write("adding subscribers and numbers..\n")
         added_subscribers = []
-        for index in range(random.randint(3, 200)):
+        for index in range(random.randint(3, 20)):
             imsi = "IMSI%d999900000000%s" % (usernum, index)
             if random.random() < 0.5:
                 name = "test name %s" % index
@@ -235,7 +235,7 @@ class Command(BaseCommand):
         subscriber4.save()
 
         # Add some UsageEvents attached to random subscribers.
-        events_to_add = random.randint(100, 40000)
+        events_to_add = random.randint(100, 2000)
         sys.stdout.write("adding %s usage events..\n" % events_to_add)
         all_destinations = list(Destination.objects.all())
         with transaction.atomic():
@@ -253,7 +253,8 @@ class Command(BaseCommand):
                     ('local_call', 2000),
                     ('local_recv_call', 1000),
                     ('free_call', 0), ('error_call', 0), ('gprs', 5000),
-                    ('transfer', 2000), ('add-money', 2111),
+                    ('transfer', 2000), ('add-money', 43333),
+                    ('provisioned', 1000), ('deprovisioned', 4000),
                 ]
                 (kind, tariff) = random.choice(kinds)
                 to_number, billsec, up_bytes, call_duration = 4 * [None]
@@ -288,18 +289,30 @@ class Command(BaseCommand):
                     to_number = str(random.randint(1234567890, 9876543210))
                     from_number = str(random.randint(1234567890, 9876543210))
                     reason = '%s to %s' % (kind, to_number)
+                elif kind == 'provisioned':
+                    change = tariff
+                    to_number = str(random.randint(1234567890, 9876543210))
+                    from_number = str(random.randint(1234567890, 9876543210))
+                    reason = '%s to %s' % (kind, to_number)
+                elif kind == 'deprovisioned':
+                    change = tariff
+                    to_number = str(random.randint(1234567890, 9876543210))
+                    from_number = str(random.randint(1234567890, 9876543210))
+                    reason = '%s to %s' % (kind, to_number)
+
                 old_amount = random_sub.balance
                 random_sub.change_balance(change)
                 usage_event = UsageEvent(
                     subscriber=random_sub, bts=random.choice(added_towers),
                     date=date, kind=kind,
                     reason=reason, oldamt=old_amount,
-                    newamt=random.randint(0,random_sub.balance), change=-change, billsec=billsec,
+                    newamt=random_sub.balance, change=-change, billsec=billsec,
                     call_duration=call_duration, uploaded_bytes=up_bytes,
                     downloaded_bytes=down_bytes,
                     timespan=timespan, to_number=to_number,
                     from_number=from_number,
                     destination=random.choice(all_destinations), tariff=tariff)
+
                 try:
                     usage_event.save()
                 except DataError:
@@ -312,14 +325,14 @@ class Command(BaseCommand):
                 subscriber=random_sub, bts=random.choice(added_towers),
                 date=date, kind='local_sms',
                 reason='negative oldamt', oldamt=-200000,
-                newamt=0, change=200000,
+                newamt=0, change=400000,
                 billsec=0, to_number='19195551234',
                 destination=random.choice(all_destinations))
             usage_event.save()
 
         # Add some transaction history.
         sys.stdout.write("adding transactions..\n")
-        for _ in range(random.randint(10, 500)):
+        for _ in range(random.randint(10, 50)):
             time_delta = datetime.timedelta(
                 minutes=random.randint(0, 60000))
             date = (timezone.now() - time_delta)
