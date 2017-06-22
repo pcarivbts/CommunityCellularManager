@@ -11,7 +11,6 @@
 
 
 var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
-
   getInitialState: function() {
     // We expect many of these values to be overridden before the chart is
     // first rendered -- see componentDidMount.
@@ -26,7 +25,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       activeView:''
     }
   },
-
   getDefaultProps: function() {
     // Load the current time with the user's clock if nothing is specified.  We
     // also specify the user's computer's timezone offset and use that to
@@ -200,7 +198,10 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       'interval': interval,
       'stat-types': this.props.statTypes,
       'level-id': this.props.levelID,
-      'aggregation': this.props.aggregation
+      'aggregation': this.props.aggregation,
+      'extras': this.props.extras,
+      'dynamic-stat': this.props.dynamicStat,
+      'topup-percent': this.props.topupPercent
     };
     var endpoint = this.props.endpoint + this.props.level;
     $.get(endpoint, queryParams, function(data) {
@@ -452,11 +453,11 @@ var DownloadGraphButton = React.createClass({
     var btn = document.getElementById(this.id);
     var svg = document.getElementById(domTargetId);
     var canvas = document.querySelector('canvas');
-    
+
     btn.addEventListener('click', function () {
       var width = $("#"+domTargetId).width();
       var height = $("#"+domTargetId).height();
-      
+
       var canvas = document.getElementById('canvas');
       canvas.width = width;
       canvas.height = height;
@@ -479,7 +480,7 @@ var DownloadGraphButton = React.createClass({
         var imgURI = canvas
           .toDataURL('image/png')
           .replace('image/png', 'image/octet-stream');
-          
+
           var evt = new MouseEvent('click', {
             view: window,
             bubbles: false,
@@ -697,7 +698,6 @@ var DatePicker = React.createClass({
           today: 'fa fa-circle-o',
         },
         showTodayButton: true,
-        ignoreReadonly: true,
         format: 'YYYY-MM-DD [at] h:mmA',
       },
       dateFormat: 'YYYY-MM-DD [at] h:mmA',
@@ -754,7 +754,7 @@ var DownloadButton = React.createClass({
   render: function() {
     return (
       <span className="loadingText pull-right">
-        download&nbsp;&nbsp; 
+        download&nbsp;&nbsp;
          <a href="javascript:void(0);" title="download graph">
           <i className='fa fa-lg fa-area-chart' aria-hidden="true"></i>
         </a>&nbsp;&nbsp;
@@ -804,7 +804,7 @@ var ViewButton = React.createClass({
       );
     } else {
       return (
-         <a style={inlineStyles} onClick={this.onThisClick.bind(this, this.props.buttonText)}  title="view as table">
+        <a style={inlineStyles} onClick={this.onThisClick.bind(this, this.props.buttonText)}  title="Tabular">
           <i className='fa fa-lg fa-list-ul' aria-hidden="true"></i>
         </a>
       );
@@ -850,4 +850,3 @@ var Table = React.createClass({
       );
   }
 });
-

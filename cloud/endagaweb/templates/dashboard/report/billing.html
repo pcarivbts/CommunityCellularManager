@@ -40,13 +40,11 @@ of patent rights can be found in the PATENTS file in the same directory.
 
     <div class='row'>
         {% include "dashboard/report/nav.html" with active_tab='billing_reports' %}
-
         <div class='content col-xs-12 col-sm-10 col-md-10'>
-
             {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/billing' %}
-
             {% if network_has_activity %}
-            <div class="row">
+                <div id='top-up-subscriber-chart'></div>
+                <div id='top-up-chart'></div>
                 <div id='call-usage-chart'></div>
                 <div id='sms-usage-chart'></div>
                 <div id='call-sms-usage-chart'></div>
@@ -59,7 +57,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             {% if 'Loader' in reports %}
             <div class="row">
               <div id="loader">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Loader" %} 
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Loader" %}
               </div>
             </div>
             {% endif %}
@@ -67,7 +65,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="reload_rate">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Rate" %} 
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Rate" %}
               </div>
             </div>
             {% endif %}
@@ -75,7 +73,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="reload_amount">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Amount" %} 
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Amount" %}
               </div>
             </div>
             {% endif %}
@@ -83,7 +81,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="reload_transaction">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Transaction" %} 
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Transaction" %}
               </div>
             </div>
             {% endif %}
@@ -91,7 +89,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="average_frequency">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Average Frequency" %} 
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Average Frequency" %}
               </div>
             </div>
             {% endif %}
@@ -125,8 +123,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script type="text/jsx">
   var currentTimeEpoch = {{ current_time_epoch }};
   var timezoneOffset = {{ timezone_offset }};
-
-{% if 'Call Billing' in reports %}
+  {% if 'Call Billing' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Call Billing Report'
@@ -143,8 +140,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('call-usage-chart')
   );
-{% endif %}
-{% if 'SMS Billing' in reports %}
+  {% endif %}
+  {% if 'SMS Billing' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='SMS Billing Report'
@@ -234,21 +231,66 @@ of patent rights can be found in the PATENTS file in the same directory.
     document.getElementById('billing-waterfall-summary-chart')
   );
 {% endif %}
-
+{% if 'Top Up Report' in reports %}
+  React.render(
+  <TimeseriesChartWithButtonsAndDatePickers
+    title='Top Up Report'
+    chartID='topup-chart'
+    //statTypes='start_amount,end_amount'
+    statTypes='{{ kinds }}'
+    level='{{ level }}'
+    levelID='{{ level_id }}'
+    aggregation='count'
+    yAxisLabel='Count'
+    buttons={['month','year']}
+    defaultButtonText='month'
+    currentTimeEpoch={currentTimeEpoch}
+    timezoneOffset={timezoneOffset}
+    chartType='bar-chart'
+    tooltipUnits=' top ups in range of '
+    extras='{{ extra_param }}'
+    dynamicStat='true'
+  />,
+  document.getElementById('top-up-chart')
+  );
+ {% endif %}
+ {% if 'Top Up Report for Subscriber' in reports %}
+  React.render(
+  <TimeseriesChartWithButtonsAndDatePickers
+    title='Top Up Report for Subscriber'
+    chartID='topupSubscriber-chart'
+    statTypes='{{ kinds }}'
+    level='{{ level }}'
+    levelID='{{ level_id }}'
+    aggregation='transaction_sum'
+    yAxisLabel='Total amount of top ups'
+    buttons={['month','year']}
+    defaultButtonText='month'
+    currentTimeEpoch={currentTimeEpoch}
+    timezoneOffset={timezoneOffset}
+    chartType='bar-chart'
+    tooltipUnits=' amount in range '
+    extras='{{ extra_param }}'
+    dynamicStat='true'
+    topupPercent='{{ topup_percent }}'
+  />,
+  document.getElementById('top-up-subscriber-chart')
+);
+  {% endif %}
 </script>
 <script type="text/javascript">
 function setloading() {
   var $btn = $('#submit').button().button('loading');
 }
 function renderTable(reportId) {
-  
+
   var secondsMap = {
     'month': 30 * 24 * 60 * 60,
     'year': 365 * 24 * 60 * 60,
   };
   var currentTimeEpoch = {{ current_time_epoch }};
   var endTimeEpoch = currentTimeEpoch - secondsMap['year'];
-  
+
   var formattedDate = moment.unix(currentTimeEpoch).format('YYYY-MM-DD');
   var formattedFromDate = moment.unix(endTimeEpoch).format('YYYY-MM-DD');
 
@@ -278,7 +320,7 @@ function renderTable(reportId) {
     };
     var endpoint = '/api/v1/stats/{{ level }}';
     $.get(endpoint, queryParams, function(data) {
-      
+
       var tableHeader = data['results'][0]['values']['header'];
       var tableData = data['results'][0]['values']['data'];
 
@@ -303,13 +345,13 @@ function renderTable(reportId) {
 
 }
 $(document).ready(function() {
-  
+
   renderTable('loader');
   renderTable('reload_rate');
   renderTable('reload_amount');
   renderTable('reload_transaction');
   renderTable('average_frequency');
-  
+
 });
 </script>
 

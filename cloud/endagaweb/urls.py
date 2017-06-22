@@ -14,6 +14,7 @@ from django.contrib import admin
 import django.contrib.auth.views
 
 import endagaweb.views
+
 import endagaweb.stats_app
 
 import rest_framework.authtoken.views

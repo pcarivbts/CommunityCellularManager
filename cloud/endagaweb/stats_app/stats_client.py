@@ -10,10 +10,11 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 import time
 from datetime import datetime, timedelta
+from operator import itemgetter
 
-import django.utils.timezone
 import pytz
 import qsstats
+
 from dateutil.rrule import rrule, MONTHLY
 from django.db.models import Q
 from django.db.models import aggregates
@@ -32,8 +33,9 @@ HEALTH_STATUS = ['bts down','bts up']
 TRANSFER_KINDS = ['transfer', 'add-money']
 WATERFALL_KINDS = ['loader', 'reload_rate', 'reload_amount',
                    'reload_transaction', 'average_frequency']
-USAGE_EVENT_KINDS = CALL_KINDS + SMS_KINDS + [
-    'gprs'] + SUBSCRIBER_KINDS + TRANSFER_KINDS + WATERFALL_KINDS
+DENOMINATION_KINDS = ['start_amount', 'end_amount']
+USAGE_EVENT_KINDS = CALL_KINDS + SMS_KINDS + ['gprs'] + SUBSCRIBER_KINDS + \
+                    TRANSFER_KINDS + WATERFALL_KINDS
 TIMESERIES_STAT_KEYS = [
     'ccch_sdcch4_load', 'tch_f_max', 'tch_f_load', 'sdcch8_max',
     'tch_f_pdch_load', 'tch_f_pdch_max', 'tch_h_load', 'tch_h_max',
@@ -135,6 +137,10 @@ class StatsClientBase(object):
         elif param in HEALTH_STATUS:
             objects = models.SystemEvent.objects
             filters = Q(type=param)
+        else:
+            # For Dynamic Kinds coming from Database currently for Top Up
+            objects = models.UsageEvent.objects
+            filters = Q(kind='transfer')
         # Filter by infrastructure level.
         if self.level == 'tower':
             filters = filters & Q(bts__id=self.level_id)
@@ -142,8 +148,8 @@ class StatsClientBase(object):
             filters = filters & Q(network__id=self.level_id)
         elif self.level == 'global':
             pass
-        if kwargs.has_key('subscriber'):
-            filters = filters & kwargs.pop('subscriber')
+        if kwargs.has_key('query'):
+            filters = filters & kwargs.pop('query')
 
         if report_view == 'value':
             filters = filters & Q(date__lte=end) & Q(date__gte=start)
@@ -171,7 +177,29 @@ class StatsClientBase(object):
         # Sum of change in amounts for SMS/CALL
         elif aggregation == 'transaction_sum':
             queryset_stats = qsstats.QuerySetStats(
-                queryset, 'date', aggregate=aggregates.Sum('change'))
+                # Change is negative value, set positive for charts
+                queryset, 'date', aggregate=(aggregates.Sum('change') * -1))
+            # Do this if percentage if set for top top-up
+            percentage = kwargs['topup_percent']
+            if percentage is not None:
+                subscribers = {}
+                percentage = float(percentage) / 100
+                # Create subscribers dict
+                for query in queryset:
+                    subscribers[query.subscriber_imsi] = 0
+                for query in queryset_stats.qs:
+                    subscribers[query.subscriber_imsi] += (query.change * -1)
+                top_count_of_subscribers = (len(subscribers) * percentage)
+                top_imsis = int(round(top_count_of_subscribers))
+                # Get top percentage of subscribers for TOP UP
+                top_subscribers = list(dict(
+                    sorted(subscribers.iteritems(), key=itemgetter(1),
+                           reverse=True)[:top_imsis]).keys())
+                queryset = queryset_stats.qs.filter(
+                    Q(subscriber_imsi__in=top_subscribers))
+                queryset_stats = qsstats.QuerySetStats(
+                    queryset, 'date', aggregate=(
+                        aggregates.Sum('change') * -1))
         elif aggregation == 'loader':
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=aggregates.Count('subscriber_id'))
@@ -434,8 +462,20 @@ class TransferStatsClient(StatsClientBase):
 
     def timeseries(self, kind=None, **kwargs):
         # Set queryset from subscriber role as retailer
+        kwargs['query'] = Q(subscriber__role='retailer')
+        return self.aggregate_timeseries(kind, **kwargs)
 
-        kwargs['subscriber'] = Q(subscriber__role='retailer')
+
+class TopUpStatsClient(StatsClientBase):
+    def __init__(self, *args, **kwargs):
+        super(TopUpStatsClient, self).__init__(*args, **kwargs)
+
+    def timeseries(self, kind=None, **kwargs):
+        # Change is negative convert to compare
+        raw_amount = [(float(denom) * -1 / 10000) for denom in
+                      kwargs['extras'].split('-')]
+        kwargs['query'] = Q(change__gte=raw_amount[1]) & Q(
+            change__lte=raw_amount[0]) & Q(subscriber__role='retailer')
         return self.aggregate_timeseries(kind, **kwargs)
 
 
@@ -483,7 +523,7 @@ class WaterfallStatsClient(StatsClientBase):
 
             kwargs['start_time_epoch'] = int(stats_start_dt.strftime("%s"))
             kwargs['end_time_epoch'] = int(stats_end_dt.strftime("%s"))
-            kwargs['subscriber'] = Q(subscriber__role='retailer')
+            kwargs['query'] = Q(subscriber__role='retailer')
             kind_key = 'provisioned'
             kwargs['report_view'] = 'value'
             subscribers = self.aggregate_timeseries(kind_key, **kwargs)
@@ -512,7 +552,7 @@ class WaterfallStatsClient(StatsClientBase):
                 elif kind == 'average_frequency':
                     kwargs['aggregation'] = 'transaction_sum'
                     kwargs['report_view'] = 'summary'
-                kwargs['subscriber'] = Q(subscriber_id__in=subscribers)
+                kwargs['query'] = Q(subscriber_id__in=subscribers)
                 kind_row = 'transfer'
                 result = self.aggregate_timeseries(kind_row, **kwargs)
 
