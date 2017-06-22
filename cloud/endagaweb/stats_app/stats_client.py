@@ -27,6 +27,7 @@ SMS_KINDS = [
 SUBSCRIBER_KINDS = ['provisioned', 'deprovisioned']
 ZERO_BALANCE_SUBSCRIBER = ['zero_balance_subscriber']
 INACTIVE_SUBSCRIBER = ['expired', 'first_expired', 'blocked']
+HEALTH_STATUS = ['bts down','bts up']
 TRANSFER_KINDS = ['transfer', 'add-money']
 USAGE_EVENT_KINDS = CALL_KINDS + SMS_KINDS + [
     'gprs'] + SUBSCRIBER_KINDS + TRANSFER_KINDS
@@ -128,10 +129,13 @@ class StatsClientBase(object):
         elif param in TIMESERIES_STAT_KEYS:
             objects = models.TimeseriesStat.objects
             filters = Q(key=param)
-        # Filter by infrastructure level.
+        elif param in HEALTH_STATUS:
+            objects = models.SystemEvent.objects
+            filters = Q(type=param)
+         # Filter by infrastructure level.
         if self.level == 'tower':
             filters = filters & Q(bts__id=self.level_id)
-        elif self.level == 'network':
+        elif self.level == 'network' and param not in HEALTH_STATUS:
             filters = filters & Q(network__id=self.level_id)
         elif self.level == 'global':
             pass
@@ -153,6 +157,7 @@ class StatsClientBase(object):
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=aggregates.Avg('value'))
         elif aggregation == 'valid_through':
+
             queryset_stats = qsstats.QuerySetStats(queryset, 'valid_through')
         # Sum of change in amounts for SMS/CALL
         elif aggregation == 'transaction_sum':
@@ -427,3 +432,22 @@ class TransferStatsClient(StatsClientBase):
 
         kwargs['subscriber'] = Q(subscriber__role='retailer')
         return self.aggregate_timeseries(kind, **kwargs)
+
+
+class BTSStatsClient(StatsClientBase):
+    """Gathers data on TimeseriesStat instances at a tower level only.
+
+    client = stats_client.TimeseriesStatsClient('tower', tower_id)
+    print client.timeseries(
+        key='gprs_utilization_percentage', interval='minutes',
+        start_time_epoch=12000, end_time_epoch=13000)
+    # [(12345, 1), (12305, 4), (12365, 6) ... ]
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(BTSStatsClient, self).__init__(*args, **kwargs)
+
+    def timeseries(self, key=None, **kwargs):
+        if 'aggregation' not in kwargs:
+            kwargs['aggregation'] = 'average_value'
+        return self.aggregate_timeseries(key, **kwargs)

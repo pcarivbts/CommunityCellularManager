@@ -139,12 +139,17 @@ class BillingReportView(BaseReport):
 class HealthReportView(BaseReport):
     """View System health reports."""
 
-    def __init__(self, *args, **kwargs):
-        template = "404.html"  # Fix once done
-        url_namespace = 'health-report'
-        reports = {}
-        super(HealthReportView, self).__init__(reports, template,
-                                               url_namespace, **kwargs)
+
+    def __init__(self, **kwargs):
+        template = "dashboard/report/health.html"
+        url_namespace = "health-report"
+        reports = {'Health': ['BTS Health']}
+        super(HealthReportView, self).__init__(reports ,template,
+                                                   url_namespace, **kwargs)
 
     def get(self, request):
         return self.handle_request(request)
+
+    def post(self, request):
+        return self.handle_request(request)
+

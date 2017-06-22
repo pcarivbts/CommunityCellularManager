@@ -103,7 +103,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
   },
 
   handleDownloadClick: function(text) {
-  console.log("download csv")
     var queryParams = {
       'start-time-epoch': this.state.startTimeEpoch,
       'end-time-epoch': this.state.endTimeEpoch,
@@ -314,7 +313,6 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
   for (var index in data) {
     var newSeries = { 'key': data[index]['key'] };
     var newValues = [];
-
     if( typeof(data[index]['values']) === 'object'){
       for (var series_index in data[index]['values']) {
         var newValue = [
@@ -376,8 +374,8 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
             .x(function(d) { return d[0] })
             .y(function(d) { return d[1] })
             //.staggerLabels(true)    //Too many bars and not enough room? Try staggering labels.
-            .tooltips(true)
-            //.showValues(true)       //...instead, show the bar value right on top of each bar.
+         //   .tooltips(true)
+          //  .showValues(true)       //...instead, show the bar value right on top of each bar.
             .transitionDuration(350)
             .stacked(false).showControls(false);
 

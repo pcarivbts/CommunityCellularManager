@@ -14,10 +14,17 @@ from rest_framework import renderers
 from rest_framework import response
 from rest_framework import status
 from rest_framework import views
+import pytz
+from rest_framework.authtoken.models import Token
+import stripe
+from guardian.shortcuts import get_objects_for_user
 
+from ccm.common.currency import parse_credits, humanize_credits, \
+    CURRENCIES, Money
 from endagaweb.stats_app import stats_client
 
-
+from endagaweb.models import (UserProfile, Ledger, Subscriber, UsageEvent,
+                              Network, PendingCreditUpdate, Number)
 # Set the stat types that we can query for.  Note that some of these kinds are
 # 'faux kinds' in that the stats client aggregates the true UsageEvent kinds
 # for these other categories: sms, call, uploaded_data, downloaded_data,
@@ -29,6 +36,8 @@ TIMESERIES_STAT_KEYS = stats_client.TIMESERIES_STAT_KEYS
 SUBSCRIBER_KINDS = stats_client.SUBSCRIBER_KINDS
 ZERO_BALANACE_SUBSCRIBER =stats_client.ZERO_BALANCE_SUBSCRIBER
 INACTIVE_SUBSCRIBER = stats_client.INACTIVE_SUBSCRIBER
+HEALTH_STATUS = stats_client.HEALTH_STATUS
+
 
 # ZERO_BALANACE_SUBSCRIBER
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
@@ -36,12 +45,13 @@ INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
 AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
                 'average_value']
 TRANSFER_KINDS = stats_client.TRANSFER_KINDS
-VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + TRANSFER_KINDS + SUBSCRIBER_KINDS + ZERO_BALANACE_SUBSCRIBER + INACTIVE_SUBSCRIBER
+VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + TRANSFER_KINDS + SUBSCRIBER_KINDS + ZERO_BALANACE_SUBSCRIBER + INACTIVE_SUBSCRIBER + HEALTH_STATUS
 # Set valid intervals.
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
 # Set valid aggregation types.
 AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
                 'average_value', 'transaction_sum']
+
 
 
 # Any requested start time earlier than this date will be set to this date.
@@ -154,6 +164,8 @@ class StatsAPIView(views.APIView):
                 client_type = stats_client.SubscriberStatsClient
             elif stat_type in INACTIVE_SUBSCRIBER:
                 client_type = stats_client.SubscriberStatsClient
+            elif stat_type in HEALTH_STATUS:
+                client_type = stats_client.BTSStatsClient
             if infrastructure_level == 'global':
                 client = client_type('global')
             elif infrastructure_level == 'network':
@@ -165,18 +177,25 @@ class StatsAPIView(views.APIView):
             # Get timeseries results and append it to data.
             results = client.timeseries(
                 stat_type,
+                require='csv',
                 interval=params['interval'],
                 start_time_epoch=params['start-time-epoch'],
                 end_time_epoch=params['end-time-epoch'],
                 aggregation=params['aggregation'],
             )
+            #query_set_list.append(results)
             data['results'].append({
                 "key": stat_type,
                 "values": results
             })
+
+
         # Convert params.stat_types back to CSV and echo back the request.
         params['stat-types'] = ','.join(params['stat-types'])
         data['request'] = params
         # Send results and echo back the request params.
         response_status = status.HTTP_200_OK
         return response.Response(data, response_status)
+
+
+
