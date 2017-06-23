@@ -48,7 +48,8 @@ VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + \
               HEALTH_STATUS + DENOMINATION_KINDS
 # Set valid aggregation types.
 AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
-                'average_value', 'transaction_sum', 'transcation_count']
+                'average_value', 'transaction_sum', 'transcation_count',
+                'duration_minute']
 REPORT_VIEWS = ['summary', 'list']
 
 # Any requested start time earlier than this date will be set to this date.

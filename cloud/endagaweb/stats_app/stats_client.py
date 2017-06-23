@@ -224,7 +224,8 @@ class StatsClientBase(object):
                 return sum(values) * 0.000001
             elif aggregation == 'duration_minute':
                 return (sum(values) / 60) or 0
-            return sum(values)
+            else:
+                return sum(values)
 
         timestamps = [
             int(time.mktime(dt.timetuple()) * 1e3 + dt.microsecond / 1e3)

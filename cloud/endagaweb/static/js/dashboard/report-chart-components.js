@@ -373,7 +373,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
   nv.addGraph(function() {
     if(chartType == 'pie-chart') {
         var chart = nv.models.pieChart()
-            .x(function(d) { return d.key.replace('_'," ").toUpperCase(); })
+            .x(function(d) { return d.key.replace('_'," "); })
             .y(function(d) { return d.total; })
             .showLabels(true)
             .labelType("percent");
