@@ -5,26 +5,33 @@
               method="post" role="form" onsubmit="setloading()">
             {% csrf_token %}
             {% if report_list %}
-            <div class="form-group col-xs-12">
-                <label class="control-label col-xs-1">Reports</label>
-                <div class=" col-xs-10">
+            <div class="form-group col-md-12">
+                <label class="control-label col-md-1">Reports</label>
+                <div class="col-md-11" style="padding-left: 0px;">    
                     {% for key, values in report_list.items %}
-                       <span class="label label-default">{{ key }}</span>
+                <div class="col-md-12" style="padding-left: 0px;">
+                       <div class="col-md-1">
+                        <span class="label label-default">{{ key }}</span>
+                       </div>
                     {% for report in values %}
-                    <label class="checkbox checkbox-inline">
-                        <input id="checkbox" type="checkbox" name="reports" value="{{ report }}" 
-                               {% if report in reports %} checked="checked" {% endif %}>
-                       {{ report }}
-                    </label>
+                    <div class="col-md-2">
+                        <label class="checkbox checkbox-inline" style="padding-top: 0px;">
+                            <input id="checkbox" type="checkbox" name="reports" value="{{ report }}" 
+                                   {% if report in reports %} checked="checked" {% endif %}>
+                           {{ report }}
+                        </label>
+                    </div>
                     {% endfor %}
+
                     <div></div>
-                    {% endfor %}
                 </div>
+                    {% endfor %}
+                    </div>
             </div>
             {% endif %}
-            <div class="form-group col-xs-12" id="bts_list" {% if not level_id %} style="display: none;" {% endif %}>
-                <label class="control-label col-xs-1">Tower</label>
-                <div class="col-xs-5">
+            <div class="form-group col-md-12" id="bts_list" {% if not level_id %} style="display: none;" {% endif %}>
+                <label class="control-label col-md-1">Tower</label>
+                <div class="col-md-5">
                     <select name="level_id" class="form-control">
                       <option value="">All Towers</option>
                       {% if towers %} 
@@ -37,22 +44,31 @@
                         {% endfor %}
                       {% endif %} 
                     </select>
-                    <div></div>
-                    {% if 'Amount Based' in reports %}
-                    <p></p>
-                    <b>Top Transfers:</b>
-                    <div class="input-group col-xs-4">
-                        <input name="top_percent" id="top_percent" type="number" class="form-control" min="1" max="100" placeholder="percentage value" value="{{ topup_percent }}">
-                        <span class="input-group-addon">%</span>
-                    </div>
-                    {% endif %}
                 </div>
-                <div class="col-xs-3">
+                {% if 'Amount Based' not in reports %}
+                <div class="col-md-3">
                     <button id="submit" type="submit" name="submit" value="Filter"
-                            class="btn btn-primary col-xs-4">Filter
+                            class="btn btn-primary col-md-4">Filter
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            {% if 'Amount Based' in reports %}
+            <div class="form-group col-md-12">
+                <label class="control-label col-md-1">Top&nbsp;Transfers</label>
+                <div class="col-md-5">
+                    <span class="input-group ">
+                    <input name="top_percent" id="top_percent" type="number" class="form-control" min="1" max="100" placeholder="percentage value" value="{{ topup_percent }}">
+                    <span class="input-group-addon">%</span>
+                    </span>
+                </div>
+                <div class="col-md-3">
+                    <button id="submit" type="submit" name="submit" value="Filter"
+                            class="btn btn-primary col-md-4">Filter
                     </button>
                 </div>
             </div>
+            {% endif %}
         </form>
         <canvas id="canvas" style="display: none;"></canvas>
     </div>
