@@ -475,7 +475,7 @@ class TopUpStatsClient(StatsClientBase):
     def timeseries(self, kind=None, **kwargs):
         # Change is negative convert to compare
         try:
-            raw_amount = [(float(denom) * -1 / 10000) for denom in
+            raw_amount = [(float(denom) * -1 / 100000) for denom in
                           kwargs['extras'].split('-')]
             kwargs['query'] = Q(change__gte=raw_amount[1]) & Q(
                 change__lte=raw_amount[0]) & Q(subscriber__role='retailer')
