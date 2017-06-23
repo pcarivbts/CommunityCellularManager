@@ -377,9 +377,8 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
             .showLabels(true)
             .labelType("percent");
 
-
         chart.tooltipContent(function(key, x, y) {
-          return '<p><h3>'+ key + '</p></h3>' + '<center>'+ '<b>' + '<h4>' + frontTooltip + x + '</center>'+ '</b>' + '<h4>'
+            return '<p><h3>'+ key + '</p></h3>' + '<center>'+ '<b>' + '<h4>' + frontTooltip + x + '</center>'+ '</b>' + '<h4>'
         });
 
         d3.select(domTarget)

@@ -23,13 +23,6 @@ of patent rights can be found in the PATENTS file in the same directory.
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css" type="text/css"/>
-
-<style type="text/css">
-  .nv-label, .nv-legend-text {
-    text-transform: capitalize;
-  }
-</style>
-
 {% endblock %}
 
 {% block content %}
@@ -116,7 +109,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       statTypes='free_call,outside_call,local_call,local_recv_call,incoming_call,error_call'
       level='{{ level }}'
       levelID='{{ level_id }}'
-      aggregation='duration'
+      aggregation='duration_minute'
       yAxisLabel='minutes of call'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
