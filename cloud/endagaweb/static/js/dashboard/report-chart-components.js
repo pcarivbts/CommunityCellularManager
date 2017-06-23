@@ -46,6 +46,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       currentTimeEpoch: currentTime,
       timezoneOffset: 0,
       tooltipUnits: '',
+      frontTooltip: '',
       chartType: 'line-chart',
       reportView: 'list'
     }
@@ -285,6 +286,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
           yAxisLabel={this.props.yAxisLabel}
           timezoneOffset={this.props.timezoneOffset}
           tooltipUnits={this.props.tooltipUnits}
+          frontTooltip={this.props.frontTooltip}
           chartType={this.props.chartType}
           activeView={this.state.activeView}
         />
@@ -308,7 +310,7 @@ var add = function (a, b){
 
 // Builds the target chart from scratch.  NVD3 surprisingly handles this well.
 // domTarget is the SVG element's parent and data is the info that will be graphed.
-var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxisLabel, timezoneOffset, tooltipUnits, chartType, domTargetId) {
+var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxisLabel, timezoneOffset, tooltipUnits, frontTooltip, chartType, domTargetId) {
   // We pass in the timezone offset and calculate a locale offset.  The former
   // is based on the UserProfile's specified timezone and the latter is the user's
   // computer's timezone offset.  We manually shift the data to work around
@@ -370,10 +372,15 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
   nv.addGraph(function() {
     if(chartType == 'pie-chart') {
         var chart = nv.models.pieChart()
-            .x(function(d) { return d.key.replace('_'," "); })
+            .x(function(d) { return d.key.replace('_'," ").toUpperCase(); })
             .y(function(d) { return d.total; })
             .showLabels(true)
             .labelType("percent");
+
+
+        chart.tooltipContent(function(key, x, y) {
+          return '<p><h3>'+ key + '</p></h3>' + '<center>'+ '<b>' + '<h4>' + frontTooltip + x + '</center>'+ '</b>' + '<h4>'
+        });
 
         d3.select(domTarget)
           .datum(shiftedData)
@@ -403,7 +410,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
         // Fixes the axis-labels being rendered out of the SVG element.
         chart.margin({right: 80});
         chart.tooltipContent(function(key, x, y) {
-          return '<p>' + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
+          return '<p>' + frontTooltip + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
         });
 
 
@@ -432,7 +439,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
         // Fixes the axis-labels being rendered out of the SVG element.
         chart.margin({right: 80});
         chart.tooltipContent(function(key, x, y) {
-          return '<p>' + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
+          return '<p>' + frontTooltip + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
         });
 
         d3.select(domTarget)
@@ -458,6 +465,7 @@ var TimeseriesChart = React.createClass({
       yAxisFormatter: '',
       yAxisLabel: 'the y axis!',
       timezoneOffset: 0,
+      frontTooltip: '',
       tooltipUnits: '',
       chartType:'',
       activeView:''
@@ -531,6 +539,7 @@ var TimeSeriesChartElement = React.createClass({
         nextProps.yAxisLabel,
         this.props.timezoneOffset,
         this.props.tooltipUnits,
+        this.props.frontTooltip,
         this.props.chartType,
         this.props.chartID
       );
@@ -818,6 +827,7 @@ var Table = React.createClass({
         nextProps.yAxisLabel,
         this.props.timezoneOffset,
         this.props.tooltipUnits,
+        this.props.frontTooltip,
         this.props.chartType,
         this.props.chartID
       );

@@ -151,6 +151,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       chartType='pie-chart'
       tooltipUnits='s of'
       reportView='summary'
+      frontTooltip='{{ value_type }}'
     />,
     document.getElementById('call-usage-chart')
   );
@@ -170,6 +171,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       chartType='pie-chart'
       tooltipUnits='s of'
       reportView='summary'
+      frontTooltip='{{ value_type }}'
     />,
     document.getElementById('sms-usage-chart')
   );
@@ -189,6 +191,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       chartType='pie-chart'
       tooltipUnits='s of'
       reportView='summary'
+      frontTooltip='{{ value_type }}'
     />,
     document.getElementById('call-sms-usage-chart')
   );
@@ -206,7 +209,8 @@ of patent rights can be found in the PATENTS file in the same directory.
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       chartType='bar-chart'
-      tooltipUnits='s of'
+      tooltipUnits=' of '
+      frontTooltip='{{ value_type }}'
     />,
     document.getElementById('load-transfer-usage-chart')
   );
@@ -225,6 +229,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       timezoneOffset={timezoneOffset}
       chartType='bar-chart'
       tooltipUnits='s of'
+      frontTooltip='{{ value_type }}'
     />,
     document.getElementById('add-money-usage-chart')
   );
@@ -242,15 +247,16 @@ of patent rights can be found in the PATENTS file in the same directory.
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       tooltipUnits='s of'
+      frontTooltip='{{ value_type }}'
       chartType='line-chart'
     />,
     document.getElementById('billing-waterfall-summary-chart')
   );
 {% endif %}
-{% if 'Top Up Report' in reports %}
+{% if 'Count Based' in reports %}
   React.render(
   <TimeseriesChartWithButtonsAndDatePickers
-    title='Top Up Report'
+    title='Top Up Report (Count Based)'
     chartID='topup-chart'
     //statTypes='start_amount,end_amount'
     statTypes='{{ kinds }}'
@@ -263,32 +269,35 @@ of patent rights can be found in the PATENTS file in the same directory.
     currentTimeEpoch={currentTimeEpoch}
     timezoneOffset={timezoneOffset}
     chartType='bar-chart'
-    tooltipUnits=' top ups in range of '
+    tooltipUnits=' top ups in range '
+    frontTooltip=''
     extras='{{ extra_param }}'
     dynamicStat='true'
+    tableTitle='I AM THE TITLE'
   />,
   document.getElementById('top-up-chart')
   );
  {% endif %}
- {% if 'Top Up Report for Subscriber' in reports %}
+ {% if 'Amount Based' in reports %}
   React.render(
   <TimeseriesChartWithButtonsAndDatePickers
-    title='Top Up Report for Subscriber'
+    title='Top Up Report (Amount Based)'
     chartID='topupSubscriber-chart'
     statTypes='{{ kinds }}'
     level='{{ level }}'
     levelID='{{ level_id }}'
     aggregation='transaction_sum'
-    yAxisLabel='Total amount of top ups'
+    yAxisLabel='Amount'
     buttons={['month','year']}
     defaultButtonText='month'
     currentTimeEpoch={currentTimeEpoch}
     timezoneOffset={timezoneOffset}
     chartType='bar-chart'
-    tooltipUnits=' amount in range '
+    tooltipUnits=' total in range '
     extras='{{ extra_param }}'
     dynamicStat='true'
     topupPercent='{{ topup_percent }}'
+    frontTooltip='{{ value_type }}'
   />,
   document.getElementById('top-up-subscriber-chart')
 );
