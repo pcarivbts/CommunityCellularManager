@@ -444,7 +444,7 @@ class ReportGraphDownload(ProtectedView):
         network = user_profile.network
         events = UsageEvent.objects.filter(
             network=network).order_by('-date')
-        retailer_role_reports =['Top Up Report (Count Based)','Top Up Report (Count Based)',
+        retailer_role_reports =['Top Up Report (Count Based)','Top Up Report (Amount Based)',
                                 'Retailer Load Transfer Report']
         if start_date or end_date:
             events = events.filter(
@@ -453,21 +453,20 @@ class ReportGraphDownload(ProtectedView):
             events = events.filter(bts__id=level_id)
         if level == 'network':
             events = events.filter(network__id=level_id)
+        if report_type in retailer_role_reports:
+            qs = Q(kind='transfer')
+            qs1 = Q(subscriber__role='retailer')
+            events = events.filter(qs & qs1)
+            return events
         if stats_type:
+            if report_type == 'Retailer Recharge Report':
+                qs1 = Q(kind__icontains='add_money')
+                qs = Q(subscriber__role='retailer')
+                events = events.filter(qs1 & qs)
+                return events
             qs = ([Q(kind__icontains=s)for s in stats_type] )
             if report_type == 'Subscriber Activity':
                 qs.append((Q(oldamt__gt=0,newamt__lte=0)))
-            events = events.filter(reduce(operator.or_, qs))
-            if report_type in retailer_role_reports :
-                qs= Q(kind__icontains ='transfer')
-                qs1= Q(subscriber__role='retailer')
-                events = events.filter(qs & qs1)
-                return events
-            if report_type == 'Retailer Recharge Repor':
-                qs1= Q(kind__icontains ='add_money')
-                qs= Q(subscriber__role='retailer')
-                events = events.filter(qs1 & qs)
-                return events
             events = events.filter(reduce(operator.or_, qs))
         return events
 
