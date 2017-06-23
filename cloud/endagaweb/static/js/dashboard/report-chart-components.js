@@ -375,6 +375,10 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
             .showLabels(true)
             .labelType("percent");
 
+        //chart.tooltipContent(function (key, x, y, e) {
+        //    return '<h3>' + key + '</h3>' + '<p>' + parseInt(x) + '</p>';
+        //});
+
         d3.select(domTarget)
           .datum(shiftedData)
           .transition().duration(1200)
