@@ -33,20 +33,19 @@ SMS_KINDS = stats_client.SMS_KINDS + ['sms']
 CALL_KINDS = stats_client.CALL_KINDS + ['call'] #, 'oustside_call']
 GPRS_KINDS = ['total_data', 'uploaded_data', 'downloaded_data']
 TIMESERIES_STAT_KEYS = stats_client.TIMESERIES_STAT_KEYS
-SUBSCRIBER_KINDS = stats_client.SUBSCRIBER_KINDS
-ZERO_BALANACE_SUBSCRIBER = stats_client.ZERO_BALANCE_SUBSCRIBER
-INACTIVE_SUBSCRIBER = stats_client.INACTIVE_SUBSCRIBER
+SUBSCRIBER_KINDS = stats_client.SUBSCRIBER_KINDS + \
+                   stats_client.ZERO_BALANCE_SUBSCRIBER + \
+                   stats_client.INACTIVE_SUBSCRIBER
 HEALTH_STATUS = stats_client.HEALTH_STATUS
 WATERFALL_KINDS = ['loader', 'reload_rate', 'reload_amount',
                    'reload_transaction', 'average_frequency']
 DENOMINATION_KINDS = stats_client.DENOMINATION_KINDS
 # Set valid intervals.
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
-
 TRANSFER_KINDS = stats_client.TRANSFER_KINDS
 VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + \
-              TRANSFER_KINDS + SUBSCRIBER_KINDS + ZERO_BALANACE_SUBSCRIBER + \
-              INACTIVE_SUBSCRIBER + WATERFALL_KINDS + HEALTH_STATUS + DENOMINATION_KINDS
+              TRANSFER_KINDS + SUBSCRIBER_KINDS + WATERFALL_KINDS + \
+              HEALTH_STATUS + DENOMINATION_KINDS
 # Set valid aggregation types.
 AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
                 'average_value', 'transaction_sum']
@@ -170,18 +169,10 @@ class StatsAPIView(views.APIView):
                 client_type = stats_client.SubscriberStatsClient
             elif stat_type in TRANSFER_KINDS:
                 client_type = stats_client.TransferStatsClient
-            elif stat_type in ZERO_BALANACE_SUBSCRIBER:
-                client_type = stats_client.SubscriberStatsClient
-            elif stat_type in INACTIVE_SUBSCRIBER:
-                client_type = stats_client.SubscriberStatsClient
             elif stat_type in HEALTH_STATUS:
                 client_type = stats_client.BTSStatsClient
             elif stat_type in WATERFALL_KINDS:
                 client_type = stats_client.WaterfallStatsClient
-            elif stat_type in TIMESERIES_STAT_KEYS:
-                client_type = stats_client.TimeseriesStatsClient
-            elif stat_type in TIMESERIES_STAT_KEYS:
-                client_type = stats_client.TimeseriesStatsClient
             else:
                 client_type = stats_client.TopUpStatsClient
             # Instantiate the client at an infrastructure level.
@@ -195,8 +186,6 @@ class StatsAPIView(views.APIView):
                 extra_param = params['extras'][index]
             except IndexError:
                 extra_param = None
-
-
             # Get timeseries results and append it to data.
             results = client.timeseries(
                 stat_type,
@@ -212,9 +201,11 @@ class StatsAPIView(views.APIView):
                 "key": stat_type,
                 "values": results
             })
+
         # Convert params.stat_types back to CSV and echo back the request.
         params['stat-types'] = ','.join(params['stat-types'])
         data['request'] = params
+
         # Send results and echo back the request params.
         response_status = status.HTTP_200_OK
         return response.Response(data, response_status)

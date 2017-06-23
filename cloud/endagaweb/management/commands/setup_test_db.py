@@ -189,7 +189,6 @@ class Command(BaseCommand):
             else:
                 name = ''
             balance = random.randint(40000000, 60000000)
-            # role = random.choice(['subscriber', 'retailer', 'test-sim'])
             state = "active"
             bts = BTS.objects.filter(
                 network=user_profile.network).order_by('?').first()
@@ -325,7 +324,7 @@ class Command(BaseCommand):
                 subscriber=random_sub, bts=random.choice(added_towers),
                 date=date, kind='local_sms',
                 reason='negative oldamt', oldamt=-200000,
-                newamt=0, change=400000,
+                newamt=0, change=200000,
                 billsec=0, to_number='19195551234',
                 destination=random.choice(all_destinations))
             usage_event.save()

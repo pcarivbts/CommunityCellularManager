@@ -16,7 +16,7 @@ from endagaweb.models import NetworkDenomination
 from endagaweb.models import (UserProfile, UsageEvent, Network)
 from endagaweb.views.dashboard import ProtectedView
 from guardian.shortcuts import get_objects_for_user
-
+from ccm.common.currency import CURRENCIES
 
 class BaseReport(ProtectedView):
     """The base Report class.
@@ -24,6 +24,7 @@ class BaseReport(ProtectedView):
         Process request and response for report view pages.This class used for
         handling filter by network, tower and report list.
         """
+
     def __init__(self, reports, template, url_namespace='call-report',
                  **kwargs):
         super(BaseReport, self).__init__(**kwargs)
@@ -98,6 +99,7 @@ class BaseReport(ProtectedView):
             'current_time_epoch': int(time.time()),
             'timezone_offset': timezone_offset,
             'network_has_activity': network_has_activity,
+            'value_type': ''
         }
         template = get_template(self.template)
         html = template.render(context, request)
@@ -130,7 +132,7 @@ class SubscriberReportView(BaseReport):
         url_namespace = "subscriber-report"
         reports = {'Subscriber': ['Subscriber Activity',
                                   'Subscriber Status']}
-        super(SubscriberReportView, self).__init__(reports ,template,
+        super(SubscriberReportView, self).__init__(reports, template,
                                                    url_namespace, **kwargs)
 
     def get(self, request):
@@ -143,19 +145,18 @@ class SubscriberReportView(BaseReport):
 class HealthReportView(BaseReport):
     """View System health reports."""
 
-
     def __init__(self, **kwargs):
         template = "dashboard/report/health.html"
         url_namespace = "health-report"
         reports = {'Health': ['BTS Health']}
-        super(HealthReportView, self).__init__(reports ,template,
-                                                   url_namespace, **kwargs)
+        super(HealthReportView, self).__init__(reports, template,
+                                               url_namespace, **kwargs)
+
     def get(self, request):
         return self.handle_request(request)
 
     def post(self, request):
         return self.handle_request(request)
-
 
 
 class BillingReportView(ProtectedView):
@@ -166,9 +167,9 @@ class BillingReportView(ProtectedView):
         self.reports = {'Call & SMS': ['SMS Billing', 'Call and SMS Billing',
                                        'Call Billing'],
                         'Retailer': ['Retailer Recharge',
-                                     'Retailer Load Transfer',],
-                        'Top Up': ['Top Up Report for Subscriber',
-                                   'Top Up Report',],
+                                     'Retailer Load Transfer', ],
+                        'Top Up': ['Amount Based',
+                                   'Count Based', ],
                         'Waterfall': ['Activation', 'Loader',
                                       'Reload Amount', 'Reload Transaction']
                         }
@@ -212,17 +213,18 @@ class BillingReportView(ProtectedView):
         # For top top-up percentage
         denom_list = []
         denom_list2 = []
+        # Get denominatations available for that network
         denomination = NetworkDenomination.objects.filter(
             network_id=network.id)
 
         for denom in denomination:
-            start_amount = humanize_credits(denom.start_amount)
-            end_amount = humanize_credits(denom.end_amount)
+            start_amount = humanize_credits(denom.start_amount, currency=CURRENCIES[network.currency])
+            end_amount = humanize_credits(denom.end_amount, currency=CURRENCIES[network.currency])
             denom_list.append(
                 (start_amount.amount_raw, end_amount.amount_raw))
         formatted_denomnation = []
         for denom in denom_list:
-            # Now format to mark them as kinds
+            # Now format to set them as stat-types
             formatted_denomnation.append(
                 str(humanize_credits(denom[0])).replace(',', '')
                 + ' - ' +
@@ -231,8 +233,7 @@ class BillingReportView(ProtectedView):
                 str(denom[0])
                 + '-' +
                 str(denom[1]))
-
-
+        currency = CURRENCIES[network.currency].symbol
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
             datetime.datetime.now()).total_seconds()
         level = request.session['level']
@@ -259,6 +260,7 @@ class BillingReportView(ProtectedView):
             'kinds': ','.join(formatted_denomnation),
             'extra_param': ','.join(denom_list2),
             'topup_percent': topup_percent,
+            'value_type': currency,
         }
         template = get_template(self.template)
         html = template.render(context, request)
