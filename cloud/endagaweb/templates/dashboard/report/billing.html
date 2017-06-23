@@ -158,8 +158,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('sms-usage-chart')
   );
-{% endif %}
-{% if 'Call and SMS Billing' in reports %}
+  {% endif %}
+  {% if 'Call and SMS Billing' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Call and SMS Billing Report'
@@ -178,8 +178,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('call-sms-usage-chart')
   );
-{% endif %}
-{% if 'Retailer Load Transfer' in reports %}
+  {% endif %}
+  {% if 'Retailer Load Transfer' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Retailer Load Transfer Report'
@@ -197,8 +197,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('load-transfer-usage-chart')
   );
-{% endif %}
-{% if 'Retailer Recharge' in reports %}
+  {% endif %}
+  {% if 'Retailer Recharge' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Retailer Recharge Report'
@@ -216,8 +216,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('add-money-usage-chart')
   );
-{% endif %}
-{% if 'Activation' in reports %}
+  {% endif %}
+  {% if 'Activation' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Waterfall Activation Summary'
@@ -235,8 +235,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     />,
     document.getElementById('billing-waterfall-summary-chart')
   );
-{% endif %}
-{% if 'Count Based' in reports %}
+  {% endif %}
+  {% if 'Count Based' in reports %}
   React.render(
   <TimeseriesChartWithButtonsAndDatePickers
     title='Top Up Report (Count Based)'
@@ -245,7 +245,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     statTypes='{{ kinds }}'
     level='{{ level }}'
     levelID='{{ level_id }}'
-    aggregation='count'
+    aggregation='transcation_count'
     yAxisLabel='Count'
     buttons={['month','year']}
     defaultButtonText='month'
@@ -254,14 +254,14 @@ of patent rights can be found in the PATENTS file in the same directory.
     chartType='bar-chart'
     tooltipUnits=' top ups in range '
     frontTooltip=''
+    topupPercent='{{ topup_percent }}'
     extras='{{ extra_param }}'
     dynamicStat='true'
-    tableTitle='I AM THE TITLE'
   />,
   document.getElementById('top-up-chart')
   );
- {% endif %}
- {% if 'Amount Based' in reports %}
+  {% endif %}
+  {% if 'Amount Based' in reports %}
   React.render(
   <TimeseriesChartWithButtonsAndDatePickers
     title='Top Up Report (Amount Based)'
@@ -284,7 +284,7 @@ of patent rights can be found in the PATENTS file in the same directory.
   />,
   document.getElementById('top-up-subscriber-chart')
 );
-  {% endif %}
+{% endif %}
 </script>
 <script type="text/javascript">
 function setloading() {
