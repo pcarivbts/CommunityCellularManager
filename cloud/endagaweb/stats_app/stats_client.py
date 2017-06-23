@@ -162,6 +162,9 @@ class StatsClientBase(object):
         if aggregation == 'duration':
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=aggregates.Sum('billsec'))
+        elif aggregation == 'duration_minute':
+            queryset_stats = qsstats.QuerySetStats(
+                queryset, 'date', aggregate=aggregates.Sum('billsec'))
         elif aggregation == 'up_byte_count':
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=aggregates.Sum('uploaded_bytes'))
@@ -214,6 +217,8 @@ class StatsClientBase(object):
             if aggregation == 'transaction_sum':
                 # When kind is change
                 return sum(values) * 0.000001
+            elif aggregation == 'duration_minute':
+                return (sum(values) / 60) or 0
             return sum(values)
 
         timestamps = [
