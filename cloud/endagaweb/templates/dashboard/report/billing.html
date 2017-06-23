@@ -36,15 +36,8 @@ of patent rights can be found in the PATENTS file in the same directory.
             {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/billing' %}
             {% if network_has_activity %}
             <div class="row">
-                <div id='top-up-subscriber-chart'></div>
-                <div id='top-up-chart'></div>
-                <div id='call-usage-chart'></div>
-                <div id='sms-usage-chart'></div>
-                <div id='call-sms-usage-chart'></div>
-                <div id='load-transfer-usage-chart'></div>
-                <div id='add-money-usage-chart'></div>
-            </div>
-            <div class="row">
+              <div id='top-up-subscriber-chart'></div>
+              <div id='top-up-chart'></div>
               <div id='billing-waterfall-summary-chart'></div>
             </div>
             {% if 'Loader' in reports %}
@@ -86,6 +79,13 @@ of patent rights can be found in the PATENTS file in the same directory.
               </div>
             </div>
             {% endif %}
+            <div class="row">
+                <div id='add-money-usage-chart'></div>
+                <div id='load-transfer-usage-chart'></div>
+                <div id='sms-usage-chart'></div>
+                <div id='call-sms-usage-chart'></div>
+                <div id='call-usage-chart'></div>
+            </div>
 
             {% else %}
                 <p>There is no network activity to display.</p>
@@ -220,7 +220,7 @@ of patent rights can be found in the PATENTS file in the same directory.
   {% if 'Activation' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
-      title='Waterfall Activation Summary'
+      title='Waterfall Activation Report'
       chartID='summary-chart'
       statTypes='provisioned'
       level='{{ level }}'
