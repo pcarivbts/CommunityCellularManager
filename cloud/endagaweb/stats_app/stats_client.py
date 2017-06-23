@@ -149,13 +149,11 @@ class StatsClientBase(object):
             pass
         if kwargs.has_key('query'):
             filters = filters & kwargs.pop('query')
-
         if report_view == 'value':
             filters = filters & Q(date__lte=end) & Q(date__gte=start)
             result = models.UsageEvent.objects.filter(filters).values_list(
                 'subscriber_id', flat=True).distinct()
             return list(result)
-
         # Create the queryset itself.
         queryset = objects.filter(filters)
         # Use qsstats to aggregate the queryset data on an interval.
@@ -177,31 +175,38 @@ class StatsClientBase(object):
         elif aggregation == 'valid_through':
             queryset_stats = qsstats.QuerySetStats(queryset, 'valid_through')
         # Sum of change in amounts for SMS/CALL
-        elif aggregation == 'transaction_sum':
+        elif aggregation in ['transaction_sum', 'transcation_count']:
             queryset_stats = qsstats.QuerySetStats(
                 # Change is negative value, set positive for charts
                 queryset, 'date', aggregate=(aggregates.Sum('change') * -1))
-            # Do this if percentage if set for top top-up
+            # if percentage is set for top top-up
             percentage = kwargs['topup_percent']
+            top_numbers = 1
             if percentage is not None:
-                subscribers = {}
+                numbers = {}
                 percentage = float(percentage) / 100
                 # Create subscribers dict
                 for query in queryset:
-                    subscribers[query.subscriber_imsi] = 0
+                    numbers[query.to_number] = 0
                 for query in queryset_stats.qs:
-                    subscribers[query.subscriber_imsi] += (query.change * -1)
-                top_count_of_subscribers = (len(subscribers) * percentage)
-                top_imsis = int(round(top_count_of_subscribers))
-                # Get top percentage of subscribers for TOP UP
+                    numbers[query.to_number] += (query.change * -1)
+                    top_numbers = int(len(numbers) * percentage)
+                top_numbers = top_numbers if top_numbers > 1 else top_numbers
                 top_subscribers = list(dict(
-                    sorted(subscribers.iteritems(), key=itemgetter(1),
-                           reverse=True)[:top_imsis]).keys())
+                    sorted(numbers.iteritems(), key=itemgetter(1),
+                           reverse=True)[:top_numbers]).keys())
                 queryset = queryset_stats.qs.filter(
-                    Q(subscriber_imsi__in=top_subscribers))
-                queryset_stats = qsstats.QuerySetStats(
-                    queryset, 'date', aggregate=(
-                        aggregates.Sum('change') * -1))
+                    Q(to_number__in=top_subscribers))
+                # Count the numbers
+                if aggregation == 'transcation_count':
+                    queryset_stats = qsstats.QuerySetStats(
+                        queryset, 'date', aggregate=(
+                            aggregates.Count('to_number')))
+                else:
+                    # Sum of change
+                    queryset_stats = qsstats.QuerySetStats(
+                        queryset, 'date', aggregate=(
+                            aggregates.Sum('change') * -1))
         elif aggregation == 'loader':
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=aggregates.Count('subscriber_id'))
@@ -480,7 +485,7 @@ class TopUpStatsClient(StatsClientBase):
     def timeseries(self, kind=None, **kwargs):
         # Change is negative convert to compare
         try:
-            raw_amount = [(float(denom) * -1 / 10000) for denom in
+            raw_amount = [(float(denom) * -1 / 100000) for denom in
                           kwargs['extras'].split('-')]
             kwargs['query'] = Q(change__gte=raw_amount[1]) & Q(
                 change__lte=raw_amount[0]) & Q(subscriber__role='retailer')
@@ -488,7 +493,6 @@ class TopUpStatsClient(StatsClientBase):
         except ValueError:
             # If no denominations available in this network
             raise ValueError('no denominations available in current network')
-
 
 
 class BTSStatsClient(StatsClientBase):

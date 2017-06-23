@@ -338,6 +338,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
       }
       // Get sum of the total charges
       var sumAmount = changeAmount.reduce(add, 0);
+      changeAmount = []
       // sum can be of all negative values
       if ( sumAmount < 0 ){
       newSeries['total'] = (sumAmount * -1);

@@ -45,7 +45,7 @@
                       {% endif %} 
                     </select>
                 </div>
-                {% if 'Amount Based' not in reports %}
+                {% if 'Amount Based' not in reports and 'Count Based' not in reports %}
                 <div class="col-md-3">
                     <button id="submit" type="submit" name="submit" value="Filter"
                             class="btn btn-primary col-md-4">Filter
@@ -53,7 +53,7 @@
                 </div>
                 {% endif %}
             </div>
-            {% if 'Amount Based' in reports %}
+            {% if 'Amount Based' in reports or 'Count Based' in reports %}
             <div class="form-group col-md-12">
                 <label class="control-label col-md-1">Top&nbsp;Transfers</label>
                 <div class="col-md-5">

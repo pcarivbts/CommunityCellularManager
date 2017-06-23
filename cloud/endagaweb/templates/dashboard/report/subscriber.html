@@ -30,6 +30,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     <div class="row">
       <div id='subscriber-chart'></div>
       <div id='subscriber-status'></div>
+    </div>
     {% include 'dashboard/timezone-notice.html' %}
     {% else %}
     <p>There is no network activity to display.</p>
@@ -94,50 +95,6 @@ of patent rights can be found in the PATENTS file in the same directory.
     document.getElementById('subscriber-status')
   );
   {% endif %}
-
-
 </script>
-<script type="text/javascript">
-function setloading() {
-  var $btn = $('#submit').button().button('loading');
-}
-$(document).ready(function() {
-  $('#from_month').datetimepicker({
-    viewMode: 'years',
-    format: 'MM/YYYY'
-  });
-  $('#to_month').datetimepicker({
-    viewMode: 'years',
-    format: 'MM/YYYY'
-  });
 
-  $('#show').click(function(){
-    var from_date = moment($('#from_month').val(), 'MM/YYYY').unix();
-    var to_month = moment($('#to_month').val(), 'MM/YYYY').unix();
-
-    console.log("Date = ", from_date, to_month);
-    var tableData = [
-      [1111,2222],
-      [3333,4444],
-      [5555,6666]
-    ];
-
-    $('#loader_summary').DataTable({
-      data: tableData,
-      paging:   false,
-      ordering: false,
-      info:     false,
-      searching: false,
-      autoWidth: true,
-      scrollY: 320,
-      destroy: true,
-      columns: [
-          { title: "Title" },
-          { title: "Value" }
-      ]
-    });
-
-  });
-});
-</script>
 {% endblock %}
