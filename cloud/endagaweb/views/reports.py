@@ -230,14 +230,16 @@ class BillingReportView(ProtectedView):
         for denom in denom_list:
             # Now format to set them as stat-types
             formatted_denomnation.append(
-                str(humanize_credits(denom[0])).replace(',', '')
+                str(humanize_credits(
+                    denom[0], CURRENCIES[network.subscriber_currency])).replace(',', '')
                 + ' - ' +
-                str(humanize_credits(denom[1])).replace(',', ''))
+                str(humanize_credits(
+                    denom[1], CURRENCIES[network.subscriber_currency])).replace(',', ''))
             denom_list2.append(
                 str(denom[0])
                 + '-' +
                 str(denom[1]))
-        currency = CURRENCIES[network.currency].symbol
+        currency = CURRENCIES[network.subscriber_currency].symbol
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
             datetime.datetime.now()).total_seconds()
         level = request.session['level']
