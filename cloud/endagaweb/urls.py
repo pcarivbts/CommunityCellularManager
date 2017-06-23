@@ -164,7 +164,7 @@ urlpatterns = [
         endagaweb.views.reports.SubscriberReportView.as_view(),
         name='subscriber-report'),
     url(r'^report/downloadcsv',
-        endagaweb.views.dashboard.ReportGraphDownload.as_view(),
+        endagaweb.views.reports.ReportGraphDownload.as_view(),
         ),
     url(r'^dashboard/reports/billing',
         endagaweb.views.reports.BillingReportView.as_view(),
