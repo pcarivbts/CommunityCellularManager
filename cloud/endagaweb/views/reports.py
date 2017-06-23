@@ -18,6 +18,15 @@ from endagaweb.views.dashboard import ProtectedView
 from guardian.shortcuts import get_objects_for_user
 from ccm.common.currency import CURRENCIES
 
+report_keys= ('Top Up', 'Call & SMS', 'Retailer', 'Waterfall')
+reports_dict= {
+    'Top Up': ['Amount Based', 'Count Based'],
+    'Call & SMS': ['SMS Billing', 'Call and SMS Billing', 'Call Billing'],
+    'Retailer': ['Retailer Recharge', 'Retailer Load Transfer'],
+    'Waterfall': ['Activation', 'Loader', 'Reload Amount', 'Reload Transaction']
+}
+
+
 class BaseReport(ProtectedView):
     """The base Report class.
 
@@ -164,15 +173,7 @@ class BillingReportView(ProtectedView):
         super(BillingReportView, self).__init__(**kwargs)
         self.template = "dashboard/report/billing.html"
         self.url_namespace = 'billing-report'
-        self.reports = {'Call & SMS': ['SMS Billing', 'Call and SMS Billing',
-                                       'Call Billing'],
-                        'Retailer': ['Retailer Recharge',
-                                     'Retailer Load Transfer', ],
-                        'Top Up': ['Amount Based',
-                                   'Count Based', ],
-                        'Waterfall': ['Activation', 'Loader',
-                                      'Reload Amount', 'Reload Transaction']
-                        }
+        self.reports = reports_dict
 
     def get(self, request):
         return self.handle_request(request)
