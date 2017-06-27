@@ -27,13 +27,11 @@ def render_user_profile(record):
     if not record.network:
         return None
     user_profiles = models.UserProfile.objects.filter(network=record.network)
-    network_names = [user_profile.network.name + ',' for user_profile in
-                     user_profiles]
+    network_names = [ user_profile.network.name+',' for user_profile in user_profiles ]
     limit_names = 2
     if len(network_names) > limit_names:
-        network_names = network_names[:limit_names] + ['...']
+        network_names = network_names[:limit_names]+['...']
     return ''.join(network_names)[:-1]
-
 
 def render_uptime(record):
     """Show the humanized tower uptime."""
@@ -137,7 +135,7 @@ class SubscriberTable(tables.Table):
     class Meta:
         model = models.Subscriber
         fields = ('name_and_imsi_link', 'numbers', 'balance', 'status',
-                  'last_active')
+            'last_active')
         attrs = {'class': 'table'}
 
     name_and_imsi_link = tables.Column(
@@ -194,16 +192,14 @@ class SubscriberActivityTable(tables.Table):
         """
         if record.oldamt < 0 and record.kind != 'add_money':
             return humanize_credits(0,
-                                    CURRENCIES[
-                                        record.network.subscriber_currency])
+                    CURRENCIES[record.network.subscriber_currency])
         else:
             return humanize_credits(record.change,
-                                    CURRENCIES[
-                                        record.network.subscriber_currency])
+                    CURRENCIES[record.network.subscriber_currency])
 
     def render_newamt(self, record):
         return humanize_credits(record.newamt,
-                                CURRENCIES[record.network.subscriber_currency])
+                CURRENCIES[record.network.subscriber_currency])
 
 
 class TowerTable(tables.Table):
@@ -242,6 +238,7 @@ class TowerTable(tables.Table):
 
     def render_uptime(self, record):
         return render_uptime(record)
+
 
 
 class StaffTowerTable(tables.Table):
@@ -341,6 +338,57 @@ class NumberTable(tables.Table):
         return safestring.mark_safe(element)
 
 
+class DenominationListTable(tables.Table):
+    """A django-tables2 Table definition for the table list."""
+
+    class Meta:
+        model = models.NetworkDenomination
+        fields = ('start_amount', 'end_amount', 'validity_days')
+        attrs = {'class': 'table table-hover'}
+
+    start_amount = tables.Column(empty_values=(), verbose_name='Start Amount')
+    end_amount = tables.Column(empty_values=(), verbose_name='End Amount')
+    validity_days = tables.Column(empty_values=(), verbose_name='Validity(Days)')
+
+    def render_start_amount(self, record):
+        return humanize_credits(record.start_amount,
+                                CURRENCIES[record.network.subscriber_currency])
+
+    def render_end_amount(self, record):
+        return humanize_credits(record.end_amount,
+                                CURRENCIES[record.network.subscriber_currency])
+
+
+class DenominationTable(tables.Table):
+    """A django-tables2 Table definition for the table list."""
+
+    class Meta:
+        model = models.NetworkDenomination
+        fields = ('start_amount', 'end_amount', 'validity_days')
+        attrs = {'class': 'table table-hover'}
+
+    start_amount = tables.Column(empty_values=(), verbose_name='Start Amount')
+    end_amount = tables.Column(empty_values=(), verbose_name='End Amount')
+    validity_days = tables.Column(empty_values=(), verbose_name='Validity(Days)')
+    action = tables.Column(empty_values=(), verbose_name='Action', orderable=False)
+
+    def render_start_amount(self, record):
+        return humanize_credits(record.start_amount,
+                                CURRENCIES[record.network.subscriber_currency])
+
+    def render_end_amount(self, record):
+        return humanize_credits(record.end_amount,
+                                CURRENCIES[record.network.subscriber_currency])
+
+    def render_action(self, record):
+        """Shows the edit and delete button."""
+        element = "<a href='javascript:void(0)' id='denom_%s' onclick='doAction(\"edit\", \"%s\");' " \
+                   "class='btn btn-xs btn-info'>Edit</a> &nbsp; " % (record.id, record.id)
+        element += "<a href='javascript:void(0)' onclick='doAction(\"delete\",\"%s\");' class='btn btn-xs btn-danger'" \
+                   "data-target='#delete-denom-modal' data-toggle='modal'>Delete</a>" % (record.id)
+        return safestring.mark_safe(element)
+
+
 def render_username(record, **kwargs):
     """Shows the username as a link.
     kwargs:
@@ -429,3 +477,5 @@ class SubscriberManagementTable(tables.Table):
 
     def render_imsi(self, record):
         return render_imsi(record)
+
+

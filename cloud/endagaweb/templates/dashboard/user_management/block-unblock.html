@@ -8,6 +8,7 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 {% endcomment %}
+{% load guardian_tags %}
 {% load render_table from django_tables2 %}
 {% load account socialaccount %}
 {% block pagestyle %}
@@ -19,7 +20,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 <header class="navbar navbar-inverse normal" role="banner"></header>
 {% endblock %}
 {% block content %}
-
+{% get_obj_perms request.user for network as 'user_permission' %}
 <div class="row">
     <div class="col-xs-12 col-sm-12 page-header">
         <h4 class="page-title">
@@ -40,7 +41,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 {{message}}
             </div>
             {% endfor %}
-            {% if 'endagaweb.block_user' in user_permission %}
+            {% if 'block_user' in user_permission %}
             <form action="/dashboard/user/management/blocking" method="GET" role="form">
                 <div class="col-xs-12 col-md-6">
                     {% crispy search %}

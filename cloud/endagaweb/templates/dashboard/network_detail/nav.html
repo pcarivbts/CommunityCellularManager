@@ -15,7 +15,6 @@ of patent rights can be found in the PATENTS file in the same directory.
         {% else %} {% url 'network-info' %}
         {% endif %} ">Info</a>
     </li>
-
     {% comment "2015dec11(shasan): Remove prices page to avoid confusion" %}
     <li role="presentation" class="{% if active_tab == 'prices' %} active {% endif %}">
       <a href="
@@ -24,6 +23,12 @@ of patent rights can be found in the PATENTS file in the same directory.
         {% endif %} ">Prices</a>
     </li>
     {% endcomment %}
+    <li role="presentation" class="{% if active_tab == 'network-denominations' %} active {% endif %}">
+      <a href="
+        {% if active_tab == 'network-denominations' %} #
+        {% else %} {% url 'network-denominations' %}
+        {% endif %} ">Denominations</a>
+    </li>
 
     <li role="presentation" class="{% if active_tab == 'inactive-subscribers' %} active {% endif %}">
       <a href="

@@ -45,8 +45,8 @@ from endagaweb.notifications import bts_up
 from endagaweb.util import currency as util_currency
 from endagaweb.util import dbutils as dbutils
 
-
 stripe.api_key = settings.STRIPE_API_KEY
+
 
 # These UsageEvent kinds do not count towards subscriber activity.
 NON_ACTIVITIES = (
@@ -58,6 +58,36 @@ NON_ACTIVITIES = (
 OUTBOUND_ACTIVITIES = (
     'outside_call', 'outside_sms', 'local_call', 'local_sms',
 )
+
+PERMISSIONS = (
+                ('view_user', 'User Management'),
+                ('add_user', 'Add User'),
+                ('delete_user', 'Delete User'),
+                ('block_user', 'Block User'),
+
+                ('view_bts', 'View Tower'),
+                ('add_bts', 'Add Tower'),
+                ('edit_bts', 'Edit Tower'),
+                ('delete_bts', 'Delete Tower'),
+
+                ('view_subscriber', 'View Subscriber'),
+                ('edit_subscriber', 'Edit Subscriber'),
+                ('delete_subscriber', 'Delete Subscriber'),
+
+                ('view_usage', 'View Usage'),
+                ('download_usage', 'Download Report'),
+
+                ('view_network', 'View Network'),
+                ('edit_network', 'Edit Network'),
+
+                ('adjust_credit', 'Adjust Credit'),
+
+                ('send_bulk_sms', 'Send Bulk SMS'),
+                ('send_sms', 'Send Broadcast SMS'),
+
+                ('view_graph', 'View Graph'),
+                ('download_graph', 'Download Graph'),
+            )
 
 
 class UserProfile(models.Model):
@@ -71,23 +101,14 @@ class UserProfile(models.Model):
     timezone_choices = [(v, v) for v in pytz.common_timezones]
     timezone = models.CharField(max_length=50, default='UTC',
                                 choices=timezone_choices)
-    role = models.CharField(max_length=20, default='cloud_admin')
+
     # A UI kludge indicate which network a user is currently viewing
     # Important: This is not the only network a User is associated with
     # because a user may have permissions on other Network instances.
     # For example to get a list of networks the user can view:
     # >>> get_objects_for_user(user_profile.user, 'view_network', klass=Network)
-    network = models.ForeignKey('Network', null=True,
-                                on_delete=models.SET_NULL)
+    network = models.ForeignKey('Network', null=True, on_delete=models.SET_NULL)
 
-    class Meta:
-        default_permissions = ()
-        permissions= (
-            ('view_user', 'User Management'),
-            ('add_user', 'Add User'),
-            ('delete_user', 'Delete User'),
-            ('block_user', 'Block User'),
-        )
     def __str__(self):
           return "%s's profile" % self.user
 
@@ -102,7 +123,7 @@ class UserProfile(models.Model):
 
         TODO(matt): implement
         """
-        # return [{'link': "#", 'title': "lookout!", 'label': "Danger"}]
+        #return [{'link': "#", 'title': "lookout!", 'label': "Danger"}]
 
     @staticmethod
     def new_user_hook(sender, instance, created, **kwargs):
@@ -112,7 +133,6 @@ class UserProfile(models.Model):
         """
         if created and instance.username != settings.ANONYMOUS_USER_NAME:
             profile = UserProfile.objects.create(user=instance)
-
             # Add explicit name to avoid duplicate names when
             # running setup_test_db
             network = Network.objects.create(name='Network_%s' % (instance.pk,))
@@ -122,9 +142,7 @@ class UserProfile(models.Model):
             profile.network = network
             profile.save()
 
-
 post_save.connect(UserProfile.new_user_hook, sender=User)
-
 
 class Ledger(models.Model):
     """A ledger represents a list of transactions and a balance.
@@ -178,7 +196,6 @@ class Ledger(models.Model):
             ledger.balance = F('balance') + instance.amount
             ledger.save()
 
-
 class Transaction(models.Model):
     """ The transaction object represents a single line item in an account
     ledger.  It needs to be applied to a ledger for it to take affect. In
@@ -231,7 +248,7 @@ class Transaction(models.Model):
     def new(cls, kind, **kwargs):
         """ Create a new Transaction, save it. """
         if kind not in [k for k, _ in cls.transaction_kinds]:
-            raise ValueError("invalid transaction kind: '%s'" % (kind,))
+            raise ValueError("invalid transaction kind: '%s'" % (kind, ))
         return Transaction(kind=kind, **kwargs)
 
 
@@ -283,50 +300,44 @@ class BTS(models.Model):
     package_versions = models.TextField(null=True)
     # Towers report their uptime in seconds during checkins.
     uptime = models.IntegerField(null=True)
-    # location of the tower, default is campanile
-    # can't use point object for some reason
+    #location of the tower, default is campanile
+    #can't use point object for some reason
     location = geomodels.GeometryField(geography=True, default='POINT(-122.260931 37.871783)')
-    # power level of the tower
+    #power level of the tower
     power_level = models.IntegerField(default=100)
-    # band used - eventually can add more
-    # authoritative place for range as well
-    # name, dbname, acceptable ranges
-    # maybe should be in config somewhere
-    # null means no band set
-    # only odd for GSM as bands overlap
+    #band used - eventually can add more
+    #authoritative place for range as well
+    #name, dbname, acceptable ranges
+    #maybe should be in config somewhere
+    #null means no band set
+    #only odd for GSM as bands overlap
     bands = {
-        'GSM850': {'choices': ('GSM850', 'GSM850'),
-                   "valid_values": set(range(128, 252, 2))},
-        'GSM900': {'choices': ('GSM900', 'GSM900'),
-                   "valid_values": set(range(0, 125, 1))},
-        'GSM1800': {'choices': ('GSM1800', 'GSM1800'),
-                    "valid_values": set(range(512, 886, 2))},
-        'GSM1900': {'choices': ('GSM1900', 'GSM1900'),
-                    "valid_values": set(range(512, 811, 2))}
+        'GSM850' : {'choices' : ('GSM850', 'GSM850'),
+                    "valid_values" : set(range(128,252,2))},
+        'GSM900' : {'choices' : ('GSM900', 'GSM900'),
+                    "valid_values" : set(range(0,125,1))},
+        'GSM1800' : {'choices' : ('GSM1800', 'GSM1800'),
+                     "valid_values" : set(range(512,886,2))},
+        'GSM1900' : {'choices' : ('GSM1900', 'GSM1900'),
+                     "valid_values" : set(range(512,811,2))}
     }
 
     band = models.CharField(
         max_length=20, choices=[bands[i]['choices'] for i in bands.keys()], null=True)
-    # channel number used
-    # none is unknown or invalid
+    #channel number used
+    #none is unknown or invalid
     channel = models.IntegerField(null=True, blank=True)
 
     class Meta:
         default_permissions = ()
-        permissions = (
-            ('view_bts', 'View Tower'),
-            ('add_bts', 'Add Tower'),
-            ('edit_bts', 'Edit Tower'),
-            ('delete_bts', 'Delete Tower')
-        )
 
     def __unicode__(self):
         return "BTS(%s, %s, last active: %s)" % (
             self.uuid, self.inbound_url, self.last_active)
 
-    # custom validations
-    # this is run after every time an object is updated
-    # authoritatively enforcing the DB values
+    #custom validations
+    #this is run after every time an object is updated
+    #authoritatively enforcing the DB values
     def clean(self):
         super(BTS, self).clean()
         if (self.band is None and self.channel is None):  # valid bad state
@@ -343,13 +354,13 @@ class BTS(models.Model):
         return band in BTS.bands
 
     def valid_band_and_channel(self, band, channel):
-        # null means channel is not set
+        #null means channel is not set
         return (self.valid_band(band) and
                 (channel in BTS.bands[band]['valid_values']))
 
-    # use this to set band/channel as to never set to invalid
+    #use this to set band/channel as to never set to invalid
     def update_band_and_channel(self, band=None, channel=None):
-        # can't use self.band as the default argument
+        #can't use self.band as the default argument
         if not band:
             band = self.band
         if not channel:
@@ -397,8 +408,8 @@ class BTS(models.Model):
             self.status = 'active'
             self.save()
             up_event = SystemEvent(
-                date=django.utils.timezone.now(), bts=self,
-                type='bts up')
+                    date=django.utils.timezone.now(), bts=self,
+                    type='bts up')
             up_event.save()
 
     def last_active_time(self):
@@ -468,11 +479,10 @@ class BTS(models.Model):
 
 post_save.connect(BTS.set_default_versions, sender=BTS)
 
+
 """
 Base class for a thing that issues recurring charges, like a number.
 """
-
-
 class ChargingEntity(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     last_charged = models.DateTimeField(null=True, blank=True)
@@ -485,7 +495,6 @@ class ChargingEntity(models.Model):
     Return a new datetime incremented by the specified number of units, one of
     "day", "month", or "year".
     """
-
     def add_time(self, sourcedate, num, unit):
         if unit == "month":
             month = sourcedate.month - 1 + num
@@ -499,13 +508,12 @@ class ChargingEntity(models.Model):
         elif unit == "day":
             return sourcedate + datetime.timedelta(days=num)
         elif unit == "year":
-            return sourcedate + datetime.timedelta(days=num * 365)
+            return sourcedate + datetime.timedelta(days=num*365)
 
     """
     Charge for this recurring entity. This can be called any time, and will
     only generate a new charge if the entity has expired.
     """
-
     def charge(self, curr_date=None, reason="recharge"):
         if curr_date is None:
             curr_date = django.utils.timezone.now()
@@ -523,7 +531,6 @@ class ChargingEntity(models.Model):
 
     Sets everything back to null or their default value.
     """
-
     def reset(self):
         self.last_charged = None
         self.valid_through = None
@@ -553,15 +560,6 @@ class Subscriber(models.Model):
     # When toggled, this will protect a subsriber from getting "vacuumed."  You
     # can still delete subs with the usual "deactivate" button.
     prevent_automatic_deactivation = models.BooleanField(default=False)
-    role = models.TextField(null=True, blank=True, default="Subscriber")
-
-    class Meta:
-        default_permissions = ()
-        permissions = (
-            ('view_subscriber', 'View Subscriber'),
-            ('edit_subscriber', 'Edit Subscriber'),
-            ('delete_subscriber', 'Delete Subscriber'),
-        )
 
     @classmethod
     def update_balance(cls, imsi, other_bal):
@@ -588,7 +586,7 @@ class Subscriber(models.Model):
         try:
             bal = crdt.PNCounter.from_json(self.crdt_balance)
         except ValueError:
-            logging.error("Balance string: %s" % (self.crdt_balance,))
+            logging.error("Balance string: %s" % (self.crdt_balance, ))
             raise
 
         if (bal.is_used()):
@@ -603,7 +601,7 @@ class Subscriber(models.Model):
         try:
             bal = crdt.PNCounter.from_json(self.crdt_balance)
         except ValueError:
-            logging.error("Balance string: %s" % (self.crdt_balance,))
+            logging.error("Balance string: %s" % (self.crdt_balance, ))
             raise
 
         if amt > 0:
@@ -708,7 +706,7 @@ class Subscriber(models.Model):
         # TODO(omar): this is incomplete status information. We should also
         #             include IMSI detach events. Issue #20 on openbts.
         if self.last_camped is None:
-            return False
+          return False
         t3212_secs = int(ConfigurationKey.objects.get(
             network=self.network, key="GSM.Timer.T3212").value) * 60
         last_camped_secs = (django.utils.timezone.now() - self.last_camped) \
@@ -831,10 +829,6 @@ class UsageEvent(models.Model):
 
     class Meta:
         default_permissions = ()
-        permissions = (
-            ('view_usage', 'View Usage'),
-            ('download_usage', 'Download Usage Report')
-        )
 
     def voice_sec(self):
         """Gets the number of seconds for this call.
@@ -992,11 +986,11 @@ class Network(models.Model):
 
     # The user group associated with the network
     auth_group = models.OneToOneField(Group, null=True, blank=True,
-                                      on_delete=models.CASCADE)
+                                        on_delete=models.CASCADE)
     # Each network is associated with an auth user that the BTS will use
     # to authenticate on API calls
     auth_user = models.OneToOneField(User, null=True, blank=True,
-                                     on_delete=models.CASCADE)
+                                        on_delete=models.CASCADE)
     # Each network is associated with a ledger and its own billing account
     stripe_cust_token = models.CharField(max_length=1024, blank=True,
                                          default="")
@@ -1025,12 +1019,7 @@ class Network(models.Model):
 
     class Meta:
         default_permissions = ()
-        permissions = (
-            ('view_network', 'View Network'),
-            ('view_network_detail', 'View Network Detail'),
-            ('edit_network', 'Edit Network'),
-            ('adjust_credit', 'Adjust Credit'),
-        )
+        permissions = PERMISSIONS
 
     @property
     def api_token(self):
@@ -1135,7 +1124,7 @@ class Network(models.Model):
                 return False
         except stripe.StripeError:
             # TODO(matt): alert the staff.
-            logger.error('Recharge failed for %s' % (self,))
+            logger.error('Recharge failed for %s' % (self, ))
             return False
 
     def update_card(self, token):
@@ -1228,6 +1217,7 @@ class Network(models.Model):
         self.stripe_exp_year = ""
         self.save()
         return True
+
 
     def calculate_operator_cost(self, directionality, sms_or_call,
                                 destination_number=''):
@@ -1498,7 +1488,6 @@ class Network(models.Model):
         if not Ledger.objects.filter(network=instance).exists():
             Ledger.objects.create(network=instance)
 
-
 # Whenever we update the Ledger, attempt to recharge the Network bill.
 post_save.connect(Network.ledger_save_handler, sender=Ledger)
 
@@ -1506,6 +1495,30 @@ post_save.connect(Network.create_ledger, sender=Network)
 post_save.connect(Network.create_auth, sender=Network)
 post_save.connect(Network.set_network_defaults, sender=Network)
 post_save.connect(Network.create_billing_tiers, sender=Network)
+
+
+class NetworkDenomination(models.Model):
+    """Network has its own denomination bracket for rechange and validity
+
+    Subscriber status depends on recharge under denomination bracket
+    """
+    start_amount = models.BigIntegerField()
+    end_amount = models.BigIntegerField()
+    validity_days = models.PositiveIntegerField(blank=True, default=0)
+
+    # The denomination group associated with the network
+    network = models.ForeignKey('Network', null=True, on_delete=models.CASCADE)
+
+    def __unicode__(self):
+        return "Amount %s - %s  for %s day(s)" % (
+            humanize_credits(self.start_amount,
+                             CURRENCIES[self.network.subscriber_currency]),
+            humanize_credits(self.end_amount,
+                             CURRENCIES[self.network.subscriber_currency]),
+            self.validity_days)
+
+    class Meta:
+        ordering = ('start_amount',)
 
 
 class ConfigurationKey(models.Model):
@@ -1590,7 +1603,7 @@ class Destination(models.Model):
     country_code = models.TextField()
     country_name = models.TextField()
     destination_group = models.ForeignKey('DestinationGroup', null=True,
-                                          on_delete=models.CASCADE)
+                                            on_delete=models.CASCADE)
     prefix = models.TextField()
 
     def __unicode__(self):
@@ -1766,7 +1779,6 @@ class TimeseriesStat(models.Model):
     bts = models.ForeignKey(BTS, null=True, blank=True, on_delete=models.CASCADE)
     network = models.ForeignKey('Network', on_delete=models.CASCADE)
 
-
 class BTSLogfile(models.Model):
     """This model stores log file uploads that have come from client.
     Until we get S3 or something similar setup, we are storing file data
@@ -1777,23 +1789,23 @@ class BTSLogfile(models.Model):
     requested = models.DateTimeField(auto_now_add=True)
     logfile = models.FileField(upload_to='logfiles/', null=True, blank=True)
     log_name = models.CharField(max_length=60,
-                                choices=[('syslog', 'Syslog'), ('endaga', 'Endaga')])
+        choices=[('syslog', 'Syslog'), ('endaga', 'Endaga')])
     task_id = models.CharField(max_length=50, null=True, blank=True)
     status = models.CharField(max_length=10, default='pending',
-                              choices=[('pending', 'Pending'), ('trying', 'Trying'),
-                                       ('error', 'Error'), ('accepted', 'Accepted'), ('done', 'Done')])
+        choices=[('pending', 'Pending'), ('trying', 'Trying'),
+            ('error', 'Error'), ('accepted', 'Accepted'), ('done', 'Done')])
     window_start = models.DateTimeField(blank=True, null=True,
-                                        help_text='Gather log entries after this time')
+        help_text='Gather log entries after this time')
     window_end = models.DateTimeField(blank=True, null=True,
-                                      help_text='Gather log entries before this time')
+        help_text='Gather log entries before this time')
     bts = models.ForeignKey(BTS, on_delete=models.CASCADE)
 
     def req_params(self):
         return {
-            'start': self.window_start.isoformat('T') if self.window_start else 'None',
-            'end': self.window_end.isoformat('T') if self.window_end else 'None',
-            'log_name': self.log_name,
-            'msgid': str(self.uuid)
+          'start': self.window_start.isoformat('T') if self.window_start else 'None',
+          'end': self.window_end.isoformat('T') if self.window_end else 'None',
+          'log_name': self.log_name,
+          'msgid': str(self.uuid)
         }
 
     def save(self, *args, **kwargs):
@@ -1801,7 +1813,7 @@ class BTSLogfile(models.Model):
         if not self.pk:
             super(BTSLogfile, self).save(*args, **kwargs)
             task = celery_app.send_task('endagaweb.tasks.req_bts_log',
-                                        (self,))
+                (self,))
             self.task_id = task.id
         super(BTSLogfile, self).save(*args, **kwargs)
 
@@ -1811,7 +1823,6 @@ class BTSLogfile(models.Model):
         if self.logfile:
             self.logfile.delete()
 
-
 class FileUpload(models.Model):
     name = models.CharField(max_length=255, primary_key=True)
     data = models.BinaryField(default='')  # a base64 encoded TextField
@@ -1819,28 +1830,3 @@ class FileUpload(models.Model):
     created_time = models.DateTimeField(auto_now_add=True)
     modified_time = models.DateTimeField(auto_now_add=True)
     accessed_time = models.DateTimeField(auto_now=True)
-
-
-class SMSBroadcast(models.Model):
-    """ Global permission set for SMS Broadcasting module in network section"""
-
-    class Meta:
-        managed = False  # No database table creation or deletion operations \
-                         # will be performed for this model.
-        default_permissions = ()
-        permissions = (
-            ('send_bulk_sms', 'Send Bulk SMS'),
-            ('send_sms', 'Broadcast SMS'),
-        )
-
-
-class Graph(models.Model):
-    """ Global permission set for Report module"""
-
-    class Meta:
-        managed = False
-        default_permissions = ()
-        permissions = (
-            ('view_graph', 'View Graph'),
-            ('download_graph', 'Download Graph Report')
-        )

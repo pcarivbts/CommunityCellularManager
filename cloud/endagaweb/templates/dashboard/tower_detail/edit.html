@@ -10,7 +10,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load apptags %}
 {% load humanize %}
 {% load crispy_forms_tags %}
-
+{% load guardian_tags %}
 
 {% block title %}
 {% if tower_nickname %}
@@ -46,10 +46,11 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 {% block content %}
 {% include "dashboard/tower_detail/header.html" with tower=tower %}
+{% get_obj_perms request.user for network as 'user_permission' %}
 
 <div class = 'row'>
   {% include "dashboard/tower_detail/nav.html" with uuid=tower.uuid active_tab='edit'%}
-  {% if 'endagaweb.edit_bts' in user_permission %}
+  {% if 'edit_bts' in user_permission %}
   <div class='content col-xs-12 col-sm-10'>
     <form id='edit-tower-form'>
       <div class='form-group col-sm-6'>

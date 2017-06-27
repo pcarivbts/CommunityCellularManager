@@ -7,7 +7,7 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 {% endcomment %}
-
+{% load guardian_tags %}
 {% load account socialaccount %}
 {% block pagestyle %}
 <style>
@@ -37,6 +37,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endblock %}
 
 {% block headerclass %}
+
 <body id="add_user">
 <header class="navbar navbar-inverse normal" role="banner">
     {% endblock %}
@@ -54,7 +55,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
     <div class='row'>
         {% include "dashboard/user_management/nav.html" with active_tab='add'%}
-
+        {% get_obj_perms request.user for network as 'user_permission' %}
         <div class="container col-sm-10">
             {% for message in messages %}
             <div class="message alert alert-{{message.tags}}">
@@ -62,7 +63,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 {{message}}
             </div>
             {% endfor %}
-            {% if 'endagaweb.add_user' in user_permission %}
+            {% if 'add_user' in user_permission %}
                 <form action="/dashboard/user/management" id="user_form" name="user_form" method="POST"
                   data-toggle="validator" onsubmit="return createUser();"> {% csrf_token %}
 

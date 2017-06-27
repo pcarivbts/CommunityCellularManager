@@ -9,6 +9,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 """
 
 import logging
+import re
 
 from allauth.account.utils import user_email
 from allauth.exceptions import ImmediateHttpResponse
@@ -33,7 +34,6 @@ from django.template.loader import get_template
 from django.utils.translation import ugettext_lazy as _
 
 from endagaweb.models import UserProfile
-from endagaweb.views.dashboard import PERMSISSION_TABLES
 
 logger = logging.getLogger('endagaweb')
 
@@ -45,7 +45,7 @@ def validate_phone(value):
     if (len(value) < 6 or (not value.isdigit())):
         raise ValidationError(
             _('%(value)s is not a phone number'),
-            params={'value': value}, )
+            params={'value': value},)
 
 
 def loginview(request):
@@ -62,7 +62,6 @@ def loginview(request):
     template = get_template("home/login.html")
     html = template.render(context, request)
     return HttpResponse(html)
-
 
 class WhitelistedSocialAccountAdapter(DefaultSocialAccountAdapter):
     """Custom social account login handler."""
@@ -96,9 +95,8 @@ class WhitelistedSocialAccountAdapter(DefaultSocialAccountAdapter):
 
         if domain not in settings.STAFF_EMAIL_DOMAIN_WHITELIST:
             logger.warning("User %s not in approved domain",
-                           social_login_email)
+                social_login_email)
             self.raiseException()
-
 
 def staff_login_view(request):
     """Show the staff login page."""
@@ -189,19 +187,17 @@ def update_contact(request):
         return redirect("/dashboard/profile")
     return HttpResponseBadRequest()
 
-
 @login_required(login_url='/login/')
 def update_notify_emails(request):
     if request.method == 'POST':
         if 'notify_emails' in request.POST:
-            notify_emails = request.POST['notify_emails'].strip();
+            notify_emails =  request.POST['notify_emails'].strip();
             if not notify_emails == "":
                 for current_email in notify_emails.split(','):
                     try:
                         validate_email(current_email.strip())
                     except ValidationError:
-                        messages.error(request,
-                                       "Invalid email address: '" + current_email +
+                        messages.error(request, "Invalid email address: '" + current_email +
                                        "'. Example of a valid input is 'shaddi@example.com, damian@example.com'",
                                        extra_tags="alert alert-danger notify-emails")
                         return redirect("/dashboard/profile")
@@ -209,10 +205,9 @@ def update_notify_emails(request):
             network.notify_emails = notify_emails
             network.save()
             messages.success(request, "Notify emails updated.",
-                             extra_tags="alert alert-success notify-emails")
+                         extra_tags="alert alert-success notify-emails")
             return redirect("/dashboard/profile")
     return HttpResponseBadRequest()
-
 
 @login_required(login_url='/login/')
 def update_notify_numbers(request):
@@ -224,8 +219,7 @@ def update_notify_numbers(request):
                     try:
                         validate_phone(current_number.strip())
                     except ValidationError:
-                        messages.error(request,
-                                       "Invalid phone number: '" + current_number +
+                        messages.error(request, "Invalid phone number: '" + current_number +
                                        "'. Example of valid input is '+62000000, +52000000, +63000000'",
                                        extra_tags="alert alert-danger notify-numbers")
                         return redirect("/dashboard/profile")
@@ -233,7 +227,7 @@ def update_notify_numbers(request):
             network.notify_numbers = notify_numbers
             network.save()
             messages.success(request, "Notify numbers updated.",
-                             extra_tags="alert alert-success notify-numbers")
+                         extra_tags="alert alert-success notify-numbers")
             return redirect("/dashboard/profile")
     return HttpResponseBadRequest()
 
@@ -283,23 +277,22 @@ def success(request):
 def role_default_permissions(request):
     if request.method == 'GET':
         role = request.GET['role']
-        permission_set = PERMSISSION_TABLES
 
         business_analyst = ['view_graph', 'view_report', 'view_bts',
                             'view_usage', 'view_subscriber',
-                            'view_network_detail']
+                            'view_network']
 
         loader = ['view_graph', 'view_report', 'view_bts', 'view_subscriber',
-                  'view_network_detail', 'edit_subscriber', 'change_network',
+                  'view_network', 'edit_subscriber', 'change_network',
                   'add_subscriber', 'add_sms', 'add_credit', 'download_graph',
                   'view_usage']
 
         partner = ['view_graph', 'view_report', 'view_bts', 'view_subscriber',
-                   'view_network_detail', 'edit_subscriber', 'edit_network',
+                   'view_network', 'edit_subscriber', 'edit_network',
                    'add_subscriber', 'add_sms', 'download_graph', 'view_usage']
 
         content_type = ContentType.objects.filter(
-            app_label='endagaweb', model__in=permission_set).values_list(
+            app_label='endagaweb', model='network').values_list(
             'id', flat=True)
         permission = Permission.objects.filter(
             content_type__in=content_type).values_list('id', flat=True)

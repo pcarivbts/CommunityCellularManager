@@ -10,7 +10,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load apptags %}
 {% load humanize %}
 {% load crispy_forms_tags %}
-
+{% load guardian_tags %}
 
 {% block title %} {% tmpl_const "SITENAME" %} | {{ subscriber.imsi }} Send SMS {% endblock %}
 
@@ -20,7 +20,8 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 <div class='row'>
   {% include "dashboard/subscriber_detail/nav.html" with imsi=subscriber.imsi active_tab='adjust_credit'%}
-  {% if 'endagaweb.adjust_credit' in user_permission %}
+  {% get_obj_perms request.user for network as 'user_permission' %}
+  {% if 'adjust_credit' in user_permission %}
   <div class='content col-xs-12 col-md-4'>
     <div class='row'>
       <div class='col-xs-12'>

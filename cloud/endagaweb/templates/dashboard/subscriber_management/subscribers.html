@@ -12,6 +12,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load crispy_forms_tags %}
 {% load render_table from django_tables2 %}
 {% load account socialaccount %}
+{% load guardian_tags %}
 {% block pagestyle %}
 <style>
 
@@ -22,8 +23,9 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% block content %}
 {% include "dashboard/subscriber_management/header.html" with user=user %}
 {% include "dashboard/subscriber_management/nav.html" with active_tab='category'%}
+{% get_obj_perms request.user for network as 'user_permission' %}
 
-{% if 'endagaweb.view_subscriber' in user_permission %}
+{% if 'view_subscriber' in user_permission %}
 <div class='col-md-10'>
     <div class='row'>
         {% if total_number_of_subscribers %}

@@ -277,6 +277,9 @@ ENDAGA = {
     # Enable/disable billing for networks. If false, we ignore what's in the
     # network's account balance.
     'NW_BILLING': os.environ.get("NW_BILLING", "True").lower() == "true",
+
+    # Maximum permissible validity(in days) limit for denomination
+    'MAX_VALIDITY_DAYS': 10000,
 }
 
 STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY",
@@ -292,14 +295,6 @@ CELERY_QUEUES = {
         'binding_key': 'tasks.#',
     }
 }
-
-# Email settings for sending reset mail
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'smtp.gmail.com'
-# EMAIL_USE_TLS = True
-# EMAIL_PORT = 587
-# EMAIL_HOST_USER = 'abc@gmail.com'
-# EMAIL_HOST_PASSWORD = 'password'
 
 EMAIL_BACKEND = 'django_mailgun.MailgunBackend'
 MAILGUN_ACCESS_KEY = os.environ.get("MAILGUN_ACCESS_KEY", 'key-testkeypleaseignore')

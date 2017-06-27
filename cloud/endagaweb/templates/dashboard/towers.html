@@ -11,7 +11,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load humanize %}
 {% load crispy_forms_tags %}
 {% load render_table from django_tables2 %}
-
+{% load guardian_tags %}
 
 {% block title %}
 {% tmpl_const "SITENAME" %} | towers
@@ -43,24 +43,20 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 
 {% block content %}
-
+{% get_obj_perms request.user for network as 'user_permission' %}
 
 <div class='modal fade' id='add-tower-modal'>
   <div class='modal-dialog'>
     <div class='modal-content'>
-
       <div class='modal-header'>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
-
-
         <h4 class='modal-title'>
           Add a new Tower
           <i class='fa fa-signal'></i>
         </h4>
       </div>
-
       <div class='modal-body'>
         <form id='add-tower-form'>
           <div class='form-group'>
@@ -110,7 +106,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 <div class="row">
   <div class="col-xs-12 page-header">
     <h3>Towers
-      {% if 'endagaweb.add_bts' in user_permission %}
+      {% if 'add_bts' in user_permission %}
       <a href='#' data-toggle='modal' data-target='#add-tower-modal'>
         <small>(add a new tower)</small>
       </a>
@@ -120,14 +116,15 @@ of patent rights can be found in the PATENTS file in the same directory.
 </div> <!-- /.row -->
 
 {% if towers %}
-  <div class="row">
-    <div class="col-xs-12 col-md-6">
-      {% render_table tower_table %}
-    </div>
-    <div class ='col-xs-12 col-md-6'>
-      <div id='map'></div>
-    </div>
+<div class="row">
+  <div class="col-xs-12 col-md-6">
+    {% render_table tower_table %}
   </div>
+
+  <div class ='col-xs-12 col-md-6'>
+    <div id='map'></div>
+  </div>
+</div>
 {% else %}
 <p>There are currently no base stations associated with this network.</p>
 {% endif %}
