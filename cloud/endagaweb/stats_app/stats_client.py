@@ -157,10 +157,7 @@ class StatsClientBase(object):
         # Create the queryset itself.
         queryset = objects.filter(filters)
         # Use qsstats to aggregate the queryset data on an interval.
-        if aggregation == 'duration':
-            queryset_stats = qsstats.QuerySetStats(
-                queryset, 'date', aggregate=aggregates.Sum('billsec'))
-        elif aggregation == 'duration_minute':
+        if aggregation in ['duration', 'duration_minute']:
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=aggregates.Sum('billsec'))
         elif aggregation == 'up_byte_count':
@@ -178,7 +175,8 @@ class StatsClientBase(object):
         elif aggregation in ['transaction_sum', 'transcation_count']:
             queryset_stats = qsstats.QuerySetStats(
                 # Change is negative value, set positive for charts
-                queryset, 'date', aggregate=(aggregates.Sum('change') * -1))
+                queryset, 'date', aggregate=(
+                    aggregates.Sum('change') * -0.00001))
             # if percentage is set for top top-up
             percentage = kwargs['topup_percent']
             top_numbers = 1
