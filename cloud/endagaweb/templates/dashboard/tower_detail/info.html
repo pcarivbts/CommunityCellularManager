@@ -40,6 +40,12 @@ of patent rights can be found in the PATENTS file in the same directory.
   {% include "dashboard/tower_detail/nav.html" with uuid=tower.uuid active_tab='info'%}
 
   <div class='content col-xs-12 col-sm-10 col-md-4'>
+    {% for message in messages %}
+    <div class="message alert alert-{{ message.tags }}">
+        <a href="#" class="close" data-dismiss="alert">&times;</a>
+        {{ message }}
+    </div>
+    {% endfor %}
     <p>
       <strong>Status</strong>:
       {% if tower.status == 'active' %}
@@ -73,6 +79,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     <div id='map'></div>
   </div>
 </div>
+{% include "dashboard/subscriber_detail/broadcast.html" with target='tower' uuid=tower.uuid %}
 {% endblock %}
 
 
@@ -99,4 +106,80 @@ of patent rights can be found in the PATENTS file in the same directory.
       var marker = L.marker([{{ tower.latitude }}, {{ tower.longitude }}], {icon: markerIcon}).addTo(map);
     });
   </script>
+
+
+<script type="text/javascript">
+function setloading() {
+  var $btn = $('#submit').button().button('loading');
+}
+
+$(document).ready(function() {
+
+  $('input[type=radio][name="send_to"]').change(function() {
+    console.log("this.value =  ", this.value );
+    if (this.value == 'network') {
+        $('#network_row').show();
+        $('#tower_row').show();
+        $('#imsi_row').hide();
+    } else if (this.value == 'tower') {
+        $('#network_row').hide();
+        $('#tower_row').show();
+        $('#imsi_row').hide();
+    } else if (this.value == 'imsi') {
+        $('#network_row').hide();
+        $('#tower_row').hide();
+        $('#imsi_row').show();
+    } else {
+        $('#network_row').show();
+        $('#tower_row').show();
+    }
+  });
+  $('#broadcast-modal').on('shown.bs.modal', function() {
+    $('#network_row').hide();
+    $('#tower_row').show();
+    $('#imsi_row').hide();
+  });
+
+  $('#broadcast_submit').click(function() {
+    //var $btn = $('#broadcast_submit').button().button('loading');
+    var data = {
+      sendto: $('input[type=radio][name="send_to"]:checked').val(),
+      network_id: $('#network_id').val(),
+      tower_id: $('#bts_id').val(),
+      imsi: $('#imsi').val(),
+      message: $('#message').val(),
+      csrfmiddlewaretoken: '{{ csrf_token }}',
+    };
+    $.post('/dashboard/broadcast', data, function(response) {
+      if (response['status'] == 'ok') {
+        // Show that it was successful and then reload the page.
+        // Clear out any old messages and show the div again.
+        $('#messages-container').html();
+        $('#messages-container').css('opacity', 1);
+        var message = 'Tower added successfully.';
+        var html = '<div class="alert alert-success">' + message + '</div>';
+        $('#messages-container').html(html);
+        setTimeout(function() {
+          location.reload();
+        }, 800);
+      } else {
+        // Show the messages that were sent back.
+        // Clear out any old messages and show the div again.
+        $('#messages-container').html();
+        $('#messages-container').css('opacity', 1);
+        var html = '';
+        response['messages'].map(function(message) {
+          html += '<div class="alert alert-danger">' + message + '</div>';
+        });
+        $('#messages-container').html(html);
+        setTimeout(function() {
+          $('#messages-container').fadeTo(500, 0);
+        }, 4000);
+      }
+    });
+
+
+  });
+});
+</script>
 {% endblock %}

@@ -65,6 +65,8 @@ class NetworkInfo(ProtectedView):
             latest_beta_version = tmp_objs[0].version
 
         # Count the associated numbers, towers and subscribers.
+        towers = models.BTS.objects.filter(
+            network=user_profile.network).values('nickname', 'uuid', 'id')
         towers_on_network = models.BTS.objects.filter(network=network).count()
         subscribers_on_network = models.Subscriber.objects.filter(
             network=network).count()
@@ -101,6 +103,7 @@ class NetworkInfo(ProtectedView):
             'seven_day_actives': seven_day_actives,
             'one_day_actives': one_day_actives,
             'camped_right_now': camped_right_now,
+            'towers': towers
         }
         # Render template.
         info_template = template.loader.get_template(

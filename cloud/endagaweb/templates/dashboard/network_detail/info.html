@@ -80,4 +80,45 @@ of patent rights can be found in the PATENTS file in the same directory.
 
   </div> <!-- /.col-md-4 -->
 </div>
+{% include "dashboard/subscriber_detail/broadcast.html" with target='network' target_id="" %}
+{% endblock %}
+
+
+{% block js %}
+<script type="text/javascript">
+function setloading() {
+  var $btn = $('#submit').button().button('loading');
+}
+
+$(document).ready(function() {
+  $('#network_row').show();
+  $('#tower_row').show();
+  $('#imsi_row').hide();
+
+  $('input[type=radio][name="send_to"]').change(function() {
+    console.log("this.value =  ", this.value );
+    if (this.value == 'network') {
+        $('#network_row').show();
+        $('#tower_row').show();
+        $('#imsi_row').hide();
+    } else if (this.value == 'tower') {
+        $('#network_row').hide();
+        $('#tower_row').show();
+        $('#imsi_row').hide();
+    } else if (this.value == 'imsi') {
+        $('#network_row').hide();
+        $('#tower_row').hide();
+        $('#imsi_row').show();
+    } else {
+        $('#network_row').show();
+        $('#tower_row').show();
+    }
+  });
+  $('#broadcast-modal').on('shown.bs.modal', function() {
+    $('#network_row').show();
+    $('#tower_row').hide();
+    $('#imsi_row').hide();
+  });
+});
+</script>
 {% endblock %}

@@ -126,6 +126,8 @@ class TowerInfo(ProtectedView):
     def get(self, request, uuid=None):
         """Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
+        towers = models.BTS.objects.filter(network=user_profile.network).values(
+            'nickname', 'uuid', 'id')
         try:
             tower = models.BTS.objects.get(uuid=uuid,
                                            network=user_profile.network)
@@ -145,6 +147,7 @@ class TowerInfo(ProtectedView):
             'tower_endaga_version': tower.printable_version(
                 versions['endaga_version']),
             'uptime': uptime,
+            'towers': towers
         }
         # Render template.
         info_template = template.loader.get_template(
