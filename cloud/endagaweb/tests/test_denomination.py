@@ -8,22 +8,9 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
-from datetime import datetime
-from random import randrange
-import uuid
 from django import test
-import json
-
-import pytz
-
 from django.test import TestCase
 
-from ccm.common import crdt
 from endagaweb import models
 
 
@@ -62,19 +49,6 @@ class TestBase(TestCase):
     def logout(self):
         """Log the client out."""
         self.client.get('/logout')
-
-
-class DenominationTests(TestBase):
-    """
-    We can manage subscriber balances.
-    """
-    def test_assert(self):
-        """ sample test """
-        self.assertEqual(1, 1)
-
-    def test_assert(self):
-        """ sample test """
-        self.assertEqual(1, 1)
 
 
 class DenominationUITest(TestBase):

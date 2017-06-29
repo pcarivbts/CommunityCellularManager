@@ -50,7 +50,6 @@ of patent rights can be found in the PATENTS file in the same directory.
             </div>
             {% endfor %}
             <div class="table-container">
-
                 {% if denomination %}
                 {% render_table denominations_table %}
                 {% else %}
@@ -272,7 +271,6 @@ of patent rights can be found in the PATENTS file in the same directory.
             });
         }
         $('#delete-confirm').click(function () {
-            console.log("vvvvvvvvvvvvvvvvvvvvvv");
             // Show a 'working' message.
             var message = 'Working..';
             var html = "<div class='alert alert-success'>" + message + "</div>";

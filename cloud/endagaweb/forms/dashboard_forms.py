@@ -404,9 +404,10 @@ class NetworkBalanceLimit(forms.Form):
             get('max_unsuccessful_transaction', None)
         if  max_balance == "" and max_unsuccessful_transaction == "":
             raise forms.ValidationError('Error : please provide value.')
-        if max_unsuccessful_transaction == "" and float(max_balance) <= 0:
-            raise forms.ValidationError('Error : enter positive and non-zero value ' \
-                                        'for maximum balance Limit.')
-
+        if max_balance !="":
+            if( float(max_balance) <= 0):
+                raise forms.ValidationError(
+                    'Error : enter positive and non-zero value ' \
+                    'for maximum balance Limit.')
         return cleaned_data
 

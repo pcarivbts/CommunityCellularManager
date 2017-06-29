@@ -15,7 +15,6 @@ import json
 from django import http
 from django import template
 from django.contrib import messages
-from django.core.exceptions import ValidationError
 from django.core import urlresolvers
 from django.db import transaction
 from django.shortcuts import redirect
@@ -525,7 +524,7 @@ class NetworkDenomination(ProtectedView):
     def post(self, request):
         """Operators can use this API to add denomination to a network.
 
-        These denomination bracket will be used to recharge subscriber, 
+        These denomination bracket will be used to recharge subscriber,
         set balance validity and status
         """
         user_profile = models.UserProfile.objects.get(user=request.user)
@@ -542,17 +541,17 @@ class NetworkDenomination(ProtectedView):
 
             dnm_id = int(request.POST.get('dnm_id')) or 0
             if validity_days > settings.ENDAGA['MAX_VALIDITY_DAYS']:
-                message = 'Validity days value exceeds maximum permissible ' \
-                          'limit (%s Days).' % \
-                          (settings.ENDAGA['MAX_VALIDITY_DAYS'])
+                message = ('Validity days value exceeds maximum permissible '
+                           'limit (%s Days).' %
+                           (settings.ENDAGA['MAX_VALIDITY_DAYS']))
                 messages.error(
                     request, message,
                     extra_tags='alert alert-danger')
                 return redirect(urlresolvers.reverse('network-denominations'))
             elif start_amount <= 0 or end_amount <= 0:
-                messages.error(request, 'Enter positive and non-zero value ' \
-                                        'for start/end amount.',
-                    extra_tags='alert alert-danger')
+                messages.error(request,
+                               'Enter value >0 for start/end amount.',
+                               extra_tags='alert alert-danger')
                 return redirect(urlresolvers.reverse('network-denominations'))
             elif validity_days <= 0:
                 messages.error(
@@ -572,12 +571,12 @@ class NetworkDenomination(ProtectedView):
                         denom = models.NetworkDenomination.objects.get(
                             id=dnm_id)
                         # Check for existing denomination range exist.
-                        denom_exists = models.NetworkDenomination.objects.\
-                            filter(
-                            end_amount__gte=start_amount,
-                            start_amount__lte=end_amount,
-                            network=user_profile.network).\
-                            exclude(id=dnm_id).count()
+                        denom_exists = \
+                          models.NetworkDenomination.objects.filter(
+                              end_amount__gte=start_amount,
+                              start_amount__lte=end_amount,
+                              network=user_profile.network).exclude(
+                                  id=dnm_id).count()
                         if denom_exists:
                             messages.error(
                                 request, 'Denomination range already exists.',
@@ -622,10 +621,10 @@ class NetworkDenomination(ProtectedView):
                         request, 'Denomination is created successfully.',
                         extra_tags='alert alert-success')
         except Exception:
-            messages.error(
-                request, 'Invalid validity value. Enter greater than ' \
-                         '0 digit value',
-                extra_tags='alert alert-danger')
+            messages.error(request,
+                           'Invalid validity value. Enter greater than '
+                           '0 digit value',
+                           extra_tags='alert alert-danger')
         return redirect(urlresolvers.reverse('network-denominations'))
 
     def delete(self, request):
@@ -640,8 +639,7 @@ class NetworkDenomination(ProtectedView):
                 denom = models.NetworkDenomination.objects.get(id=dnm_id)
                 denom.delete()
                 response['status'] = 'success'
-                messages.success(request,
-                                 'Denomination deleted successfully.',
+                messages.success(request, 'Denomination deleted successfully.',
                                  extra_tags='alert alert-success')
             except models.NetworkDenomination.DoesNotExist:
                 response['status'] = 'failed'
