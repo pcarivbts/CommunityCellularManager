@@ -40,12 +40,6 @@ of patent rights can be found in the PATENTS file in the same directory.
   {% include "dashboard/tower_detail/nav.html" with uuid=tower.uuid active_tab='info'%}
 
   <div class='content col-xs-12 col-sm-10 col-md-4'>
-    {% for message in messages %}
-    <div class="message alert alert-{{ message.tags }}">
-        <a href="#" class="close" data-dismiss="alert">&times;</a>
-        {{ message }}
-    </div>
-    {% endfor %}
     <p>
       <strong>Status</strong>:
       {% if tower.status == 'active' %}
@@ -109,14 +103,10 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 
 <script type="text/javascript">
-function setloading() {
-  var $btn = $('#submit').button().button('loading');
-}
 
 $(document).ready(function() {
 
   $('input[type=radio][name="send_to"]').change(function() {
-    console.log("this.value =  ", this.value );
     if (this.value == 'network') {
         $('#network_row').show();
         $('#tower_row').show();
@@ -138,10 +128,10 @@ $(document).ready(function() {
     $('#network_row').hide();
     $('#tower_row').show();
     $('#imsi_row').hide();
+    $('#imsi #message').val();
   });
 
   $('#broadcast_submit').click(function() {
-    //var $btn = $('#broadcast_submit').button().button('loading');
     var data = {
       sendto: $('input[type=radio][name="send_to"]:checked').val(),
       network_id: $('#network_id').val(),
@@ -156,9 +146,11 @@ $(document).ready(function() {
         // Clear out any old messages and show the div again.
         $('#messages-container').html();
         $('#messages-container').css('opacity', 1);
-        var message = 'Tower added successfully.';
-        var html = '<div class="alert alert-success">' + message + '</div>';
-        $('#messages-container').html(html);
+        var html = '';
+        response['messages'].map(function(message) {
+          html += '<div class="alert alert-success">' + message + '</div>';
+        });
+        $('#messages-container').html(html).show();
         setTimeout(function() {
           location.reload();
         }, 800);
@@ -171,14 +163,13 @@ $(document).ready(function() {
         response['messages'].map(function(message) {
           html += '<div class="alert alert-danger">' + message + '</div>';
         });
-        $('#messages-container').html(html);
+        $('#messages-container').html(html).show();
         setTimeout(function() {
           $('#messages-container').fadeTo(500, 0);
+          $('#messages-container').hide();
         }, 4000);
       }
     });
-
-
   });
 });
 </script>

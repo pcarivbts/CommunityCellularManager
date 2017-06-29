@@ -916,7 +916,7 @@ class ActivityView(ProtectedView):
 class BroadcastView(ProtectedView):
     """Send an SMS to a single subscriber."""
 
-    def get(self, request, imsi=None):
+    def get(self, request):
         """Handles GET requests."""
         user_profile = UserProfile.objects.get(user=request.user)
         network = user_profile.network
@@ -937,63 +937,64 @@ class BroadcastView(ProtectedView):
         html = template.render(context, request)
         return HttpResponse(html)
 
-    def post(self, request, imsi=None):
-        user_profile = UserProfile.objects.get(user=request.user)
-        network = user_profile.network
+    def post(self, request):
+        """broadcast message to network, tower aor selected imsi."""
+
         sendto = request.POST.get('sendto', None)
         network_id = request.POST.get('network_id', None)
         tower_id = request.POST.get('tower_id', None)
-        imsi = request.POST.get('imsi', None)
+        imsi_str = request.POST.get('imsi', None)
         message = request.POST.get('message', None)
-
         response = {
             'status': 'ok',
             'messages': [],
         }
-        print "======================"
-        print network_id, tower_id, imsi, message
-        print request.POST
-        print "----------------------------"
-        response['messages'].append('ok here.')
         if 'message' not in request.POST:
-            print "ok here in VIEWS"
             return HttpResponseBadRequest()
         if sendto == 'network':
-            pass
+            subscribers = Subscriber.objects.filter(network=network_id)
         elif sendto == 'tower':
-            pass
+            subscribers = Subscriber.objects.filter(bts=tower_id)
         elif sendto == 'imsi':
-            pass
+            imsi_list = imsi_str.split(",")
+            invalid_imsi = []
+            subscribers = []
+            for imsi in imsi_list:
+                try:
+                    sub = Subscriber.objects.get(imsi=imsi)
+                    subscribers.append(sub)
+                except Subscriber.DoesNotExist:
+                    invalid_imsi.append(imsi)
+            if len(invalid_imsi) > 0:
+                message = "Invalid %s in IMSI list." % (', '.join(invalid_imsi))
+                response['status'] = 'failed'
+                response['messages'].append(message)
+                return HttpResponse(json.dumps(response),
+                                    content_type="application/json")
         else:
             response['status'] = 'failed'
-            response['messages'].append('Invalid UUID.')
-        messages.add_message(request, messages.INFO, "addcard_saved",
-                             extra_tags="billing_resp_code")
-        return HttpResponse(json.dumps(response),
-                                 content_type="application/json")
+            response['messages'].append('Invalid request data.')
+            return HttpResponse(json.dumps(response),
+                                content_type="application/json")
 
-        try:
-            sub = Subscriber.objects.get(imsi=imsi,
-                                         network=network)
-        except Subscriber.DoesNotExist:
-            return HttpResponseBadRequest()
-        # Fire off an async task request to send the SMS.  We send to the
-        # subscriber's first number and from some admin number.
-        num = sub.number_set.all()[0]
-        params = {
-            'to': num.number,
-            'sender': '0000',
-            'text': request.POST['message'],
-            'msgid': str(uuid.uuid4())
-        }
-        url = sub.bts.inbound_url + "/endaga_sms"
-        tasks.async_post.delay(url, params)
-        params = {
-            'imsi': sub.imsi
-        }
-        url_params = {
-            'sent': 'true'
-        }
-        base_url = urlresolvers.reverse('subscriber-send-sms', kwargs=params)
-        url = '%s?%s' % (base_url, urllib.urlencode(url_params))
-        return redirect(url)
+        for sub in subscribers:
+            try:
+                # We send sms to the subscriber's first number.
+                num = sub.number_set.all()[0]
+            except:
+                num = None
+            if num:
+                # Fire off an async task request to send the SMS.
+                params = {
+                    'to': num.number,
+                    'sender': '0000',
+                    'text': message,
+                    'msgid': str(uuid.uuid4())
+                }
+                url = sub.bts.inbound_url + "/endaga_sms"
+                tasks.async_post.delay(url, params)
+        message = "Broadcast SMS sent successfully"
+        messages.success(request, message)
+        response['messages'].append(message)
+        return HttpResponse(json.dumps(response),
+                            content_type="application/json")
