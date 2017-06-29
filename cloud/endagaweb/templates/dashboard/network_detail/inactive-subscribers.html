@@ -157,7 +157,7 @@ $(document).ready(function() {
   $('input[type=radio][name="send_to"]').change(function() {
     if (this.value == 'network') {
         $('#network_row').show();
-        $('#tower_row').show();
+        $('#tower_row').hide();
         $('#imsi_row').hide();
     } else if (this.value == 'tower') {
         $('#network_row').hide();
