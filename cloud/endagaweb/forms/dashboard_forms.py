@@ -374,11 +374,18 @@ class NetworkBalanceLimit(forms.Form):
     """Crispy form to set Network balance limit and transaction.
     set min_value =0.01 so that it will not accept 0 value"""
 
+    max_balance_title = 'Maximum account balance of an imsi within a network.'
     max_balance = forms.CharField(required=False, label="Maximum Balance Limit",
-                                  max_length=10)
+                                  max_length=10,
+                                  widget=forms.TextInput(attrs={'title': max_balance_title}))
+    max_unsuccessful_transaction_title ='Maximum  consecutive failure ' \
+                                        'transactions an imsi can perform ' \
+                                        'within 24 hrs.'
     max_unsuccessful_transaction = forms.CharField(required=False, max_length=3,
-                                                   label='Maximum Permissible Unsuccessful '
-                                        'Transactions')
+                                                   label='Maximum Permissible '
+                                                         'Unsuccessful Transactions',
+                                                   widget=forms.TextInput
+                                                   (attrs={'title': max_unsuccessful_transaction_title}))
 
     def __init__(self, *args, **kwargs):
         super(NetworkBalanceLimit, self).__init__(*args, **kwargs)

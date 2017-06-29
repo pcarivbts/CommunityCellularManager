@@ -21,6 +21,7 @@ from django.db import transaction
 from django.shortcuts import redirect
 import django_tables2 as tables
 from guardian.shortcuts import get_objects_for_user
+from django.conf import settings
 
 from ccm.common.currency import parse_credits, humanize_credits, \
     CURRENCIES, DEFAULT_CURRENCY
@@ -538,10 +539,17 @@ class NetworkDenomination(ProtectedView):
             end_amount = parse_credits(end_amount_raw,
                                        CURRENCIES[currency]).amount_raw
             validity_days = int(request.POST.get('validity_days')) or 0
-            if validity_days > 10000:
-                validity_days = 10000
+
             dnm_id = int(request.POST.get('dnm_id')) or 0
-            if start_amount <= 0 or end_amount <= 0:
+            if validity_days > settings.ENDAGA['MAX_VALIDITY_DAYS']:
+                message = 'Validity days value exceeds maximum permissible ' \
+                          'limit (%s Days).' % \
+                          (settings.ENDAGA['MAX_VALIDITY_DAYS'])
+                messages.error(
+                    request, message,
+                    extra_tags='alert alert-danger')
+                return redirect(urlresolvers.reverse('network-denominations'))
+            elif start_amount <= 0 or end_amount <= 0:
                 messages.error(request, 'Enter positive and non-zero value ' \
                                         'for start/end amount.',
                     extra_tags='alert alert-danger')

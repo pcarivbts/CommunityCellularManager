@@ -50,6 +50,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             </div>
             {% endfor %}
             <div class="table-container">
+
                 {% if denomination %}
                 {% render_table denominations_table %}
                 {% else %}
@@ -71,8 +72,10 @@ of patent rights can be found in the PATENTS file in the same directory.
                                         Start Amount <span class="aseriskField">*</span>
                                     </label>
                                     <div class="input-group col-xs-8">
-                                        <input class="form-control number" type="text" id="start_amount" name="start_amount"
+                                        <span class="has-tip tip-top" data-tooltip aria-haspopup="true" title="Start range for rate plan.">
+                                        <input  class="form-control number" type="text" id="start_amount" name="start_amount"
                                                placeholder="Enter start amount" maxlength="10" required/>
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -83,8 +86,10 @@ of patent rights can be found in the PATENTS file in the same directory.
                                         End Amount <span class="aseriskField">*</span>
                                     </label>
                                     <div class="input-group col-xs-8">
+                                        <span class="has-tip tip-top" data-tooltip aria-haspopup="true" title="End range for rate plan.">
                                         <input class="form-control number" type="text" id="end_amount" name="end_amount"
                                                placeholder="Enter end amount" maxlength="10" required/>
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -95,8 +100,10 @@ of patent rights can be found in the PATENTS file in the same directory.
                                         Validity (days)<span class="aseriskField">*</span>
                                     </label>
                                     <div class="input-group col-xs-8">
+                                        <span class="has-tip tip-top" data-tooltip aria-haspopup="true" title="Validity for rate plan.">
                                         <input class="form-control" type="text" id="validity_days" name="validity_days"
                                                placeholder="Enter validity as number of days" required/>
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -148,7 +155,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% block js %}
 
     <script type="text/javascript"
-            src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
+            src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.10.0/jquery.validate.min.js"></script>
     <script type="text/javascript">
         $(document).ready(function () {
             $('.number').keypress(function (event) {
@@ -265,6 +272,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             });
         }
         $('#delete-confirm').click(function () {
+            console.log("vvvvvvvvvvvvvvvvvvvvvv");
             // Show a 'working' message.
             var message = 'Working..';
             var html = "<div class='alert alert-success'>" + message + "</div>";

@@ -1476,8 +1476,12 @@ class NetworkDenomination(models.Model):
     network = models.ForeignKey('Network', null=True, on_delete=models.CASCADE)
 
     def __unicode__(self):
-        return "Amount %s - %d  for %s(days)" % (
-            self.start_amount, self.end_amount, self.validity_days)
+        return "Amount %s - %s  for %s day(s)" % (
+            humanize_credits(self.start_amount,
+                             CURRENCIES[self.network.subscriber_currency]),
+            humanize_credits(self.end_amount,
+                             CURRENCIES[self.network.subscriber_currency]),
+            self.validity_days)
 
     class Meta:
         ordering = ('start_amount',)
