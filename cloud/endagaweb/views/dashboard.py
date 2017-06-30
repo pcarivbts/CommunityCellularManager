@@ -958,15 +958,17 @@ class UserManagement(ProtectedView):
         network = user_profile.network
         user = User.objects.get(id=user_profile.user_id)
         available_permissions = get_perms(request.user, network)
-
+        print network.id
         if not user.is_superuser:  # Network Admin
             role = USER_ROLES[0:len(USER_ROLES) - 1]
         else:  # Cloud Admin
             role = USER_ROLES
+        content = ContentType.objects.get(
+            app_label='endagaweb',model='network')
         network_permissions = Permission.objects.filter(
-            codename__in=available_permissions).exclude(
+            codename__in=available_permissions,
+            content_type_id=content.id).exclude(
             codename='view_network')
-
         context = {
             'network': network,
             'user_profile': user_profile,
@@ -985,7 +987,7 @@ class UserManagement(ProtectedView):
         email = request.POST['email']
         password = request.POST['password']
         user_role = str(request.POST['role'])
-        networks = str(request.POST.get('networks')).split(',')
+        networks = str(request.POST['networks'])
         permissions = str(request.POST.get('permissions')).split(',')
 
         if len(permissions) < 1:
@@ -1010,15 +1012,14 @@ class UserManagement(ProtectedView):
                 Token.objects.create(user=user)
                 # Setup UserProfile database
                 user_profile = UserProfile.objects.create(user=user)
-                for network in networks:
-                    user_network = Network.objects.get(id=network)
-                    # Add the permissions
-                    for permission_id in permissions:
-                        permission = Permission.objects.get(id=permission_id)
-                        codename = 'endagaweb.' + permission.codename
-                        assign_perm(codename, user, user_network)
-                    # view network permission as minimum permission
-                    assign_perm('endagaweb.view_network', user, user_network)
+                user_network = Network.objects.get(id=networks)
+                # Add the permissions
+                for permission_id in permissions:
+                    permission = Permission.objects.get(id=permission_id)
+                    codename = 'endagaweb.' + permission.codename
+                    assign_perm(codename, user, user_network)
+                # view network permission as minimum permission
+                assign_perm('endagaweb.view_network', user, user_network)
 
                 # Set last network as default network for User
                 user_profile.network = user_network

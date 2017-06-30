@@ -123,6 +123,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                                 <div class="input-group-addon">
                                     <i class="glyphicon glyphicon-signal"></i>
                                 </div>
+                                <input type="hidden" name="network_id" id="network_id" value="{{ network.id }}"/>
                                 <input class="form-control" type="text" id="network" value={{ network.name }} name="network" placeholder="network" disabled/>
                             </div>
                         </div>
@@ -187,12 +188,6 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script>
 
     function changeRole(role) {
-        if(role.value=='Network Admin'){
-            document.getElementById('network').multiple = true;
-        } else {
-            document.getElementById('network').multiple = false;
-        }
-        $("#network").val('');
         if (role.value) {
             $.ajax({
                 url: "/dashboard/user/management/permissions?role=" + role.value
@@ -321,14 +316,10 @@ of patent rights can be found in the PATENTS file in the same directory.
             $('.no_perm_error').parent().addClass('has-warning');
         }
         if($('#role').val() && $('#valid_email').val() != 0 && $('#password').val()
-        && $('#permissions_right option').length && $('#network option:selected').length){
+        && $('#permissions_right option').length && $('#network_id').val()) {
             var permissions = [];
             $.each($('#permissions_right option'), function(key, val) {
                 permissions.push($(val).val());
-            });
-            var networks = [];
-            $.each($('#network option:selected'), function(key, val) {
-                networks.push($(val).val());
             });
             $.ajax({
                 url: "/dashboard/user/management",
@@ -340,7 +331,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                     role: $('#role').val(),
                     email: $('#email').val(),
                     password: $('#password').val(),
-                    networks: networks.join(","),
+                    networks: $('#network_id').val(),
                     permissions: permissions.join(",")
                 }
             }).done(function(response) {
