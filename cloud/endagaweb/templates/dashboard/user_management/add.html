@@ -42,8 +42,6 @@ of patent rights can be found in the PATENTS file in the same directory.
 <header class="navbar navbar-inverse normal" role="banner">
     {% endblock %}
     {% block content %}
-
-
     <div class="row">
         <div class="col-xs-12 col-sm-12 page-header">
             <h4 class="page-title">
@@ -63,121 +61,116 @@ of patent rights can be found in the PATENTS file in the same directory.
                 {{message}}
             </div>
             {% endfor %}
-            {% if 'add_user' in user_permission %}
-                <form action="/dashboard/user/management" id="user_form" name="user_form" method="POST"
-                  data-toggle="validator" onsubmit="return createUser();"> {% csrf_token %}
-
-                <!--Role-->
-                <div class="form-group row" data-toggle="tooltip" title="Select the user role" required>
-                    <div class="col-xs-5">
-                        <label>Role <span class="aseriskField">*</span></label>
-                        <div class="input-group col-xs-8">
-                            <div class="input-group-addon">
-                                <i class="glyphicon glyphicon-user"></i>
-                            </div>
-                            <select name="role" id="role" class="form-control" onchange="changeRole(this)" required>
-                                <option value="">-Select role-</option>
-                                {% for values in roles %}
-                                <option value="{{ values }}">{{ values }}</option>
-                                {% endfor %}
-                            </select>
-
-                        </div>
-                    </div>
-                </div><!--Role Ends-->
-
-                <!--Email-->
-                <div class="form-group row">
-                    <div class="col-xs-5" data-toggle="tooltip" data-placement="left"
-                         title="Enter valid email address">
-                        <label for="email" id="ariaLable" class="col-3 col-form-label">Email <span class="aseriskField">*</span></label>
-                        <div class="input-group col-xs-8">
-                            <div class="input-group-addon">
-                                <i class="glyphicon glyphicon-envelope"></i>
-                            </div>
-                            <input type="hidden" name="valid_email" id="valid_email" value="0"/>
-                            <input class="form-control" type="text" id="email" name="email" placeholder="abc@yourdomain.com" required/>
-                        </div>
-                        <span class="msg error">Not a valid email address</span>
-                        <span class="msg exists">Email already registered!</span>
-                        <span class="msg success"></span>
-                    </div>
-                </div><!--Email Ends-->
-
-
-                <!--Password-->
-                <div class="form-group row">
-                    <div class="col-xs-5">
-                        <label for="password">Password <span class="aseriskField">*</span></label>
-                        <div class="input-group col-xs-8">
-                            <div class="input-group-addon">
-                                <i class="glyphicon glyphicon-lock"></i>
-                            </div>
-                            <input type="password" class="form-control" id="password" name="password" placeholder="Password" required />
-                        </div>
-                    </div>
-                </div><!--Password Ends-->
-
-                <!--Network-->
-                <div class="form-group row">
-                    <div class="col-xs-5" data-toggle="tooltip" data-placement="left"
-                         title="Multiple Networks to Network Admin or Cloud Admin only">
-                        <label><i class="glyphicon glyphicon-signal"></i> Network <span class="aseriskField">*</span></label>
-                        <div class="input-group col-xs-8">
-                            <select name='network' id="network" class="form-control" multiple="multiple" size="5"
-                                    required="required">
-                                {% for network in networks %}
-                                <option value="{{ network.id }}">{{ network.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                </div>  <!-- Network Ends -->
-
-                <!--Permissions-->
-                <div class="form-group column">
-                    <div>
-                        <div class="row">
-                            <div class="col-xs-5">
-                                <label><i class="glyphicon glyphicon-list-alt"></i> Avaliable Permissions</label>
-                                <select name="available_permissions" id="permissions_left" class="form-control"
-                                        size="10"
-                                        multiple="multiple" data-toggle="tooltip"
-                                        title="Add/Remove the permissions for the user">
-                                    {% for entry in permissions %}
-                                    <option value="{{ entry.id }}">{{ entry.name }}</option>
+            {% if 'user_management' in user_permission %}
+            <form action="/dashboard/user/management" id="user_form" name="user_form" method="POST"
+                      data-toggle="validator" onsubmit="return createUser();"> {% csrf_token %}
+                    <!--Role-->
+                    <div class="form-group row" data-toggle="tooltip" title="Select the user role" required>
+                        <div class="col-xs-5">
+                            <label>Role <span class="aseriskField">*</span></label>
+                            <div class="input-group col-xs-8">
+                                <div class="input-group-addon">
+                                    <i class="glyphicon glyphicon-user"></i>
+                                </div>
+                                <select name="role" id="role" class="form-control" onchange="changeRole(this)" required>
+                                    <option value="">-Select role-</option>
+                                    {% for values in roles %}
+                                    <option value="{{ values }}">{{ values }}</option>
                                     {% endfor %}
                                 </select>
+
                             </div>
-                            <div class="col-xs-2">
-                                <div>&nbsp;</div>
-                                <div>&nbsp;</div>
-                                <button type="button" id="lstview_rightAll" class="btn btn-default btn-block"><i
-                                        class="glyphicon glyphicon-forward"></i></button>
-                                <button type="button" id="lstview_rightSelected"
-                                        class="btn btn-default btn-block"><i
-                                        class="glyphicon glyphicon-chevron-right"></i></button>
-                                <button type="button" id="lstview_leftSelected"
-                                        class="btn btn-default btn-block"><i
-                                        class="glyphicon glyphicon-chevron-left"></i></button>
-                                <button type="button" id="lstview_leftAll" class="btn btn-default btn-block"><i
-                                        class="glyphicon glyphicon-backward"></i></button>
+                        </div>
+                    </div><!--Role Ends-->
+
+                    <!--Email-->
+                    <div class="form-group row">
+                        <div class="col-xs-5" data-toggle="tooltip" data-placement="left"
+                             title="User email to Add or Edit">
+                            <label for="email" id="ariaLable" class="col-3 col-form-label">Email <span class="aseriskField">*</span></label>
+                            <div class="input-group col-xs-8">
+                                <div class="input-group-addon">
+                                    <i class="glyphicon glyphicon-envelope"></i>
+                                </div>
+                                <input type="hidden" name="valid_email" id="valid_email" value="0"/>
+                                <input class="form-control" type="text" id="email" name="email" placeholder="abc@yourdomain.com" required/>
                             </div>
-                            <div class="col-xs-5">
-                                <label><i class="glyphicon glyphicon-ok-circle"></i> Selected Permissions<span class="aseriskField"> *</span></label>
-                                <select name="permissions" id="permissions_right" class="form-control" size="10"
-                                        multiple="multiple"></select>
-                                <span class="msg no_perm_error">Please assign atleast one permission.</span>
+                            <span class="msg error">Not a valid email address</span>
+                             <span class="msg exists"><a href="javascript:editUser();">Edit user</a></span>
+                            <span class="msg success"></span>
+                        </div>
+                    </div><!--Email Ends-->
+
+                    <!--Password-->
+                    <div class="form-group row">
+                        <div class="col-xs-5">
+                            <label for="password">Password <span class="aseriskField">*</span></label>
+                            <div class="input-group col-xs-8">
+                                <div class="input-group-addon">
+                                    <i class="glyphicon glyphicon-lock"></i>
+                                </div>
+                                <input type="password" class="form-control" id="password" name="password" placeholder="Password" required />
+                            </div>
+                        </div>
+                    </div><!--Password Ends-->
+
+                    <!--Network-->
+                    <div class="form-group row">
+                        <div class="col-xs-5" data-toggle="tooltip" data-placement="left"
+                             title="Current Network">
+                            <label for="network" class="col-3 col-form-label">Current Network:</label>
+                            <div class="input-group col-xs-8">
+                                <div class="input-group-addon">
+                                    <i class="glyphicon glyphicon-signal"></i>
+                                </div>
+                                <input class="form-control" type="text" id="network" value={{ network.name }} name="network" placeholder="network" disabled/>
                             </div>
                         </div>
                     </div>
-                </div><!-- Permission Ends -->
-                <div class="row">&nbsp;</div>
 
-                <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
-                    <input type="submit" id="submit" class="btn btn-primary" value="Submit" />
-                </div>
-            </form>
+                <!--Permissions-->
+                    <div class="form-group column">
+                        <div>
+                            <div class="row">
+                                <div class="col-xs-5">
+                                    <label><i class="glyphicon glyphicon-list-alt"></i> Avaliable Permissions on {{ network.name }}</label>
+                                    <select name="available_permissions" id="permissions_left" class="form-control"
+                                            size="10"
+                                            multiple="multiple" data-toggle="tooltip"
+                                            title="Add/Remove the permissions for the user">
+                                        {% for entry in permissions %}
+                                        <option value="{{ entry.id }}">{{ entry.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-xs-2">
+                                    <div>&nbsp;</div>
+                                    <div>&nbsp;</div>
+                                    <button type="button" id="lstview_rightAll" class="btn btn-default btn-block"><i
+                                            class="glyphicon glyphicon-forward"></i></button>
+                                    <button type="button" id="lstview_rightSelected"
+                                            class="btn btn-default btn-block"><i
+                                            class="glyphicon glyphicon-chevron-right"></i></button>
+                                    <button type="button" id="lstview_leftSelected"
+                                            class="btn btn-default btn-block"><i
+                                            class="glyphicon glyphicon-chevron-left"></i></button>
+                                    <button type="button" id="lstview_leftAll" class="btn btn-default btn-block"><i
+                                            class="glyphicon glyphicon-backward"></i></button>
+                                </div>
+                                <div class="col-xs-5">
+                                    <label><i class="glyphicon glyphicon-ok-circle"></i> Selected Permissions on {{ network.name }}<span class="aseriskField"> *</span></label>
+                                    <select name="permissions" id="permissions_right" class="form-control" size="10"
+                                            multiple="multiple"></select>
+                                    <span class="msg no_perm_error">Please assign atleast one permission.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- Permission Ends -->
+                    <div class="row">&nbsp;</div>
+                    <div>
+                        <input type="submit" id="submit" class="btn btn-primary" value="Submit" />
+                    </div>
+                </form>
             {% else %}
             {% include 'dashboard/permission_denied.html' %}
             {% endif %}
@@ -355,6 +348,15 @@ of patent rights can be found in the PATENTS file in the same directory.
             });
         }
         return false;
+    }
+    function editUser() {
+    $.ajax({
+                url: "/dashboard/user/management",
+                type: 'GET',
+                success: function () {
+               window.location.href = '/dashboard/user/management/update?user=' + $('#email').val();
+            },
+                });
     }
 </script>
 

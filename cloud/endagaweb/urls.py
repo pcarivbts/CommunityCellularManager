@@ -81,7 +81,8 @@ urlpatterns = [
     url(r'^auth/', endagaweb.views.user.auth_and_login),
     url(r'^account/password/change', endagaweb.views.user.change_password),
     url(r'^account/update', endagaweb.views.user.update_contact),
-    url(r'^account/', endagaweb.views.dashboard.dashboard_view),
+    url(r'^account/', endagaweb.views.dashboard.DashboardView.as_view(),
+        name='dashboard-view'),
     url(r'^logout/$', django.contrib.auth.views.logout, {'next_page': '/'}),
 
     # Dashboard.
@@ -133,12 +134,13 @@ urlpatterns = [
     url(r'^dashboard/subscribers/(?P<imsi>[^/]+)/edit$',
         endagaweb.views.dashboard.SubscriberEdit.as_view(),
         name='subscriber-edit'),
-
-
-
     url(r'^dashboard/user/management$',
         endagaweb.views.dashboard.UserManagement.as_view(),
         name='user-management'),
+
+    url(r'^dashboard/user/management/update',
+        endagaweb.views.dashboard.UserUpdate.as_view(),
+        name='user-update'),
 
     url(r'^dashboard/user/management/delete',
         endagaweb.views.dashboard.UserDelete.as_view(),
@@ -170,7 +172,6 @@ urlpatterns = [
     url(r'^dashboard/subscriber_management/subscriber$',
         endagaweb.views.dashboard.SubscriberCategoryEdit.as_view(),
         name='subscriber-category'),
-
     # Network views in the dashboard.
     # /network -- GET basic network info
     # /network/prices -- GET pricing data for the network or POST to change it
@@ -232,7 +233,8 @@ if 'django.contrib.admin' in settings.INSTALLED_APPS:
 
 urlpatterns += [
     # The dashboard 'home'.
-    url(r'^dashboard', endagaweb.views.dashboard.dashboard_view),
+    url(r'^dashboard', endagaweb.views.dashboard.DashboardView.as_view(),
+        name='dashboard-view'),
 
     # Old stats.
     url(r'^stats/numbers', endagaweb.views.stats.numbers),

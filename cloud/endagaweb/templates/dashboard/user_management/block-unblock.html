@@ -41,7 +41,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 {{message}}
             </div>
             {% endfor %}
-            {% if 'block_user' in user_permission %}
+            {% if 'user_management' in user_permission %}
             <form action="/dashboard/user/management/blocking" method="GET" role="form">
                 <div class="col-xs-12 col-md-6">
                     {% crispy search %}

@@ -60,10 +60,7 @@ OUTBOUND_ACTIVITIES = (
 )
 
 PERMISSIONS = (
-                ('view_user', 'User Management'),
-                ('add_user', 'Add User'),
-                ('delete_user', 'Delete User'),
-                ('block_user', 'Block User'),
+                ('user_management', 'User Management'),
 
                 ('view_bts', 'View Tower'),
                 ('add_bts', 'Add Tower'),
@@ -75,18 +72,18 @@ PERMISSIONS = (
                 ('delete_subscriber', 'Delete Subscriber'),
 
                 ('view_usage', 'View Usage'),
-                ('download_usage', 'Download Report'),
+                ('download_usage', 'Download Usage Report'),
 
-                ('view_network', 'View Network'),
+                ('view_network', 'View Network'),  # default permission
                 ('edit_network', 'Edit Network'),
 
                 ('adjust_credit', 'Adjust Credit'),
 
-                ('send_bulk_sms', 'Send Bulk SMS'),
-                ('send_sms', 'Send Broadcast SMS'),
+                ('send_bulk_sms', 'Bulk SMS'),
+                ('send_sms', 'Broadcast SMS'),
 
                 ('view_graph', 'View Graph'),
-                ('download_graph', 'Download Graph'),
+                ('download_graph', 'Download Graphical Report'),
             )
 
 
@@ -101,7 +98,7 @@ class UserProfile(models.Model):
     timezone_choices = [(v, v) for v in pytz.common_timezones]
     timezone = models.CharField(max_length=50, default='UTC',
                                 choices=timezone_choices)
-
+    role = models.CharField(max_length=20, default='Cloud Admin')
     # A UI kludge indicate which network a user is currently viewing
     # Important: This is not the only network a User is associated with
     # because a user may have permissions on other Network instances.

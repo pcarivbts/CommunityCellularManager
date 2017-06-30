@@ -24,6 +24,7 @@ import stripe
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from guardian.decorators import permission_required_or_403
 from django.contrib.auth.models import User, Permission, ContentType, Group
 from django.contrib.auth.views import password_reset
 from django.core import urlresolvers
@@ -40,7 +41,7 @@ from django.utils import timezone as django_utils_timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import View
 from guardian.mixins import PermissionRequiredMixin
-from guardian.shortcuts import assign_perm, get_perms
+from guardian.shortcuts import assign_perm, get_perms, remove_perm
 from guardian.shortcuts import (get_objects_for_user)
 from rest_framework.authtoken.models import Token
 
@@ -76,7 +77,6 @@ USER_ROLES = ('Business Analyst', 'Loader',
 logger = logging.getLogger(__name__)
 
 stripe.api_key = settings.STRIPE_API_KEY
-
 
 # views
 @login_required
@@ -121,34 +121,37 @@ def addmoney(request):
         return HttpResponseBadRequest()
 
 
-@login_required
-def dashboard_view(request):
+class DashboardView(ProtectedView):
     """Main dashboard page with graph of network activity.
 
     The js on the template itself gets the data for the graph using the stats
     API.  We also load the server's notion of the current time so that we don't
     have to rely on the user's clock.
     """
-    user_profile = UserProfile.objects.get(user=request.user)
-    network = user_profile.network
-    timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
-        datetime.datetime.now()).total_seconds()
-    # Determine if there has been any activity on the network (if not, we won't
-    # show the graphs).
-    network_has_activity = UsageEvent.objects.filter(
-        network=network).exists()
-    context = {
-        'network': network,
-        'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
-        'user_profile': user_profile,
-        'network_id': network.id,
-        'current_time_epoch': int(time.time()),
-        'timezone_offset': timezone_offset,
-        'network_has_activity': network_has_activity,
-    }
-    template = get_template("dashboard/index.html")
-    html = template.render(context, request)
-    return HttpResponse(html)
+    # view_network is default (minimum permission assigned)
+    permission_required = 'view_network'
+
+    def get(self, request):
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
+            datetime.datetime.now()).total_seconds()
+        # Determine if there has been any activity on the network (if not, we won't
+        # show the graphs).
+        network_has_activity = UsageEvent.objects.filter(
+            network=network).exists()
+        context = {
+            'network': network,
+            'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+            'user_profile': user_profile,
+            'network_id': network.id,
+            'current_time_epoch': int(time.time()),
+            'timezone_offset': timezone_offset,
+            'network_has_activity': network_has_activity,
+        }
+        template = get_template("dashboard/index.html")
+        html = template.render(context, request)
+        return HttpResponse(html)
 
 
 @login_required
@@ -946,45 +949,42 @@ class ActivityView(ProtectedView):
 
 
 class UserManagement(ProtectedView):
-    permission_required = 'view_network'
+    permission_required = 'user_management'
 
     def get(self, request, *args, **kwargs):
+
         # Handles request from Network Admin or Cloud Admin
         user_profile = UserProfile.objects.get(user=request.user)
         network = user_profile.network
         user = User.objects.get(id=user_profile.user_id)
-        user_permissions = get_perms(request.user, network)
+        available_permissions = get_perms(request.user, network)
+
         if not user.is_superuser:  # Network Admin
             role = USER_ROLES[0:len(USER_ROLES) - 1]
-            permissions = Permission.objects.filter(
-                codename__in=user_permissions)
         else:  # Cloud Admin
             role = USER_ROLES
-            # Set the context with various stats.
-            content_type = ContentType.objects.filter(
-                app_label='endagaweb', model='network').values_list(
-                    'id', flat=True)
-            permissions = Permission.objects.filter(
-                content_type__in=content_type)
+        network_permissions = Permission.objects.filter(
+            codename__in=available_permissions).exclude(
+            codename='view_network')
+
         context = {
             'network': network,
             'user_profile': user_profile,
             'networks': get_objects_for_user(request.user,
                                              'view_network', klass=Network),
-            'permissions': permissions.exclude(codename='view_network'),
+            'permissions': network_permissions,
             'roles': role,
-        }
+            }
         info_template = get_template('dashboard/user_management/add.html')
         html = info_template.render(context, request)
         return HttpResponse(html)
 
     def post(self, request, *args, **kwargs):
-
         # setting email as username
         username = request.POST['email']
         email = request.POST['email']
         password = request.POST['password']
-        user_role = str(request.POST['role']).lower().replace(' ', '_')
+        user_role = str(request.POST['role'])
         networks = str(request.POST.get('networks')).split(',')
         permissions = str(request.POST.get('permissions')).split(',')
 
@@ -999,7 +999,7 @@ class UserManagement(ProtectedView):
             with transaction.atomic():
                 user = User(username=username)
 
-                if user_role == 'network_admin':
+                if user_role == 'Network Admin':
                     user.is_staff = True
                 else:
                     user.is_staff = user.is_superuser = False
@@ -1017,8 +1017,8 @@ class UserManagement(ProtectedView):
                         permission = Permission.objects.get(id=permission_id)
                         codename = 'endagaweb.' + permission.codename
                         assign_perm(codename, user, user_network)
-                    # Lets add view network permission also
-                    assign_perm('ednagaweb.view_network', user, user_network)
+                    # view network permission as minimum permission
+                    assign_perm('endagaweb.view_network', user, user_network)
 
                 # Set last network as default network for User
                 user_profile.network = user_network
@@ -1061,8 +1061,114 @@ class UserManagement(ProtectedView):
                               post_reset_redirect=reverse('user-management'))
 
 
+class UserUpdate(ProtectedView):
+    permission_required = 'user_management'
+
+    def get(self, request, *args, **kwargs):
+
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        user = User.objects.get(id=user_profile.user_id)
+        # Admin permissions on current network
+        network_permissions = get_perms(request.user, network)
+        update_user = False
+        user_role = user_perms = None
+        existing_user = request.GET.get('user', None)
+
+        if not user.is_superuser:  # Network Admin
+            role = USER_ROLES[0:len(USER_ROLES) - 1]
+        else:  # Cloud Admin
+            role = USER_ROLES
+        available_permissions = Permission.objects.filter(
+            codename__in=network_permissions).exclude(
+            codename='view_network')
+        # if altering existing user
+        if existing_user is not None and User.objects.filter(
+                email=existing_user).exists():
+            update_user = True
+            _user = User.objects.get(email=existing_user)
+            _user_profile = UserProfile.objects.get(user=_user)
+            user_role = _user_profile.role
+            existing_permissions = get_perms(_user, user_profile.network)
+
+            # Setup available and assigned permissions
+            user_perms = Permission.objects.filter(
+                codename__in=existing_permissions).exclude(
+                codename='view_network')
+            available_permissions = Permission.objects.filter(
+                codename__in=network_permissions).exclude(
+                codename__in=existing_permissions)
+
+        context = {
+            'network': network,
+            'user_profile': user_profile,
+            'networks': get_objects_for_user(request.user,
+                                             'view_network', klass=Network),
+            'permissions': available_permissions,
+            'roles': role,
+            'user_role': user_role,
+            'update': update_user,
+            'email': existing_user,
+            'user_permissions': user_perms,
+            }
+        info_template = get_template('dashboard/user_management/edit.html')
+        html = info_template.render(context, request)
+        return HttpResponse(html)
+
+    def post(self, request, *args, **kwargs):
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        email = request.POST['email']
+        user_role = str(request.POST['role'])
+        permissions = request.POST.get('permissions')
+        user = User.objects.get(email=email)
+        user_profile = UserProfile.objects.get(user=user)
+        existing_permissions = get_perms(user, network)
+
+        if len(permissions) > 1:
+            permissions = permissions.split(',')
+            if user_role == 'Network Admin':
+                user.is_staff = True
+            else:
+                user.is_staff = user.is_superuser = False
+            user.save()
+
+            # Update Permissions
+            new_permissions = []
+            for permission_id in permissions:
+                permission = Permission.objects.get(id=permission_id)
+                new_permissions.append(permission.codename)
+
+            user_permissions = set(existing_permissions + new_permissions)
+            for user_perm in user_permissions:
+                perm = 'endagaweb.' + user_perm
+                if user_perm not in new_permissions:
+                    remove_perm(perm, user, network)
+                else:
+                    assign_perm(perm, user, network)
+            assign_perm('endagaweb.view_network', user, network)
+            user_profile.network = network
+            if user_profile.role != user_role:
+                user_profile.role = user_role
+            user_profile.save()
+            message = 'User updated successfully!'
+            messages.success(request, message)
+
+        else:
+            if len(existing_permissions) < 1:
+                message = 'Nothing to update!'
+            else:
+                for permission in existing_permissions:
+                    perm = 'endagaweb.' + permission
+                    remove_perm(perm, user, network)
+                message = 'Removed all permissions!'
+            messages.info(request, message)
+
+        return HttpResponse(request, message)
+
+
 class UserDelete(ProtectedView):
-    permission_required = 'view_network'
+    permission_required = 'user_management'
 
     def get(self, request, *args, **kwargs):
 
@@ -1139,11 +1245,11 @@ class UserDelete(ProtectedView):
 
 
 class UserBlockUnblock(ProtectedView):
-    permission_required = 'view_user'
+    permission_required = 'user_management'
 
     def get(self, request, *args, **kwargs):
         user_profile = UserProfile.objects.get(user=request.user)
-        user = User.objects.get(id=user_profile.user_id)
+        network = user_profile.network
         query = request.GET.get('query', None)
 
         if query:
@@ -1209,7 +1315,7 @@ class UserBlockUnblock(ProtectedView):
 
 class SubscriberCategoryEdit(ProtectedView):
     """Search and update the category of the subscriber"""
-    permission_required = 'view_subscriber'
+    permission_required = 'edit_subscriber'
 
     def get(self, request, *args, **kwargs):
         return self._handle_request(request)

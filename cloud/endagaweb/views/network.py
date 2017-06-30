@@ -112,7 +112,7 @@ class NetworkInfo(ProtectedView):
 
 class NetworkInactiveSubscribers(ProtectedView):
     """Edit settings for expiring inactive subs."""
-    permission_required = 'view_network'
+    permission_required = 'edit_network'
 
     def get(self, request):
         """Handles GET requests."""
@@ -359,7 +359,7 @@ class NetworkPrices(ProtectedView):
 
 class NetworkEdit(ProtectedView):
     """Edit basic network info (but not prices)."""
-    permission_required = 'view_network'
+    permission_required = 'edit_network'
 
     def get(self, request):
         """Handles GET requests."""
@@ -464,7 +464,7 @@ class NetworkSelectView(ProtectedView):
 
 class NetworkDenomination(ProtectedView):
     """Assign denominations bracket for recharge/adjust-credit in network."""
-    permission_required = 'view_network'
+    permission_required = 'edit_network'
 
     def get(self, request):
         """Handles GET requests."""

@@ -11,11 +11,12 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load render_table from django_tables2 %}
 {% block pagestyle %}
 {% load static %}
+{% load guardian_tags %}
 {% load crispy_forms_tags %}
 {% endblock %}
 
 {% block headerclass %}
-{% get_obj_perms request.user for network as 'user_permission' %}
+
 <body id="remove_user">
 <header class="navbar navbar-inverse normal" role="banner">
     {% endblock %}
@@ -31,6 +32,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
     <div class='row'>
         {% include "dashboard/user_management/nav.html" with active_tab='delete'%}
+        {% get_obj_perms request.user for network as 'user_permission' %}
         <div class="container col-sm-10">
             {% for message in messages %}
             <div class="message alert alert-{{message.tags}}">
@@ -38,7 +40,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 {{message}}
             </div>
             {% endfor %}
-            {% if 'delete_user' in user_permission %}
+            {% if 'user_management' in user_permission %}
                 <form action="/dashboard/user/management/delete" method="GET" role="form">
                     <div class="col-xs-12 col-md-6">
                         {% crispy search %}
