@@ -186,3 +186,29 @@ class SubscriberEditTest(SubscriberBaseTest):
         response = self.client.get('/dashboard/subscribers/%s/edit' %
                                    self.subscriber_imsi)
         self.assertEqual(200, response.status_code)
+
+
+class BroadcastViewTest(SubscriberBaseTest):
+    """Testing endagaweb.views.dashboard.BroadcastView."""
+
+    def test_post(self):
+        """Sending an SMS should redirect and generate a new task."""
+
+        data = {
+            'message': 'test -- hi there',
+            'sendto': 'network',
+            'network_id': '',
+            'tower_id': '',
+            'imsi': self.subscriber_imsi
+        }
+        url = '/dashboard/broadcast'
+        with mock.patch('endagaweb.tasks.async_post.delay') as mocked_task:
+            self.client.post(url, data)
+            self.assertTrue(mocked_task.called)
+            args, _ = mocked_task.call_args
+            task_endpoint, task_data = args
+        expected_url = '%s/endaga_sms' % self.bts.inbound_url
+        self.assertEqual(expected_url, task_endpoint)
+        self.assertEqual('0000', task_data['sender'])
+        self.assertEqual(self.number.number, task_data['to'])
+        self.assertEqual(data['message'], task_data['text'])
