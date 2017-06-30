@@ -109,7 +109,7 @@ $(document).ready(function() {
   $('input[type=radio][name="send_to"]').change(function() {
     if (this.value == 'network') {
         $('#network_row').show();
-        $('#tower_row').show();
+        $('#tower_row').hide();
         $('#imsi_row').hide();
     } else if (this.value == 'tower') {
         $('#network_row').hide();
@@ -125,13 +125,14 @@ $(document).ready(function() {
     }
   });
   $('#broadcast-modal').on('shown.bs.modal', function() {
+    $('#broadcast-form')[0].reset();
     $('#network_row').hide();
     $('#tower_row').show();
     $('#imsi_row').hide();
-    $('#imsi #message').val();
   });
 
-  $('#broadcast_submit').click(function() {
+});
+  function broadcastSms() {
     var data = {
       sendto: $('input[type=radio][name="send_to"]:checked').val(),
       network_id: $('#network_id').val(),
@@ -170,7 +171,7 @@ $(document).ready(function() {
         }, 4000);
       }
     });
-  });
-});
+    return false;
+  }
 </script>
 {% endblock %}

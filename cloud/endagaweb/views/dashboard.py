@@ -916,29 +916,12 @@ class ActivityView(ProtectedView):
 class BroadcastView(ProtectedView):
     """Send an SMS to a single subscriber."""
 
-    def get(self, request):
-        """Handles GET requests."""
-        user_profile = UserProfile.objects.get(user=request.user)
-        network = user_profile.network
-
-        towers = BTS.objects.filter(network=user_profile.network).values('nickname', 'uuid', 'id')
-
-        # Set the response context.
-        context = {
-            'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
-            'towers': towers,
-            'user_profile': user_profile,
-            #'subscriber': subscriber,
-            #'send_sms_form': dform.SubscriberSendSMSForm()
-        }
-        # Render template.
-
-        template = get_template('dashboard/subscriber_detail/broadcast.html')
-        html = template.render(context, request)
-        return HttpResponse(html)
-
     def post(self, request):
-        """broadcast message to network, tower aor selected imsi."""
+        """Broadcast bulk SMS to network, tower or selected imsi.
+
+        This API will call tasks.async_post method to send request to
+        Client BTS system for broadcast SMS
+        """
 
         sendto = request.POST.get('sendto', None)
         network_id = request.POST.get('network_id', None)
@@ -946,7 +929,7 @@ class BroadcastView(ProtectedView):
         imsi_str = request.POST.get('imsi', None)
         message = request.POST.get('message', None)
         response = {
-            'status': 'ok',
+            'status': 'failed',
             'messages': [],
         }
         if sendto in ['network', 'tower']:
@@ -960,8 +943,9 @@ class BroadcastView(ProtectedView):
                 bts_list = BTS.objects.filter(id=tower_id)
                 level = 'tower'
                 level_id = tower_id
+
             for bts in bts_list:
-                print bts
+                # Fire off an async task request to send the SMS.
                 params = {
                     'to': '*',
                     'sender': '0000',
@@ -973,7 +957,7 @@ class BroadcastView(ProtectedView):
                 url = bts.inbound_url + "/endaga_sms"
                 tasks.async_post.delay(url, params)
         elif sendto == 'imsi':
-            imsi_list = imsi_str.split(",")
+            imsi_list = imsi_str.split(',')
             invalid_imsi = []
             subscribers = []
             for imsi in imsi_list:
@@ -982,16 +966,21 @@ class BroadcastView(ProtectedView):
                     subscribers.append(sub)
                 except Subscriber.DoesNotExist:
                     invalid_imsi.append(imsi)
-            if len(invalid_imsi) > 0:
-                message = "Invalid %s in IMSI list." % (', '.join(invalid_imsi))
-                response['status'] = 'failed'
+            if not imsi_str:
+                message = "Enter Subscriber IMSI number."
                 response['messages'].append(message)
                 return HttpResponse(json.dumps(response),
                                     content_type="application/json")
-            for sub in subscribers:
+            if len(invalid_imsi) > 0:
+                message = "Invalid %s in IMSI numbers." % (','.join(
+                    invalid_imsi))
+                response['messages'].append(message)
+                return HttpResponse(json.dumps(response),
+                                    content_type="application/json")
+            for subscriber in subscribers:
                 try:
                     # We send sms to the subscriber's first number.
-                    num = sub.number_set.all()[0]
+                    num = subscriber.number_set.all()[0]
                 except:
                     num = None
                 if num:
@@ -1004,15 +993,14 @@ class BroadcastView(ProtectedView):
                         'level_id': 123,
                         'level': 89
                     }
-                    url = sub.bts.inbound_url + "/endaga_sms"
+                    url = subscriber.bts.inbound_url + "/endaga_sms"
                     tasks.async_post.delay(url, params)
         else:
-            response['status'] = 'failed'
             response['messages'].append('Invalid request data.')
             return HttpResponse(json.dumps(response),
                                 content_type="application/json")
         message = "Broadcast SMS sent successfully"
-        messages.success(request, message)
+        response['status'] = 'ok'
         response['messages'].append(message)
         return HttpResponse(json.dumps(response),
                             content_type="application/json")
