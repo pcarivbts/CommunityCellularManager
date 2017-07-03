@@ -523,13 +523,18 @@ class WaterfallStatsClient(StatsClientBase):
         else:
             end = datetime.fromtimestamp(time.time(), pytz.utc)
 
-        response = {'header': [{'title': "Months"}, {'title': "Activation"}],
+        response = {'header': [{'label': "Months", 'name': 'month',
+                                'frozen': 'true'},
+                               {'label': "Activation", 'name': 'activation',
+                                'frozen': 'true', 'align': 'center'}],
                     'data': []};
 
         months = rrule(MONTHLY, dtstart=start, until=end)
         for mnth in months:
             key = mnth.strftime("%b") + "-" + mnth.strftime("%Y")
-            response['header'].append({'title':key})
+            response['header'].append({'label': key,
+                                       'name': key,
+                                       'align': 'center'})
 
             # Get last/first date of month from selected month
             next_month = mnth.replace(day=28) + timedelta(days=4)
@@ -543,8 +548,9 @@ class WaterfallStatsClient(StatsClientBase):
             kwargs['report_view'] = 'value'
             subscribers = self.aggregate_timeseries(kind_key, **kwargs)
 
-            month_row = [key, len(subscribers)]
+            month_row = {'month': key, 'activation': len(subscribers)}
             for col_mnth in months:
+                col_key = col_mnth.strftime("%b") + "-" + col_mnth.strftime("%Y")
                 month_start_dt = col_mnth
                 # Get last date of month from selected month
                 next_month = col_mnth.replace(day=28) + timedelta(days=4)
@@ -572,9 +578,9 @@ class WaterfallStatsClient(StatsClientBase):
                 result = self.aggregate_timeseries(kind_row, **kwargs)
 
                 if isinstance(result, (list, tuple)):
-                    month_row.append(len(result))
+                    month_row.update({col_key: len(result)})
                 else:
-                    month_row.append(result)
+                    month_row.update({col_key: result})
             response['data'].append(month_row)
         return response
 
