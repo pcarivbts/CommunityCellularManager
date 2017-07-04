@@ -38,7 +38,7 @@ SUBSCRIBER_KINDS = stats_client.SUBSCRIBER_KINDS + \
                    stats_client.INACTIVE_SUBSCRIBER
 HEALTH_STATUS = stats_client.HEALTH_STATUS
 WATERFALL_KINDS = ['loader', 'reload_rate', 'reload_amount',
-                   'reload_transaction', 'average_frequency']
+                   'reload_transaction', 'average_load', 'average_frequency']
 DENOMINATION_KINDS = stats_client.DENOMINATION_KINDS
 # Set valid intervals.
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
