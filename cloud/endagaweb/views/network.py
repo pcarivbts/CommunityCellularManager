@@ -17,7 +17,7 @@ from django import template
 from django.contrib import messages
 from django.core import urlresolvers
 from django.db import transaction
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 import django_tables2 as tables
 from django.template.loader import get_template
 from guardian.shortcuts import get_objects_for_user
@@ -659,6 +659,10 @@ class NetworkNotifications(ProtectedView):
         user_profile = models.UserProfile.objects.get(user=request.user)
         network = user_profile.network
         notifications = models.Notification.objects.filter(network=network)
+        notification_table = django_tables.NotificationTable(
+            list(notifications))
+        tables.RequestConfig(request, paginate={'per_page': 10}).configure(
+            notification_table)
 
         # Set the response context.
         context = {
@@ -667,8 +671,7 @@ class NetworkNotifications(ProtectedView):
             'user_profile': user_profile,
             'notification': dashboard_forms.NotificationForm(
                 initial={'type': 'automatic'}),
-            'notification_table': django_tables.NotificationTable(
-                list(notifications)),
+            'notification_table': notification_table,
             'records': len(list(notifications)),
         }
         # Render template.

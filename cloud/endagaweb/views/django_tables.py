@@ -378,9 +378,9 @@ class NotificationTable(tables.Table):
     id = tables.CheckBoxColumn(accessor="pk",
                 attrs={"th__input":{"onclick": "toggle(this)"}})
     type = tables.Column(verbose_name='Type')
-    event = tables.Column(verbose_name='Event', order_by='event')
+    event = tables.Column(verbose_name='Event')
     number = tables.Column(verbose_name='Number')
-    message = tables.Column(verbose_name='Message')
+    message = tables.Column(verbose_name='Message', orderable=False)
 
     def render_message(self, record):
         message = record.message
