@@ -365,3 +365,25 @@ class DenominationTable(tables.Table):
         element += "<a href='javascript:void(0)' onclick='doAction(\"delete\",\"%s\");' class='btn btn-xs btn-danger'" \
                    "data-target='#delete-denom-modal' data-toggle='modal'>Delete</a>" % (record.id)
         return safestring.mark_safe(element)
+
+
+class NotificationTable(tables.Table):
+    """Notification table """
+
+    class Meta:
+        model = models.Notification
+        fields = ('id','type', 'event', 'number', 'message')
+        attrs = {'class': 'table'}
+
+    id = tables.CheckBoxColumn(accessor="pk",
+                attrs={"th__input":{"onclick": "toggle(this)"}})
+    type = tables.Column(verbose_name='Type')
+    event = tables.Column(verbose_name='Event', order_by='event')
+    number = tables.Column(verbose_name='Number')
+    message = tables.Column(verbose_name='Message')
+
+    def render_message(self, record):
+        message = record.message
+        if len(record.message) > 30:
+            message = message[:30]+'...(truncated)'
+        return message

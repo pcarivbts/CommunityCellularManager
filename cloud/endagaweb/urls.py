@@ -153,6 +153,9 @@ urlpatterns = [
         name='network-edit'),
     url(r'^dashboard/network/select/(?P<network_id>[0-9]+)$',
         endagaweb.views.network.NetworkSelectView.as_view()),
+    url(r'^dashboard/network/notification$',
+        endagaweb.views.network.NetworkNotifications.as_view(),
+        name='network-notifications'),
     # The activity table.
     url(r'^dashboard/activity',
         endagaweb.views.dashboard.ActivityView.as_view(),

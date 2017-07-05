@@ -19,6 +19,7 @@ from django.core import urlresolvers
 from django.db import transaction
 from django.shortcuts import redirect
 import django_tables2 as tables
+from django.template.loader import get_template
 from guardian.shortcuts import get_objects_for_user
 from django.conf import settings
 
@@ -651,3 +652,59 @@ class NetworkDenomination(ProtectedView):
                 extra_tags='alert alert-danger')
         return http.HttpResponse(json.dumps(response),
                                  content_type="application/json")
+
+
+class NetworkNotifications(ProtectedView):
+    def get(self, request):
+        user_profile = models.UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        notifications = models.Notification.objects.filter(network=network)
+
+        # Set the response context.
+        context = {
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=models.Network),
+            'user_profile': user_profile,
+            'notification': dashboard_forms.NotificationForm(
+                initial={'type': 'automatic'}),
+            'notification_table': django_tables.NotificationTable(
+                list(notifications)),
+            'records': len(list(notifications)),
+        }
+        # Render template.
+        template = get_template(
+            'dashboard/network_detail/notifications.html')
+        html = template.render(context, request)
+        return http.HttpResponse(html)
+
+    def post(self, request):
+        delete_notification = request.POST.getlist('id') or None
+        if delete_notification is None:
+            user_profile = models.UserProfile.objects.get(user=request.user)
+            network = user_profile.network
+            type = request.POST.get('type')
+            event = request.POST.get('event') or 'N/A'
+            message = request.POST.get('message')
+            number = request.POST.get('number') or 'N/A'
+            try:
+                with transaction.atomic():
+                    notification = models.Notification.objects.create(
+                        network=network)
+                    notification.type = type
+                    notification.message = message
+                    notification.event = event
+                    notification.number = number
+                    notification.save()
+                    message = 'Successfully added notification!'
+                    messages.success(request, message)
+            except Exception as err:
+                message = 'Failed to add notification due to %s' % err
+                messages.error(request, message)
+        else:
+            # Delete the notifications
+            records = models.Notification.objects.filter(id__in=delete_notification)
+            for notification in records:
+                notification.delete()
+            message = 'Succesfully deleted selected notificaiton(s)'
+            messages.success(request, message)
+        return redirect(urlresolvers.reverse('network-notifications'))

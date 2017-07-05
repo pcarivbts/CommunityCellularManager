@@ -1793,3 +1793,15 @@ class FileUpload(models.Model):
     created_time = models.DateTimeField(auto_now_add=True)
     modified_time = models.DateTimeField(auto_now_add=True)
     accessed_time = models.DateTimeField(auto_now=True)
+
+
+class Notification(models.Model):
+    notification_type = (
+            ('automatic', 'Automatic'),
+            ('mapped', 'Mapped')
+        )
+    network = models.ForeignKey('Network', on_delete=models.CASCADE)
+    event = models.CharField(max_length=100, null=True)
+    number = models.CharField(max_length=20, null=True, default=None)
+    message = models.TextField(max_length=160)
+    type = models.CharField(max_length=10, choices=notification_type, default='automatic')

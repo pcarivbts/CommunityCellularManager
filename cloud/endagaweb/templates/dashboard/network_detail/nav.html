@@ -30,6 +30,13 @@ of patent rights can be found in the PATENTS file in the same directory.
         {% endif %} ">Denominations</a>
     </li>
 
+    <li role="presentation" class="{% if active_tab == 'network-notifications' %} active {% endif %}">
+      <a href="
+        {% if active_tab == 'network-notifications' %} #
+        {% else %} {% url 'network-notifications' %}
+        {% endif %} ">Notifications</a>
+    </li>
+
     <li role="presentation" class="{% if active_tab == 'inactive-subscribers' %} active {% endif %}">
       <a href="
         {% if active_tab == 'inactive-subscribers' %} #

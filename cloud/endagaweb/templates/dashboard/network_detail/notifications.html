@@ -1,0 +1,122 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+{% load apptags %}
+{% load humanize %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+
+
+{% block title %}
+{% if network.name %}
+{% tmpl_const "SITENAME" %} | "{{ network.name }}"
+{% else %}
+{% tmpl_const "SITENAME" %} | Network
+{% endif %}
+{% endblock %}
+
+{% block pagestyle %}
+<style>
+
+    .btn{
+        margin-left: 5px;
+    }
+    .btn:last-child{
+        margin-left: 0;
+    }
+    table tbody tr.highlight td {
+        background-color: #ddd;
+    }
+    label.btn span {
+  font-size: 1.5em ;
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "dashboard/network_detail/header.html" with network=network %}
+
+<div class='row'>
+    {% include "dashboard/network_detail/nav.html" with active_tab='network-notifications' %}
+    <div class='content col-xs-12 col-sm-10 col-md-6'>
+        {% for message in messages %}
+        <div class="message alert alert-{{ message.tags }}">
+            <a href="#" class="close" data-dismiss="alert">&times;</a>
+            {{ message }}
+        </div>
+        {% endfor %}
+        <form action="/dashboard/network/notification" method="POST">
+            <div class="table-container">
+                {% csrf_token %}
+                {% if records > 0 %}
+                {% render_table notification_table %}
+                <input class='btn btn-primary' type='submit'
+                       id='delete' value="Delete">
+                {% else %}
+                <p>No notifications in the current network </p>
+                {% endif %}
+            </div>
+        </form>
+
+    </div>
+    <div class='content col-xs-12 col-sm-10 col-md-4'>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class='fa fa-bell'></i>
+                  <b>Notification</b>
+            </div>
+            <div class="panel-body">
+                <div class="row-fluid">
+                    <form action="/dashboard/network/notification"
+                          id="add-notification-modal" name="notification"
+                          method="POST"
+                          data-toggle="validator" class="form-horizontal">
+                        {% csrf_token %}
+                        <div class="col-md-12">
+                            {% crispy notification %}
+                        </div>
+                        <input type="submit" id="add-notification-submit"
+                               class="btn btn-primary pull-right" value="Add"
+                               onclick="document.getElementById('submit-id-submit').click()"/>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
+{% block js %}
+<script>
+  $(function() {
+    $('input:radio').change(function() {
+      var notification_type = $('form input[name=type]:checked').val();
+      if (notification_type == 'mapped') {
+        $('#id_number').prop('disabled', false);
+        $('#id_event').prop('disabled', true);
+      } else {
+        $('#id_number').prop('disabled', true);
+        $('#id_event').prop('disabled', false);
+      }
+    });
+  });
+
+function toggle(source) {
+    checkboxes = document.getElementsByName('id');
+    for(var i in checkboxes)
+        checkboxes[i].checked = source.checked;
+
+}
+
+
+</script>
+
+{% endblock %}
