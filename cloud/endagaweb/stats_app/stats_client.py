@@ -11,6 +11,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 import time
 from datetime import datetime, timedelta
 from operator import itemgetter
+import calendar
 
 import pytz
 import qsstats
@@ -595,5 +596,64 @@ class WaterfallStatsClient(StatsClientBase):
                         result = 0
                 month_row.update({col_key: result})
             response['data'].append(month_row)
+        return response
+
+
+class NonLoaderStatsClient(StatsClientBase):
+    """ waterfall reports data """
+
+    def __init__(self, *args, **kwargs):
+        super(NonLoaderStatsClient, self).__init__(*args, **kwargs)
+
+    def timeseries(self, kind=None, **kwargs):
+        # Get report data in timeseries format
+        # Oldest subscriber provision date
+        start_time_epoch = 1406680050
+        last_month = datetime.fromtimestamp(time.time(),
+                                            pytz.utc) - timedelta(days=30)
+        end_epoch = last_month.replace(day=calendar.monthrange(
+            last_month.year, last_month.month)[1])
+        start_epoch = end_epoch - timedelta(6*365/12)
+
+        response = {'header': [{'label': "Months", 'name': 'month',
+                                'frozen': True},
+                               #{'label': "Activation", 'name': 'activation',
+                               # 'frozen': True},
+                               {'label': "Non Loader", 'name': 'nonloader',
+                                'frozen': True}],
+                    'data': []};
+
+        months = list(rrule(MONTHLY, dtstart=start_epoch, until=end_epoch))
+        months.sort(reverse=True)
+        kwargs2 = kwargs
+
+        counter = 1
+
+        for mnth in months:
+            key = mnth.strftime("%b") + "-" + mnth.strftime("%Y")
+
+            # Get last/first date of month from selected month
+            next_month = mnth.replace(day=28) + timedelta(days=4)
+            stats_end_dt = next_month - timedelta(days=next_month.day)
+            stats_start_dt = mnth.replace(day=1)
+
+            kwargs['start_time_epoch'] = start_time_epoch #int(stats_start_dt.strftime("%s"))
+            kwargs['end_time_epoch'] = int(stats_end_dt.strftime("%s"))
+            kwargs['query'] = Q(subscriber__role='retailer')
+            kwargs['report_view'] = 'value'
+            subscribers = self.aggregate_timeseries('provisioned', **kwargs)
+
+            kwargs2['start_time_epoch'] = int(stats_start_dt.strftime("%s"))
+            kwargs2['end_time_epoch'] = int(end_epoch.strftime("%s"))
+            kwargs2['query'] = Q(subscriber__role='retailer')
+            kwargs2['aggregation'] = 'count'
+            kwargs2['report_view'] = 'summary'
+
+            result = self.aggregate_timeseries('transfer', **kwargs2)
+            month_row = {'month': "%d months" % (counter),
+                         #'activation': len(subscribers),
+                         'nonloader': result - len(subscribers)}
+            response['data'].append(month_row)
+            counter += 1
         return response
 

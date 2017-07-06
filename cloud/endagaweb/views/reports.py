@@ -26,6 +26,7 @@ reports_dict= {
     'Top Up': ['Amount Based', 'Count Based'],
     'Call & SMS': ['SMS Billing', 'Call and SMS Billing', 'Call Billing'],
     'Retailer': ['Retailer Recharge', 'Retailer Load Transfer'],
+    'Non Loader': ['Total Base', 'Cumulative'],
     'Waterfall': ['Activation', 'Loader', 'Reload Rate', 'Reload Amount',
                   'Reload Transaction', 'Average Load', 'Average Frequency']
 }
