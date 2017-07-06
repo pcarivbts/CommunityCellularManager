@@ -113,7 +113,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 </div>
 {% endif %}
 
-
+{% include "dashboard/subscriber_detail/broadcast.html" with target='imsi' imsi=subscriber.imsi %}
 {% endblock %}
 
 
@@ -121,4 +121,78 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
 <script src="/static/js/dashboard/activity.js"></script>
+
+<script type="text/javascript">
+
+$(document).ready(function() {
+
+  $('input[type=radio][name="send_to"]').change(function() {
+    if (this.value == 'network') {
+        $('#network_row').show();
+        $('#tower_row').hide();
+        $('#imsi_row').hide();
+    } else if (this.value == 'tower') {
+        $('#network_row').hide();
+        $('#tower_row').show();
+        $('#imsi_row').hide();
+    } else if (this.value == 'imsi') {
+        $('#network_row').hide();
+        $('#tower_row').hide();
+        $('#imsi_row').show();
+    } else {
+        $('#network_row').hide();
+        $('#tower_row').hide();
+        $('#imsi_row').show();
+    }
+  });
+  $('#broadcast-modal').on('shown.bs.modal', function() {
+    $('#broadcast-form')[0].reset();
+    $('#network_row').hide();
+    $('#tower_row').hide();
+    $('#imsi_row').show();
+  });
+
+});
+  function broadcastSms() {
+    var data = {
+      sendto: $('input[type=radio][name="send_to"]:checked').val(),
+      network_id: $('#network_id').val(),
+      tower_id: $('#bts_id').val(),
+      imsi: $('#imsi').val(),
+      message: $('#message').val(),
+      csrfmiddlewaretoken: '{{ csrf_token }}',
+    };
+    $.post('/dashboard/broadcast', data, function(response) {
+      if (response['status'] == 'ok') {
+        // Show that it was successful and then reload the page.
+        // Clear out any old messages and show the div again.
+        $('#messages-container').html();
+        $('#messages-container').css('opacity', 1);
+        var html = '';
+        response['messages'].map(function(message) {
+          html += '<div class="alert alert-success">' + message + '</div>';
+        });
+        $('#messages-container').html(html).show();
+        setTimeout(function() {
+          location.reload();
+        }, 800);
+      } else {
+        // Show the messages that were sent back.
+        // Clear out any old messages and show the div again.
+        $('#messages-container').html();
+        $('#messages-container').css('opacity', 1);
+        var html = '';
+        response['messages'].map(function(message) {
+          html += '<div class="alert alert-danger">' + message + '</div>';
+        });
+        $('#messages-container').html(html).show();
+        setTimeout(function() {
+          $('#messages-container').fadeTo(500, 0);
+          $('#messages-container').hide();
+        }, 4000);
+      }
+    });
+    return false;
+  }
+</script>
 {% endblock %}
