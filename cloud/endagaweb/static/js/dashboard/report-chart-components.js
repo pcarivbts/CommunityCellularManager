@@ -439,9 +439,18 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
         // Fixes the axis-labels being rendered out of the SVG element.
         chart.margin({right: 80});
         chart.tooltipContent(function(key, x, y) {
+          if(key=='bts_health_status'){
+            var bts_status;
+            if(y==1){
+              bts_status="BTS_UP"
+              }
+            else{
+              bts_status="BTS_DOWN"
+              }
+          return '<p>' + frontTooltip + bts_status + tooltipUnits + ' '  + '</p>' + '<p>' + x + '</p>';
+          }
           return '<p>' + frontTooltip + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
         });
-
         d3.select(domTarget)
             .datum(shiftedData)
             .transition().duration(350)

@@ -28,7 +28,7 @@ SMS_KINDS = [
 SUBSCRIBER_KINDS = ['provisioned', 'deprovisioned']
 ZERO_BALANCE_SUBSCRIBER = ['zero_balance_subscriber']
 INACTIVE_SUBSCRIBER = ['expired', 'first_expired', 'blocked']
-HEALTH_STATUS = ['bts down','bts up']
+HEALTH_STATUS = ['bts_health_status']
 TRANSFER_KINDS = ['transfer', 'add-money']
 WATERFALL_KINDS = ['loader', 'reload_rate', 'reload_amount',
                    'reload_transaction', 'average_frequency']
@@ -135,7 +135,7 @@ class StatsClientBase(object):
             filters = Q(key=param)
         elif param in HEALTH_STATUS:
             objects = models.SystemEvent.objects
-            filters = Q(type=param)
+            filters = Q(type='bts up')
         else:
             # For Dynamic Kinds coming from Database currently for Top Up
             objects = models.UsageEvent.objects
@@ -232,9 +232,15 @@ class StatsClientBase(object):
         # Round the stats values when necessary.
         rounded_values = []
         for value in values:
-            if round(value) != round(value, 2):
+            if param=='bts_health_status':
+                if value==0:
+                    rounded_values.append(0)
+                else:
+                    rounded_values.append(1)
+            elif round(value) != round(value, 2):
                 rounded_values.append(round(value, 2))
             else:
+
                 rounded_values.append(value)
         return zip(timestamps, rounded_values)
 
