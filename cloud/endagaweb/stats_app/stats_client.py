@@ -11,6 +11,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 import time
 from datetime import datetime, timedelta
 from operator import itemgetter
+import calendar
 
 import pytz
 import qsstats
@@ -31,7 +32,7 @@ INACTIVE_SUBSCRIBER = ['expired', 'first_expired', 'blocked']
 HEALTH_STATUS = ['bts_health_status']
 TRANSFER_KINDS = ['transfer', 'add-money']
 WATERFALL_KINDS = ['loader', 'reload_rate', 'reload_amount',
-                   'reload_transaction', 'average_frequency']
+                   'reload_transaction', 'average_load', 'average_frequency']
 DENOMINATION_KINDS = ['start_amount', 'end_amount']
 USAGE_EVENT_KINDS = CALL_KINDS + SMS_KINDS + ['gprs'] + SUBSCRIBER_KINDS + \
                     TRANSFER_KINDS + WATERFALL_KINDS
@@ -171,6 +172,12 @@ class StatsClientBase(object):
                 queryset, 'date', aggregate=aggregates.Avg('value'))
         elif aggregation == 'valid_through':
             queryset_stats = qsstats.QuerySetStats(queryset, 'valid_through')
+        elif aggregation == 'reload_transcation_count':
+            queryset_stats = qsstats.QuerySetStats(
+                queryset, 'date', aggregate=(aggregates.Count('to_number')))
+        elif aggregation == 'reload_transcation_sum':
+            queryset_stats = qsstats.QuerySetStats(
+                queryset, 'date', aggregate=(aggregates.Sum('change') * -1))
         # Sum of change in amounts for SMS/CALL
         elif aggregation in ['transaction_sum', 'transcation_count']:
             queryset_stats = qsstats.QuerySetStats(
@@ -211,7 +218,7 @@ class StatsClientBase(object):
         else:
             queryset_stats = qsstats.QuerySetStats(queryset, 'date')
         timeseries = queryset_stats.time_series(start, end, interval=interval)
-        # The timeseries results is a list of (datetime, value) pairs.  We need
+        # The timeseries results is a list of (datetime, value) pairs. We need
         # to convert the datetimes to timestamps with millisecond precision and
         # then zip the pairs back together.
         datetimes, values = zip(*timeseries)
@@ -529,13 +536,16 @@ class WaterfallStatsClient(StatsClientBase):
         else:
             end = datetime.fromtimestamp(time.time(), pytz.utc)
 
-        response = {'header': [{'title': "Months"}, {'title': "Activation"}],
+        response = {'header': [{'label': "Months", 'name': 'month',
+                                'frozen': True},
+                               {'label': "Activation", 'name': 'activation',
+                                'frozen': True}],
                     'data': []};
 
         months = rrule(MONTHLY, dtstart=start, until=end)
         for mnth in months:
             key = mnth.strftime("%b") + "-" + mnth.strftime("%Y")
-            response['header'].append({'title':key})
+            response['header'].append({'label': key, 'name': key})
 
             # Get last/first date of month from selected month
             next_month = mnth.replace(day=28) + timedelta(days=4)
@@ -549,8 +559,9 @@ class WaterfallStatsClient(StatsClientBase):
             kwargs['report_view'] = 'value'
             subscribers = self.aggregate_timeseries(kind_key, **kwargs)
 
-            month_row = [key, len(subscribers)]
+            month_row = {'month': key, 'activation': len(subscribers)}
             for col_mnth in months:
+                col_key = col_mnth.strftime("%b") + "-" + col_mnth.strftime("%Y")
                 month_start_dt = col_mnth
                 # Get last date of month from selected month
                 next_month = col_mnth.replace(day=28) + timedelta(days=4)
@@ -558,29 +569,97 @@ class WaterfallStatsClient(StatsClientBase):
 
                 kwargs['start_time_epoch'] = int(month_start_dt.strftime("%s"))
                 kwargs['end_time_epoch'] = int(month_end_dt.strftime("%s"))
-                if kind == 'loader':
+                kwargs['query'] = Q(subscriber_id__in=subscribers)
+                if kind in ['loader', 'reload_rate']:
                     kwargs['aggregation'] = 'loader'
                     kwargs['report_view'] = 'value'
-                elif kind == 'reload_transaction':
+                elif kind in ['reload_transaction', 'average_load']:
                     kwargs['aggregation'] = 'count'
                     kwargs['report_view'] = 'summary'
-                elif kind == 'reload_amount':
-                    kwargs['aggregation'] = 'transaction_sum'
+                elif kind in ['reload_amount', 'average_frequency']:
+                    kwargs['aggregation'] = 'reload_transcation_sum'
                     kwargs['report_view'] = 'summary'
-                elif kind == 'reload_rate':
-                    kwargs['aggregation'] = 'transaction_sum'
-                    kwargs['report_view'] = 'summary'
-                elif kind == 'average_frequency':
-                    kwargs['aggregation'] = 'transaction_sum'
-                    kwargs['report_view'] = 'summary'
-                kwargs['query'] = Q(subscriber_id__in=subscribers)
-                kind_row = 'transfer'
-                result = self.aggregate_timeseries(kind_row, **kwargs)
 
+                result = self.aggregate_timeseries('transfer', **kwargs)
                 if isinstance(result, (list, tuple)):
-                    month_row.append(len(result))
-                else:
-                    month_row.append(result)
+                    result = len(result)
+
+                if kind == 'reload_rate':
+                    try:
+                        pers = round(float(result) / len(subscribers), 2) * 100
+                    except:
+                        pers = 0
+                    result = str(pers) + " %"
+                elif kind in ['average_load', 'average_frequency']:
+                    kwargs['aggregation'] = 'loader'
+                    kwargs['report_view'] = 'value'
+                    loader = self.aggregate_timeseries('transfer', **kwargs)
+                    if isinstance(loader, (list, tuple)):
+                        loader = len(loader)
+                    try:
+                        result = round(float(result) / float(loader), 2)
+                    except:
+                        result = 0
+                month_row.update({col_key: result})
             response['data'].append(month_row)
+        return response
+
+
+class NonLoaderStatsClient(StatsClientBase):
+    """ waterfall reports data """
+
+    def __init__(self, *args, **kwargs):
+        super(NonLoaderStatsClient, self).__init__(*args, **kwargs)
+
+    def timeseries(self, kind=None, **kwargs):
+        # Get report data in timeseries format
+        # Oldest subscriber provision date
+        start_time_epoch = 1406680050
+        last_month = datetime.fromtimestamp(time.time(),
+                                            pytz.utc) - timedelta(days=30)
+        end_epoch = last_month.replace(day=calendar.monthrange(
+            last_month.year, last_month.month)[1])
+        start_epoch = end_epoch - timedelta(6*365/12)
+
+        response = {'header': [{'label': "Months", 'name': 'month',
+                                'frozen': True},
+                               #{'label': "Activation", 'name': 'activation',
+                               # 'frozen': True},
+                               {'label': "Non Loader", 'name': 'nonloader',
+                                'frozen': True}],
+                    'data': []};
+
+        months = list(rrule(MONTHLY, dtstart=start_epoch, until=end_epoch))
+        months.sort(reverse=True)
+        kwargs2 = kwargs
+
+        counter = 1
+
+        for mnth in months:
+            key = mnth.strftime("%b") + "-" + mnth.strftime("%Y")
+
+            # Get last/first date of month from selected month
+            next_month = mnth.replace(day=28) + timedelta(days=4)
+            stats_end_dt = next_month - timedelta(days=next_month.day)
+            stats_start_dt = mnth.replace(day=1)
+
+            kwargs['start_time_epoch'] = start_time_epoch #int(stats_start_dt.strftime("%s"))
+            kwargs['end_time_epoch'] = int(stats_end_dt.strftime("%s"))
+            kwargs['query'] = Q(subscriber__role='retailer')
+            kwargs['report_view'] = 'value'
+            subscribers = self.aggregate_timeseries('provisioned', **kwargs)
+
+            kwargs2['start_time_epoch'] = int(stats_start_dt.strftime("%s"))
+            kwargs2['end_time_epoch'] = int(end_epoch.strftime("%s"))
+            kwargs2['query'] = Q(subscriber__role='retailer')
+            kwargs2['aggregation'] = 'count'
+            kwargs2['report_view'] = 'summary'
+
+            result = self.aggregate_timeseries('transfer', **kwargs2)
+            month_row = {'month': "%d months" % (counter),
+                         #'activation': len(subscribers),
+                         'nonloader': result - len(subscribers)}
+            response['data'].append(month_row)
+            counter += 1
         return response
 

@@ -38,14 +38,15 @@ SUBSCRIBER_KINDS = stats_client.SUBSCRIBER_KINDS + \
                    stats_client.INACTIVE_SUBSCRIBER
 HEALTH_STATUS = stats_client.HEALTH_STATUS
 WATERFALL_KINDS = ['loader', 'reload_rate', 'reload_amount',
-                   'reload_transaction', 'average_frequency']
+                   'reload_transaction', 'average_load', 'average_frequency']
+NON_LOADER_KINDS = ['non_loader_base', 'cumulative_base']
 DENOMINATION_KINDS = stats_client.DENOMINATION_KINDS
 # Set valid intervals.
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
 TRANSFER_KINDS = stats_client.TRANSFER_KINDS
 VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + \
               TRANSFER_KINDS + SUBSCRIBER_KINDS + WATERFALL_KINDS + \
-              HEALTH_STATUS + DENOMINATION_KINDS
+              HEALTH_STATUS + DENOMINATION_KINDS + NON_LOADER_KINDS
 # Set valid aggregation types.
 AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
                 'average_value', 'transaction_sum', 'transcation_count',
@@ -174,6 +175,8 @@ class StatsAPIView(views.APIView):
                 client_type = stats_client.BTSStatsClient
             elif stat_type in WATERFALL_KINDS:
                 client_type = stats_client.WaterfallStatsClient
+            elif stat_type in NON_LOADER_KINDS:
+                client_type = stats_client.NonLoaderStatsClient
             else:
                 client_type = stats_client.TopUpStatsClient
             # Instantiate the client at an infrastructure level.

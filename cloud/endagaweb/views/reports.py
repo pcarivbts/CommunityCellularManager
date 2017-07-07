@@ -26,9 +26,10 @@ reports_dict= {
     'Top Up': ['Amount Based', 'Count Based'],
     'Call & SMS': ['SMS Billing', 'Call and SMS Billing', 'Call Billing'],
     'Retailer': ['Retailer Recharge', 'Retailer Load Transfer'],
-    'Waterfall': ['Activation', 'Loader', 'Reload Amount', 'Reload Transaction']
+    'Non Loader': ['Total Base', 'Cumulative'],
+    'Waterfall': ['Activation', 'Loader', 'Reload Rate', 'Reload Amount',
+                  'Reload Transaction', 'Average Load', 'Average Frequency']
 }
-
 
 class BaseReport(ProtectedView):
     """The base Report class.

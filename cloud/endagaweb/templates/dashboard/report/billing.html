@@ -23,6 +23,12 @@ of patent rights can be found in the PATENTS file in the same directory.
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css" type="text/css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqgrid/4.6.0/css/ui.jqgrid.css"/>
+<style type="text/css">
+  .ui-jqgrid tr.jqgrow th {font-size:1.3em}
+  .ui-jqgrid tr.jqgrow td {font-size:1.2em}
+</style>
 
 {% endblock %}
 
@@ -43,7 +49,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             {% if 'Loader' in reports %}
             <div class="row">
               <div id="loader">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Loader" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Loader" id="waterfall_loader" %}
               </div>
             </div>
             {% endif %}
@@ -51,7 +57,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="reload_rate">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Rate" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Rate" id="waterfall_reload_rate" %}
               </div>
             </div>
             {% endif %}
@@ -59,7 +65,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="reload_amount">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Amount" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Amount" id="waterfall_reload_amount" %}
               </div>
             </div>
             {% endif %}
@@ -67,7 +73,15 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="reload_transaction">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Transaction" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Transaction" id="waterfall_reload_transaction" %}
+              </div>
+            </div>
+            {% endif %}
+            {% if 'Average Load' in reports %}
+            <div class="row">&nbsp;</div>
+            <div class="row">
+              <div id="average_load">
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Average Load" id="waterfall_average_load" %}
               </div>
             </div>
             {% endif %}
@@ -75,16 +89,31 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="average_frequency">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Average Frequency" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Average Frequency" id="waterfall_average_frequency" %}
               </div>
             </div>
             {% endif %}
+
+            {% if 'Total Base' in reports %}
+            <div class="row">
+              <div id="non_loader_base">
+                <h4>Non Loader Report - Total Base</h4>
+                <table id="non_loader_total_base"></table>
+                <div id='non-loder-base'></div>
+              </div>
+            </div>
+            {% endif %}
+
             <div class="row">
                 <div id='add-money-usage-chart'></div>
                 <div id='load-transfer-usage-chart'></div>
                 <div id='sms-usage-chart'></div>
                 <div id='call-sms-usage-chart'></div>
                 <div id='call-usage-chart'></div>
+
+              <table id="jqGrid"></table>
+              <div id="jqGridPager"></div>
+
             </div>
 
             {% else %}
@@ -114,6 +143,11 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
 <script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqgrid/4.6.0/js/jquery.jqGrid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqgrid/4.6.0/js/i18n/grid.locale-en.js"></script>
+
+
 
 <script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
 <script type="text/jsx">
@@ -285,12 +319,13 @@ of patent rights can be found in the PATENTS file in the same directory.
   document.getElementById('top-up-subscriber-chart')
 );
 {% endif %}
+
 </script>
 <script type="text/javascript">
 function setloading() {
   var $btn = $('#submit').button().button('loading');
 }
-function renderTable(reportId) {
+function renderTable(reportId, tableId) {
 
   var secondsMap = {
     'month': 30 * 24 * 60 * 60,
@@ -332,33 +367,99 @@ function renderTable(reportId) {
       var tableHeader = data['results'][0]['values']['header'];
       var tableData = data['results'][0]['values']['data'];
 
-      //$('#'+reportId+' .table').html('');
-      $('#'+reportId+' .table').DataTable({
-        data: tableData,
-        paging:   false,
-        ordering: false,
-        info:     false,
-        searching: false,
-        //autoWidth: true,
-        scrollY: 500,
-        //scrollX: 'auto',
-        destroy: true,
-        columns: tableHeader,
-        scrollX: true,
-        // fixedColumns: true
-        // fixedColumns: {leftColumns: 2}
+      var header = [];
+      var row_width_total = 0;
+
+      $.each(data['results'][0]['values']['header'], function(index, value){
+        value['width'] = 80;
+        value['align'] = 'center';
+        header.push(value);
+        row_width_total += 80;
       });
+
+      var row_width = $("#"+reportId).width();
+      var options = {
+        colModel: header, //tableHeader,
+        data: tableData,
+        viewrecords: true,
+        width: row_width,
+        height: 'auto',
+        datatype: 'local',
+        shrinkToFit: true
+      };
+      var element = '#'+tableId;
+
+      var grid = $(element);
+
+      if(grid[0].grid == undefined) {
+        grid.jqGrid(options);
+      } else {
+        delete grid;
+        $(element).GridUnload(element);
+        $(element).jqGrid(options);
+        $(element).jqGrid("setFrozenColumns");
+      }
     });
   }).click();
+}
 
+function renderNonLoder() {
+  var queryParams = {
+      'stat-types': 'non_loader_base',
+      'interval': 'months',
+      'level-id':{{ level_id }},
+      'aggregation': 'non_loader_base'
+    };
+    var endpoint = '/api/v1/stats/{{ level }}';
+    $.get(endpoint, queryParams, function(data) {
+
+      var tableHeader = data['results'][0]['values']['header'];
+      var tableData = data['results'][0]['values']['data'];
+
+      var header = [];
+      var row_width_total = 0;
+
+      $.each(data['results'][0]['values']['header'], function(index, value){
+        value['width'] = 80;
+        value['align'] = 'center';
+        header.push(value);
+        row_width_total += 80;
+      });
+
+      var row_width = $("#non_loader_base").width();
+      var options = {
+        colModel: header, //tableHeader,
+        data: tableData,
+        viewrecords: true,
+        //width: row_width,
+        height: 'auto',
+        datatype: 'local',
+        shrinkToFit: true
+      };
+      var element = '#non_loader_total_base';
+
+      var grid = $(element);
+
+      if(grid[0].grid == undefined) {
+        grid.jqGrid(options);
+      } else {
+        delete grid;
+        $(element).GridUnload(element);
+        $(element).jqGrid(options);
+        $(element).jqGrid("setFrozenColumns");
+      }
+    });
 }
 $(document).ready(function() {
 
-  renderTable('loader');
-  renderTable('reload_rate');
-  renderTable('reload_amount');
-  renderTable('reload_transaction');
-  renderTable('average_frequency');
+  renderTable('loader', 'waterfall_loader');
+  renderTable('reload_rate', 'waterfall_reload_rate');
+  renderTable('reload_amount', 'waterfall_reload_amount');
+  renderTable('reload_transaction', 'waterfall_reload_transaction');
+  renderTable('average_load', 'waterfall_average_load');
+  renderTable('average_frequency', 'waterfall_average_frequency');
+
+  renderNonLoder();
 
 });
 </script>
