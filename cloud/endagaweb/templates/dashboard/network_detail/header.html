@@ -13,6 +13,10 @@ of patent rights can be found in the PATENTS file in the same directory.
           {% if network.name %}
             <span id='name'>"{{ network.name }}"</span>
           {% endif %}
+          {% if active_tab == 'network-notifications' %}
+            <span class="btn btn-primary pull-right">Add Notification</span>
+          {% endif %}
         </h3>
+
     </div>
 </div>

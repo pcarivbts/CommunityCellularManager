@@ -41,11 +41,11 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endblock %}
 
 {% block content %}
-{% include "dashboard/network_detail/header.html" with network=network %}
+{% include "dashboard/network_detail/header.html" with network=network active_tab='network-notifications' %}
 
 <div class='row'>
     {% include "dashboard/network_detail/nav.html" with active_tab='network-notifications' %}
-    <div class='content col-xs-12 col-sm-10 col-md-6'>
+    <div class='content col-xs-12 col-sm-10 col-md-10'>
         {% for message in messages %}
         <div class="message alert alert-{{ message.tags }}">
             <a href="#" class="close" data-dismiss="alert">&times;</a>
@@ -57,16 +57,26 @@ of patent rights can be found in the PATENTS file in the same directory.
                 {% csrf_token %}
                 {% if records > 0 %}
                 {% render_table notification_table %}
-                <input class='btn btn-primary' type='submit'
-                       id='delete' value="Delete">
+                <!--input class='btn btn-primary' type='submit'
+                       id='delete' value="Delete"-->
+                <div class="btn-group actions" role="group" aria-label="Button group with nested dropdown">
+                    <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                      Action(s)
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+                      <div id="action_delete"><a class="dropdown-item" href="javascript:void(0);">Delete</a></div>
+                      <div id="action_edit"><a class="dropdown-item" href="javascript:void(0);">Edit</a></div>
+                    </div>
+                </div>
                 {% else %}
                 <p>No notifications in the current network </p>
                 {% endif %}
             </div>
         </form>
 
+
     </div>
-    <div class='content col-xs-12 col-sm-10 col-md-4'>
+    <!--div class='content col-xs-12 col-sm-10 col-md-4'>
         <div class="panel panel-default">
             <div class="panel-heading">
                 <i class='fa fa-bell'></i>
@@ -89,7 +99,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 </div>
             </div>
         </div>
-    </div>
+    </div-->
 </div>
 
 
@@ -97,6 +107,21 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% block js %}
 <script>
   $(function() {
+    $('.actions').hide();
+    $('input:checkbox').change(function() {
+        console.log("checkboxes = ", $('form input[name=id]:checked').length);
+        var num_records = $('form input[name=id]:checked').length;
+        if(num_records==1) {
+            $('.actions').show();
+            $('#action_edit').show();
+        } else if(num_records > 1) {
+            $('.actions').show();
+            $('#action_edit').hide();
+        } else {
+            $('.actions').hide();
+        }
+
+    });
     $('input:radio').change(function() {
       var notification_type = $('form input[name=type]:checked').val();
       if (notification_type == 'mapped') {

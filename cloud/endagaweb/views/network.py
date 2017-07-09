@@ -655,7 +655,12 @@ class NetworkDenomination(ProtectedView):
 
 
 class NetworkNotifications(ProtectedView):
+    """Manage event notifications for network. """
+
     def get(self, request):
+        """Handles GET requests.
+        Show event-notification listing page"""
+
         user_profile = models.UserProfile.objects.get(user=request.user)
         network = user_profile.network
         notifications = models.Notification.objects.filter(network=network)
