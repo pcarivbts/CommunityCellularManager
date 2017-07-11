@@ -525,7 +525,7 @@ class Subscriber(models.Model):
     # can still delete subs with the usual "deactivate" button.
     prevent_automatic_deactivation = models.BooleanField(default=False)
     valid_through = models.DateTimeField(null=True, auto_now_add=True)
-    role = models.TextField(default='retailer')
+    role = models.TextField(default='subscriber')
 
 
     @classmethod

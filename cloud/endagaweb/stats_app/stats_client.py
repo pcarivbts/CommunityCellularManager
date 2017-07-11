@@ -169,13 +169,19 @@ class StatsClientBase(object):
                 queryset, 'date', aggregate=(aggregates.Count('to_number')))
         elif aggregation == 'reload_transcation_sum':
             queryset_stats = qsstats.QuerySetStats(
-                queryset, 'date', aggregate=(aggregates.Sum('change') * -1))
+                queryset, 'date', aggregate=(aggregates.Sum('change') * 0.00001))
         # Sum of change in amounts for SMS/CALL
         elif aggregation in ['transaction_sum', 'transcation_count']:
-            queryset_stats = qsstats.QuerySetStats(
-                # Change is negative value, set positive for charts
-                queryset, 'date', aggregate=(
-                    aggregates.Sum('change') * -0.00001))
+            if report_view == 'summary':
+                queryset_stats = qsstats.QuerySetStats(
+                    # Change is negative value, set positive for pie charts
+                    queryset, 'date', aggregate=(
+                        aggregates.Sum('change') * -10))
+            else:
+                queryset_stats = qsstats.QuerySetStats(
+                    # Change is negative value, set positive for bar charts
+                    queryset, 'date', aggregate=(
+                        aggregates.Sum('change') * -0.00001))
             # if percentage is set for top top-up
             percentage = kwargs['topup_percent']
             top_numbers = 1
@@ -633,7 +639,7 @@ class WaterfallStatsClient(StatsClientBase):
 
             kwargs['start_time_epoch'] = int(stats_start_dt.strftime("%s"))
             kwargs['end_time_epoch'] = int(stats_end_dt.strftime("%s"))
-            kwargs['query'] = Q(subscriber__role='retailer')
+            kwargs['query'] = Q(subscriber__role='subscriber')
             kind_key = 'Provisioned'
             kwargs['report_view'] = 'value'
             subscribers = self.aggregate_timeseries(kind_key, **kwargs)
@@ -652,10 +658,10 @@ class WaterfallStatsClient(StatsClientBase):
                 if kind in ['loader', 'reload_rate']:
                     kwargs['aggregation'] = 'loader'
                     kwargs['report_view'] = 'value'
-                elif kind in ['reload_transaction', 'average_load']:
+                elif kind in ['reload_transaction', 'average_frequency']:
                     kwargs['aggregation'] = 'count'
                     kwargs['report_view'] = 'summary'
-                elif kind in ['reload_amount', 'average_frequency']:
+                elif kind in ['reload_amount', 'average_load']:
                     kwargs['aggregation'] = 'reload_transcation_sum'
                     kwargs['report_view'] = 'summary'
 
