@@ -97,6 +97,7 @@ class BaseReport(ProtectedView):
 
         towers = models.BTS.objects.filter(
             network=user_profile.network).order_by('id').values('nickname', 'uuid', 'id')
+        print(towers)
         network_has_activity = UsageEvent.objects.filter(
             network=network).exists()
 
