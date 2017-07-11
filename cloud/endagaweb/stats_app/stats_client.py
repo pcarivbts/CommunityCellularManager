@@ -177,7 +177,7 @@ class StatsClientBase(object):
                 queryset, 'date', aggregate=(aggregates.Count('to_number')))
         elif aggregation == 'reload_transcation_sum':
             queryset_stats = qsstats.QuerySetStats(
-                queryset, 'date', aggregate=(aggregates.Sum('change') * -1))
+                queryset, 'date', aggregate=(aggregates.Sum('change') * -0.00001))
         # Sum of change in amounts for SMS/CALL
         elif aggregation in ['transaction_sum', 'transcation_count']:
             queryset_stats = qsstats.QuerySetStats(
@@ -567,10 +567,10 @@ class WaterfallStatsClient(StatsClientBase):
                 if kind in ['loader', 'reload_rate']:
                     kwargs['aggregation'] = 'loader'
                     kwargs['report_view'] = 'value'
-                elif kind in ['reload_transaction', 'average_load']:
+                elif kind in ['reload_transaction', 'average_frequency']:
                     kwargs['aggregation'] = 'count'
                     kwargs['report_view'] = 'summary'
-                elif kind in ['reload_amount', 'average_frequency']:
+                elif kind in ['reload_amount', 'average_load']:
                     kwargs['aggregation'] = 'reload_transcation_sum'
                     kwargs['report_view'] = 'summary'
 
