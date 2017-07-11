@@ -20,6 +20,8 @@ from syslog import LOG_LOCAL0
 
 import dj_database_url
 
+from django.utils.translation import ugettext, ugettext_lazy as translate
+
 # inherit base Django settings (more general than the endagaweb app)
 from settings import *  # noqa: F403
 
@@ -92,6 +94,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.security.SecurityMiddleware',
     'endagaweb.middleware.TimezoneMiddleware',
     'endagaweb.middleware.MultiNetworkMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
 )
 
 AUTHENTICATION_BACKENDS = (
@@ -320,3 +323,20 @@ SESSION_COOKIE_SECURE = True
 
 # Security middleware settings
 SECURE_CONTENT_TYPE_NOSNIFF = True
+
+
+USE_I18N = True
+
+LANGUAGES = (
+    ('en', translate('English')),
+    ('fil', translate('Filipino')),
+    ('id', translate('Indonesian')),
+    ('es', translate('Spanish')),
+)
+# Set the default language for your site.
+LANGUAGE_CODE = 'fil'
+
+LOCALE_PATHS = (
+    os.path.join(os.environ["HOME"], 'locale'),
+)
+#STATIC_ROOT = os.path.join(os.environ["HOME"], "static")
