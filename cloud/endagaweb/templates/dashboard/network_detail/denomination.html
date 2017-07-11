@@ -11,8 +11,6 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load humanize %}
 {% load crispy_forms_tags %}
 {% load render_table from django_tables2 %}
-
-
 {% block title %}
     {% if network.name %}
         {% tmpl_const "SITENAME" %} | "{{ network.name }}"

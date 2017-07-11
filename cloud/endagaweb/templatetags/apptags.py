@@ -15,7 +15,7 @@ from django.template import Library
 import pytz
 
 from ccm.common.currency import humanize_credits, CURRENCIES
-
+from endagaweb.models import (BTS)
 
 register = Library()
 
@@ -80,3 +80,11 @@ def tmpl_const(name):
         return settings.TEMPLATE_CONSTANTS.get(name, "")
     except AttributeError:
         return ""
+
+
+@register.inclusion_tag('dashboard/tower_detail/tower_select.html')
+def get_towers(network_id):
+    print "network_id = ", network_id
+    towers = BTS.objects.filter(
+        network=network_id).values('nickname', 'uuid', 'id')
+    return {'towers': towers}

@@ -1,3 +1,4 @@
+{% load apptags %}
 <div class='modal fade' id='broadcast-modal'>
     <form id='broadcast-form' name="broadcast-form" method="post" onsubmit="return broadcastSms();">
         <div class='modal-dialog'>
@@ -40,18 +41,7 @@
                     <div class="form-group" id="tower_row">
                         <label class="control-label">Tower</label>
                         <div class='controls'>
-                            <select name="bts_id" id="bts_id" class="form-control">
-                                <option value="">All Towers</option>
-                                {% if towers %}
-                                {% for tower in towers %}
-                                {% if tower.uuid == uuid %}
-                                <option value="{{ tower.id }}" selected="selected">{{ tower.nickname }} ( {{tower.uuid}} )</option>
-                                {% else %}
-                                <option value="{{ tower.id }}">{{ tower.nickname }} ( {{tower.uuid}} )</option>
-                                {% endif %}
-                                {% endfor %}
-                                {% endif %}
-                            </select>
+                            {% get_towers network.id %}
                         </div>
                     </div>
                     <div class="form-group" id="imsi_row">
