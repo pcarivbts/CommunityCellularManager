@@ -177,13 +177,13 @@ class StatsClientBase(object):
                 queryset, 'date', aggregate=(aggregates.Count('to_number')))
         elif aggregation == 'reload_transcation_sum':
             queryset_stats = qsstats.QuerySetStats(
-                queryset, 'date', aggregate=(aggregates.Sum('change') * -0.00001))
+                queryset, 'date', aggregate=(aggregates.Sum('change') * 0.00001))
         # Sum of change in amounts for SMS/CALL
         elif aggregation in ['transaction_sum', 'transcation_count']:
             queryset_stats = qsstats.QuerySetStats(
                 # Change is negative value, set positive for charts
                 queryset, 'date', aggregate=(
-                    aggregates.Sum('change') * -0.00001))
+                    aggregates.Sum('change') * -10))
             # if percentage is set for top top-up
             percentage = kwargs['topup_percent']
             top_numbers = 1
@@ -554,7 +554,7 @@ class WaterfallStatsClient(StatsClientBase):
 
             kwargs['start_time_epoch'] = int(stats_start_dt.strftime("%s"))
             kwargs['end_time_epoch'] = int(stats_end_dt.strftime("%s"))
-            kwargs['query'] = Q(subscriber__role='retailer')
+            kwargs['query'] = Q(subscriber__role='subscriber')
             kind_key = 'Provisioned'
             kwargs['report_view'] = 'value'
             subscribers = self.aggregate_timeseries(kind_key, **kwargs)
