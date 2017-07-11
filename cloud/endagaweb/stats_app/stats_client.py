@@ -19,7 +19,6 @@ from dateutil.rrule import rrule, MONTHLY
 from django.db.models import Q
 from django.db.models import aggregates
 from endagaweb import models
-from django.db.models import CharField, Case, Value, When
 
 CALL_KINDS = [
     'local_call', 'local_recv_call', 'outside_call', 'incoming_call',
@@ -73,17 +72,6 @@ class StatsClientBase(object):
     network level, the latter only at the tower level.
     """
 
-    def __init__(self, level, level_id=None):
-        """A generic stats client.
-
-        Args:
-            level: the 'infrastructure level' on which to aggregate data, valid
-                   values are global, network or tower
-            level_id: the model id of the network or tower
-        """
-        self.level = level
-        self.level_id = level_id
-
     def aggregate_timeseries(self, param, **kwargs):
         """Get timeseries data for SMS, calls, data or tower stats.
 
@@ -113,6 +101,7 @@ class StatsClientBase(object):
         interval = kwargs.pop('interval', 'months')
         aggregation = kwargs.pop('aggregation', 'count')
         report_view = kwargs.pop('report_view', 'list')
+        print("mmmm",param)
         # Turn the start and end epoch timestamps into datetimes.
         start = datetime.fromtimestamp(start_time_epoch, pytz.utc)
         if end_time_epoch != -1:
@@ -136,21 +125,28 @@ class StatsClientBase(object):
             objects = models.TimeseriesStat.objects
             filters = Q(key=param)
         elif param in HEALTH_STATUS:
-            objects = models.SystemEvent.objects.annotate(
-                value=Case(
-                    When(type='bts up', then=Value('1')),
-                    When(type='bts down', then=Value('2')), default=Value('0'),
-                    output_field=CharField(),
-                ),
-            )
-            filters = Q(key=param)
-            #filters = Q(type='bts up')
+            # from django.db.models import CharField, Case, Value, When
+            #  objects = models.SystemEvent.objects.annotate(
+            #     value=Case(
+            #         When(type='bts up', then=Value('1')),
+            #         When(type='bts down', then=Value('2')), default=Value('0'),
+            #         output_field=CharField(),
+            #     ),
+            # )
+            # filters = Q(key=param)
+            objects = models.SystemEvent.objects
+            filters = Q(type='bts up')
+        elif param.startswith("bts"):
+            print("bbbbbbbbbbbbbbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+            objects = models.SystemEvent.objects
+            filters = Q(type=param)
         else:
             # For Dynamic Kinds coming from Database currently for Top Up
             objects = models.UsageEvent.objects
             filters = Q(kind='transfer')
         # Filter by infrastructure level.
         if self.level == 'tower':
+            print(self.level_id)
             filters = filters & Q(bts__id=self.level_id)
         elif self.level == 'network' and param not in HEALTH_STATUS:
             filters = filters & Q(network__id=self.level_id)
@@ -164,10 +160,11 @@ class StatsClientBase(object):
                 'subscriber_id', flat=True).distinct()
             return list(result)
         # Create the queryset itself.
-        if param in HEALTH_STATUS:
-            queryset = objects
-        else:
-            queryset = objects.filter(filters)
+        # if param in HEALTH_STATUS:
+        #     queryset = objects
+        # else:
+        #     queryset = objects.filter(filters)
+        queryset = objects.filter(filters)
         # Use qsstats to aggregate the queryset data on an interval.
         if aggregation in ['duration', 'duration_minute']:
             queryset_stats = qsstats.QuerySetStats(
@@ -234,7 +231,15 @@ class StatsClientBase(object):
                 queryset, 'date', aggregate=aggregates.Count('subscriber_id'))
         else:
             queryset_stats = qsstats.QuerySetStats(queryset, 'date')
+            #print(queryset_stats.qs)
+            for qs in queryset_stats.qs:
+                print(qs.date)
+
+
+
         timeseries = queryset_stats.time_series(start, end, interval=interval)
+        #print("xxxxxxxxxxxxxxxxxxxxxxxx",timeseries)
+        #print "timeseries = ", timeseries
         # The timeseries results is a list of (datetime, value) pairs. We need
         # to convert the datetimes to timestamps with millisecond precision and
         # then zip the pairs back together.
@@ -255,18 +260,71 @@ class StatsClientBase(object):
         ]
         # Round the stats values when necessary.
         rounded_values = []
+        #print(timestamps)timeseries
+        last_val = None
         for value in values:
-            if param=='bts_health_status':
+            #print("ffffffffff",param)
+            #print("wwwwwwwwwwwwwwww",value)
+            if param=='bts down':
+                #print("aaaaaaaaaaaaaaaaaa")
+                if value==1:
+                    print("llllllllllllllllllllllllllllllllllllllllllllllllllllllllllll")
+                    rounded_values.append(-1)
+            if param == 'bts up':
+                if value ==1:
+                    rounded_values.append(1)
                 if value==0:
                     rounded_values.append(0)
-                else:
-                    rounded_values.append(1)
-            elif round(value) != round(value, 2):
+                # print("aaaaaaaaaaaaaaaaaa")
+
+            if round(value) != round(value, 2):
                 rounded_values.append(round(value, 2))
             else:
 
                 rounded_values.append(value)
+        #print("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",zip(timestamps, rounded_values))
         return zip(timestamps, rounded_values)
+
+
+        """
+        for i in range(len(values)):
+
+            if i < len(values) - 1:
+
+                # until end is reached
+                #print 'this', values[i]
+                if values[i] ==0 and values[i-1]!=1:
+                    print("ccc")
+                    rounded_values.append(0)
+
+                if values[i]==1 and values[i+1]==0:
+                    rounded_values.append(1)
+                    for x in range(len(values[i:])):
+                       if values[x+1]==0:
+                           print("jjjjjjjjjjjj")
+                           continue
+                       else:
+
+                        print("bbbbbbbbbbbbb")
+                        rounded_values.append(1)
+        """
+
+        #print(rounded_values)
+        print (zip(timestamps, rounded_values))
+        return zip(timestamps, rounded_values)
+
+    def __init__(self, level, level_id=None):
+        """A generic stats client.
+
+        Args:
+            level: the 'infrastructure level' on which to aggregate data, valid
+                   values are global, network or tower
+            level_id: the model id of the network or tower
+        """
+        self.level = level
+        self.level_id = level_id
+
+
 
 
 class SMSStatsClient(StatsClientBase):
@@ -530,10 +588,52 @@ class BTSStatsClient(StatsClientBase):
     def __init__(self, *args, **kwargs):
         super(BTSStatsClient, self).__init__(*args, **kwargs)
 
-    def timeseries(self, key=None, **kwargs):
-        if 'aggregation' not in kwargs:
-            kwargs['aggregation'] = 'average_value'
-        return self.aggregate_timeseries(key, **kwargs)
+    def timeseries(self, kind=None, **kwargs):
+        results = []
+        print("jjjjjjjjjjjjjj",kind)
+        if kind == None or kind == 'bts_health_status':
+            # Make calls to aggregate_timeseries and aggregate the results.
+            all_call_kinds = ['bts down', 'bts up']
+            print("iiiiii",kwargs)
+            for call_kind in all_call_kinds:
+                usage = self.aggregate_timeseries(call_kind, **kwargs)
+                print("llllll",usage)
+                values = [u[1] for u in usage]
+                #print(values)
+                results.append(values)
+            # The dates are all the same in each of the loops above, so we'll
+            # just grab the last one.
+            dates = [u[0] for u in usage]
+            # The results var is now a list of lists where each sub-list is a
+            # category of call and each element is the number of calls sent for
+            # each date matching that category.  So we want to sum each
+            # 'column' into one value.
+
+            totals = [sum(v) for v in zip(*results)]
+            print("iiiii",totals)
+            last_val = None
+            timeseries_values = []
+            for value in totals:
+                print "val = ", value
+                if last_val is None:
+                    last_val = value
+                else:
+                    if value == 0:
+                        value = last_val
+                    elif value > 0:
+                        last_val = 1
+                        value = 1
+                    elif value < 0:
+                        last_val = -1
+                        value = -1
+                print "value = ", value, " --------- ", last_val
+                timeseries_values.append(value)
+
+                #if x==1:
+                #    print("cccccccccccccccccccs")
+            return zip(dates, timeseries_values) #totals
+        else:
+            return self.aggregate_timeseries(kind, **kwargs)
 
 
 class WaterfallStatsClient(StatsClientBase):
