@@ -376,7 +376,11 @@ function renderTable(reportId, tableId) {
         row_width_total += 80;
       });
 
-      var row_width = $("#"+reportId).width();
+      var row_width = parseInt($("#"+reportId).width()) - 50;
+      var shrink = true;
+      if (row_width_total > row_width) {
+        shrink = false;
+      }
       var options = {
         colModel: header, //tableHeader,
         data: tableData,
@@ -384,10 +388,12 @@ function renderTable(reportId, tableId) {
         width: row_width,
         height: 'auto',
         datatype: 'local',
-        shrinkToFit: true
+        "scrollX": true,
+        "scrollY": true,
+        shrinkToFit: shrink
       };
-      var element = '#'+tableId;
 
+      var element = '#'+tableId;
       var grid = $(element);
 
       if(grid[0].grid == undefined) {
@@ -425,7 +431,12 @@ function renderNonLoder() {
         row_width_total += 80;
       });
 
-      var row_width = $("#non_loader_base").width();
+      //var row_width = $("#non_loader_base").width();
+      var row_width = parseInt($("#non_loader_base").width()) - 100;
+      var shrink = true;
+      if (row_width_total > row_width) {
+        shrink = false;
+      }
       var options = {
         colModel: header, //tableHeader,
         data: tableData,
@@ -433,7 +444,9 @@ function renderNonLoder() {
         //width: row_width,
         height: 'auto',
         datatype: 'local',
-        shrinkToFit: true
+        "scrollX": true,
+        "scrollY": true,
+        shrinkToFit: shrink
       };
       var element = '#non_loader_total_base';
 
