@@ -19,6 +19,7 @@ from dateutil.rrule import rrule, MONTHLY
 from django.db.models import Q
 from django.db.models import aggregates
 from endagaweb import models
+from django.db.models import CharField, Case, Value, When
 
 CALL_KINDS = [
     'local_call', 'local_recv_call', 'outside_call', 'incoming_call',
@@ -135,8 +136,15 @@ class StatsClientBase(object):
             objects = models.TimeseriesStat.objects
             filters = Q(key=param)
         elif param in HEALTH_STATUS:
-            objects = models.SystemEvent.objects
-            filters = Q(type='bts up')
+            objects = models.SystemEvent.objects.annotate(
+                value=Case(
+                    When(type='bts up', then=Value('1')),
+                    When(type='bts down', then=Value('2')), default=Value('0'),
+                    output_field=CharField(),
+                ),
+            )
+            filters = Q(key=param)
+            #filters = Q(type='bts up')
         else:
             # For Dynamic Kinds coming from Database currently for Top Up
             objects = models.UsageEvent.objects
@@ -156,7 +164,10 @@ class StatsClientBase(object):
                 'subscriber_id', flat=True).distinct()
             return list(result)
         # Create the queryset itself.
-        queryset = objects.filter(filters)
+        if param in HEALTH_STATUS:
+            queryset = objects
+        else:
+            queryset = objects.filter(filters)
         # Use qsstats to aggregate the queryset data on an interval.
         if aggregation in ['duration', 'duration_minute']:
             queryset_stats = qsstats.QuerySetStats(
