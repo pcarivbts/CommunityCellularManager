@@ -253,7 +253,7 @@ class Command(BaseCommand):
                     ('local_recv_call', 1000),
                     ('free_call', 0), ('error_call', 0), ('gprs', 5000),
                     ('transfer', 2000), ('add-money', 43333),
-                    ('provisioned', 1000), ('deprovisioned', 4000),
+                    ('Provisioned', 1000), ('deactivate_number', 4000),
                 ]
                 (kind, tariff) = random.choice(kinds)
                 to_number, billsec, up_bytes, call_duration = 4 * [None]
@@ -288,12 +288,12 @@ class Command(BaseCommand):
                     to_number = str(random.randint(1234567890, 9876543210))
                     from_number = str(random.randint(1234567890, 9876543210))
                     reason = '%s to %s' % (kind, to_number)
-                elif kind == 'provisioned':
+                elif kind == 'Provisioned':
                     change = tariff
                     to_number = str(random.randint(1234567890, 9876543210))
                     from_number = str(random.randint(1234567890, 9876543210))
                     reason = '%s to %s' % (kind, to_number)
-                elif kind == 'deprovisioned':
+                elif kind == 'deactivate_number':
                     change = tariff
                     to_number = str(random.randint(1234567890, 9876543210))
                     from_number = str(random.randint(1234567890, 9876543210))

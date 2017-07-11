@@ -96,7 +96,7 @@ class BaseReport(ProtectedView):
         reports = request.session['reports']
 
         towers = models.BTS.objects.filter(
-            network=user_profile.network).values('nickname', 'uuid', 'id')
+            network=user_profile.network).order_by('id').values('nickname', 'uuid', 'id')
         network_has_activity = UsageEvent.objects.filter(
             network=network).exists()
 
@@ -494,9 +494,6 @@ class ReportGraphDownload(ProtectedView):
         if start_date or end_date:
             bts_events = bts_events.filter(date__range=(str(start_date),
                                                         str(end_date)))
-        if stats_type:
-            qs = [Q(type__icontains=s)for s in stats_type]
-            bts_events = bts_events.filter((reduce(operator.or_, qs)))
         if level == 'tower':
             bts_events = bts_events.filter(bts__id=level_id)
         return bts_events

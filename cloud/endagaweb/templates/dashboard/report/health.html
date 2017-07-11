@@ -24,7 +24,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 <div class='row'>
   {% include "dashboard/report/nav.html" with active_tab='health_reports' %}
   <div class='content col-xs-12 col-sm-10 col-md-10'>
-    {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/health' %}
+    {% include "dashboard/report/health-filter-action.html" with action_url='/dashboard/reports/health' %}
     {% if network_has_activity %}
     <div class="row">
       <div id='health-chart'></div>
@@ -57,24 +57,22 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script type="text/jsx">
   var currentTimeEpoch = {{ current_time_epoch }};
   var timezoneOffset = {{ timezone_offset }};
-  {% if 'BTS Health' in reports %}
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='BTS Status'
       chartID='call-chart'
-      statTypes='bts down,bts up'
-      level='{{ level }}'
+      statTypes='bts_health_status'
+      level='tower'
       levelID='{{ level_id }}'
-      aggregation='count'
+      aggregation='bts_status'
       yAxisLabel='numbers'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
-      tooltipUnits='s of'
-      chartType='bar-chart'
+      tooltipUnits=''
+      chartType='line-chart'
     />,
     document.getElementById('health-chart')
   );
-  {% endif %}
 </script>
 
 
