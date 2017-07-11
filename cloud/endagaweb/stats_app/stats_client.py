@@ -544,8 +544,8 @@ class WaterfallStatsClient(StatsClientBase):
 
         response = {'header': [{'label': "Months", 'name': 'month',
                                 'frozen': True},
-                               {'label': "Activation", 'name': 'activation',
-                                'frozen': True}],
+                               {'label': "Subscriber Activation",
+                                'name': 'activation', 'frozen': True}],
                     'data': []};
 
         months = rrule(MONTHLY, dtstart=start, until=end)
