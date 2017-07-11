@@ -180,10 +180,16 @@ class StatsClientBase(object):
                 queryset, 'date', aggregate=(aggregates.Sum('change') * 0.00001))
         # Sum of change in amounts for SMS/CALL
         elif aggregation in ['transaction_sum', 'transcation_count']:
-            queryset_stats = qsstats.QuerySetStats(
-                # Change is negative value, set positive for charts
-                queryset, 'date', aggregate=(
-                    aggregates.Sum('change') * -10))
+            if report_view == 'summary':
+                queryset_stats = qsstats.QuerySetStats(
+                    # Change is negative value, set positive for pie charts
+                    queryset, 'date', aggregate=(
+                        aggregates.Sum('change') * -10))
+            else:
+                queryset_stats = qsstats.QuerySetStats(
+                    # Change is negative value, set positive for bar charts
+                    queryset, 'date', aggregate=(
+                        aggregates.Sum('change') * -0.00001))
             # if percentage is set for top top-up
             percentage = kwargs['topup_percent']
             top_numbers = 1
