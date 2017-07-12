@@ -1,10 +1,10 @@
-
+{% if filter %}
 <div class="row panel">
     <div class="container-fluid">
         <form action="{{ action_url }}" class="form-horizontal"
               method="post" role="form" onsubmit="setloading()">
             {% csrf_token %}
-            {% if filter %}
+
             <div class="form-group col-md-12">
                 <label class="control-label col-md-1">Reports</label>
                 <div class="col-md-11" style="padding-left: 0px;">    
@@ -21,7 +21,7 @@
                 {% endfor %}
                 </div>
             </div>
-            {% endif %}
+
             <div class="form-group col-md-12" id="bts_list" {% if not level_id %} style="display: none;" {% endif %}>
                 <label class="control-label col-md-1">Tower</label>
                 <div class="col-md-5">
@@ -67,3 +67,4 @@
         <canvas id="canvas" style="display: none;"></canvas>
     </div>
 </div>
+{% endif %}
