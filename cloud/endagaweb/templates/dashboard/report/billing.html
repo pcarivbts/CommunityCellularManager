@@ -237,7 +237,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     <TimeseriesChartWithButtonsAndDatePickers
       title='Retailer Recharge Report'
       chartID='add-money-chart'
-      statTypes='add-money'
+      statTypes='add_money'
       level='{{ level }}'
       levelID='{{ level_id }}'
       aggregation='transaction_sum'
@@ -245,8 +245,8 @@ of patent rights can be found in the PATENTS file in the same directory.
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       chartType='bar-chart'
-      tooltipUnits='s of'
-      frontTooltip='{{ value_type }}'
+      tooltipUnits=' added'
+      frontTooltip=' {{ value_type }} '
     />,
     document.getElementById('add-money-usage-chart')
   );
@@ -388,7 +388,6 @@ function renderTable(reportId, tableId) {
         width: row_width,
         height: 'auto',
         datatype: 'local',
-        "scrollX": true,
         "scrollY": true,
         shrinkToFit: shrink
       };

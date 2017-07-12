@@ -30,7 +30,7 @@ SUBSCRIBER_KINDS = ['Provisioned', 'deactivate_number']
 ZERO_BALANCE_SUBSCRIBER = ['zero_balance_subscriber']
 INACTIVE_SUBSCRIBER = ['expired', 'first_expired', 'blocked']
 HEALTH_STATUS = ['bts_health_status']
-TRANSFER_KINDS = ['transfer', 'add-money']
+TRANSFER_KINDS = ['transfer', 'add_money']
 WATERFALL_KINDS = ['loader', 'reload_rate', 'reload_amount',
                    'reload_transaction', 'average_load', 'average_frequency']
 DENOMINATION_KINDS = ['start_amount', 'end_amount']
@@ -174,16 +174,15 @@ class StatsClientBase(object):
                 queryset, 'date', aggregate=(aggregates.Sum('change') * 0.00001))
         # Sum of change in amounts for SMS/CALL
         elif aggregation in ['transaction_sum', 'transcation_count']:
+            # Change is negative value, set positive for charts
             if report_view == 'summary':
-                queryset_stats = qsstats.QuerySetStats(
-                    # Change is negative value, set positive for pie charts
-                    queryset, 'date', aggregate=(
-                        aggregates.Sum('change') * -10))
+                adjust = -10
+            elif param == 'add_money':
+                adjust = 0.00001
             else:
-                queryset_stats = qsstats.QuerySetStats(
-                    # Change is negative value, set positive for bar charts
-                    queryset, 'date', aggregate=(
-                        aggregates.Sum('change') * -0.00001))
+                adjust = -0.00001
+            queryset_stats = qsstats.QuerySetStats(
+                queryset, 'date', aggregate=(aggregates.Sum('change') * adjust))
             # if percentage is set for top top-up
             percentage = kwargs['topup_percent']
             top_numbers = 1

@@ -410,7 +410,11 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
         // Fixes the axis-labels being rendered out of the SVG element.
         chart.margin({right: 80});
         chart.tooltipContent(function(key, x, y) {
-          return '<p>' + frontTooltip + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
+          if(key=='add_money'){
+            return '<p>' + frontTooltip + y + tooltipUnits + ' '  + '</p>' + '<p>' + x + '</p>';
+          } else {
+            return '<p>' + frontTooltip + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
+          }
         });
 
 
