@@ -217,7 +217,9 @@ class StatsClientBase(object):
         else:
             queryset_stats = qsstats.QuerySetStats(queryset, 'date')
 
+
         timeseries = queryset_stats.time_series(start, end, interval=interval)
+
         # The timeseries results is a list of (datetime, value) pairs. We need
         # to convert the datetimes to timestamps with millisecond precision and
         # then zip the pairs back together.
@@ -243,7 +245,7 @@ class StatsClientBase(object):
                 if value==1:
                     rounded_values.append(-1)
                 else:
-                    rounded_values.append(1)
+                    rounded_values.append(0)
             elif param == 'bts up':
                 if value ==1:
                     rounded_values.append(1)
@@ -253,7 +255,7 @@ class StatsClientBase(object):
                 rounded_values.append(round(value, 2))
             else:
                 rounded_values.append(value)
-
+        #print(len( rounded_values))
         return zip(timestamps, rounded_values)
 
 
@@ -540,6 +542,7 @@ class BTSStatsClient(StatsClientBase):
             for call_kind in all_call_kinds:
                 usage = self.aggregate_timeseries(call_kind, **kwargs)
                 values = [u[1] for u in usage]
+                #print("values:",values)
                 results.append(values)
             # The dates are all the same in each of the loops above, so we'll
             # just grab the last one.
@@ -550,20 +553,24 @@ class BTSStatsClient(StatsClientBase):
             # 'column' into one valueching that category. .
 
             totals = [sum(v) for v in zip(*results)]
+            #print("totals",totals)
             last_val = None
             health_value=[]
             timeseries_values = []
+            #print("last_val init ====== ", last_val)
             for value in totals:
+                if last_val is None:
+                    last_val = value
                 if value == 0:
                     value = last_val
-                    last_val=last_val
-
                 elif value > 0:
                     last_val = 1
                     value = 1
                 elif value < 0:
                     last_val = 0
                     value = last_val
+                #print("value",value)
+                #print ("last_val",last_val)
                 timeseries_values.append(last_val)
             return zip(dates, timeseries_values) #totals
         else:
