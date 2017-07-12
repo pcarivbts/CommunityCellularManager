@@ -216,9 +216,12 @@ class StatsClientBase(object):
                 queryset, 'date', aggregate=aggregates.Count('subscriber_id'))
         else:
             queryset_stats = qsstats.QuerySetStats(queryset, 'date')
+        if param =='bts down'or param=='bts up':
+            timeseries = queryset_stats.time_series(start, end, interval='minutes')
+        else:
+            timeseries = queryset_stats.time_series(start, end,
+                                                    interval=interval)
 
-
-        timeseries = queryset_stats.time_series(start, end, interval=interval)
 
         # The timeseries results is a list of (datetime, value) pairs. We need
         # to convert the datetimes to timestamps with millisecond precision and
