@@ -211,7 +211,7 @@ class StatsClientBase(object):
                     # Sum of change
                     queryset_stats = qsstats.QuerySetStats(
                         queryset, 'date', aggregate=(
-                            aggregates.Sum('change') * -1))
+                            aggregates.Sum('change') * -0.00001))
         elif aggregation == 'loader':
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=aggregates.Count('subscriber_id'))
@@ -519,7 +519,7 @@ class TopUpStatsClient(StatsClientBase):
     def timeseries(self, kind=None, **kwargs):
         # Change is negative convert to compare
         try:
-            raw_amount = [(float(denom) * -1 / 100000) for denom in
+            raw_amount = [(float(denom) * -1) for denom in
                           kwargs['extras'].split('-')]
             kwargs['query'] = Q(change__gte=raw_amount[1]) & Q(
                 change__lte=raw_amount[0]) & Q(subscriber__role='retailer')
