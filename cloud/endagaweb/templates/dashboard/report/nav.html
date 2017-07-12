@@ -8,32 +8,39 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endcomment %}
 <div class='col-xs-12 col-sm-2'>
   <ul class='nav nav-pills nav-stacked' id='sub-detail-nav'>
+    {% if active_tab == 'call_sms' %}
+      <li role="presentation" class="{% if active_tab == 'call_sms' and filter is None %} active {% endif %}">
+        <a href="{% url 'call-report' %}">All Call & SMS Reports</a>
+      </li>
+      {% for key, values in report_list.items %}
+        <li role="presentation" class="{% if filter == key %} active {% endif %}">
+          <a href="?filter={{ key }}">{{ key }}</a>
+        </li>
+      {% endfor %}
+    {% endif %}
 
-    <li role="presentation" class="{% if active_tab == 'call_sms' %} active {% endif %}">
-      <a href="
-        {% if active_tab == 'call_sms' %} #
-        {% else %} {% url 'call-report' %}
-        {% endif %} ">Call & SMS</a>
-    </li>
-    <li role="presentation" class="{% if active_tab == 'subscriber_reports' %} active {% endif %}">
-      <a href="
-        {% if active_tab == 'subscriber_reports' %} #
-        {% else %} {% url 'subscriber-report' %}
-        {% endif %} ">Subscriber</a>
-    </li>
+    {% if active_tab == 'subscriber_reports' %}
+      <li role="presentation" class="active">
+        <a href="{% url 'subscriber-report' %}?filter=Subscriber">Subscriber Reports</a>
+      </li>
+    {% endif %}
 
-    <li role="presentation" class="{% if active_tab == 'billing_reports' %} active {% endif %}">
-      <a href="
-        {% if active_tab == 'billing_reports' %} #
-        {% else %}{% url 'billing-report' %}
-        {% endif %}">Billing</a>
-    </li>
-    <li role="presentation" class="{% if active_tab == 'health_reports' %} active {% endif %}">
-      <a href="
-        {% if active_tab == 'health_reports' %} #
-        {% else %}{% url 'health-report' %}
-        {% endif %}">Health</a>
-    </li>
+    {% if active_tab == 'billing_reports' %}
+      <li role="presentation" class="{% if active_tab == 'billing_reports' and filter is None %} active {% endif %}">
+        <a href="{% url 'billing-report' %}">All Billing Reports</a>
+      </li>
+      {% for key, values in report_list.items %}
+        <li role="presentation" class="{% if filter == key %} active {% endif %}">
+          <a href="?filter={{ key }}">{{ key }}</a>
+        </li>
+      {% endfor %}
+    {% endif %}
+
+    {% if active_tab == 'health_reports' %}
+      <li role="presentation" class="active">
+        <a href="{% url 'subscriber-report' %}?filter=Subscriber">Health Report</a>
+      </li>
+    {% endif %}
 
   </ul>
 </div>

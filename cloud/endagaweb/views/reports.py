@@ -24,9 +24,9 @@ from django.db.models import Q
 report_keys= ('Top Up', 'Call & SMS', 'Retailer', 'Waterfall')
 reports_dict= {
     'Top Up': ['Amount Based', 'Count Based'],
-    'Call & SMS': ['SMS Billing', 'Call and SMS Billing', 'Call Billing'],
+    'Call and SMS': ['SMS Billing', 'Call and SMS Billing', 'Call Billing'],
     'Retailer': ['Retailer Recharge', 'Retailer Load Transfer'],
-    'Non Loader': ['Total Base', 'Cumulative'],
+    #'Non Loader': ['Total Base', 'Cumulative'],
     'Waterfall': ['Activation', 'Loader', 'Reload Rate', 'Reload Amount',
                   'Reload Transaction', 'Average Load', 'Average Frequency']
 }
@@ -74,10 +74,12 @@ class BaseReport(ProtectedView):
                 request.session['level'] = "network"
                 request.session['level_id'] = network.id
             request.session['reports'] = request.POST.getlist('reports', None)
+            filter = request.session['filter'] = request.POST.get('filter', None)
+
             # We always just do a redirect to GET. We include page reference
             # to retain the search parameters in the session.
             return redirect(
-                urlresolvers.reverse(self.url_namespace) + '?filter=1')
+                urlresolvers.reverse(self.url_namespace) + '?filter='+filter)
 
         elif request.method == "GET":
             if 'filter' not in request.GET:
@@ -87,6 +89,13 @@ class BaseReport(ProtectedView):
                     request.session['level'] = 'network'
                 request.session['level_id'] = network.id
                 request.session['reports'] = report_list
+                request.session['filter'] = None
+
+            else:
+                filter = request.GET.get('filter', 1)
+                if filter != request.session['filter']:
+                    request.session['filter'] = filter
+                    request.session['reports'] = self.reports[filter]
         else:
             return HttpResponseBadRequest()
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
@@ -94,6 +103,7 @@ class BaseReport(ProtectedView):
         level = request.session['level']
         level_id = int(request.session['level_id'])
         reports = request.session['reports']
+        filter = request.session['filter']
 
         towers = models.BTS.objects.filter(
             network=user_profile.network).order_by('id').values('nickname', 'uuid', 'id')
@@ -113,7 +123,8 @@ class BaseReport(ProtectedView):
             'current_time_epoch': int(time.time()),
             'timezone_offset': timezone_offset,
             'network_has_activity': network_has_activity,
-            'value_type': ''
+            'value_type': '',
+            'filter': filter
         }
         template = get_template(self.template)
         html = template.render(context, request)
@@ -200,19 +211,25 @@ class BillingReportView(ProtectedView):
                 request.session['level'] = "network"
                 request.session['level_id'] = network.id
             request.session['reports'] = request.POST.getlist('reports', None)
+            filter = request.session['filter'] = request.POST.get('filter', None)
             return redirect(
-                urlresolvers.reverse(self.url_namespace) + '?filter=1')
+                urlresolvers.reverse(self.url_namespace) + '?filter='+filter)
 
         elif request.method == "GET":
             if 'filter' not in request.GET:
                 # Reset filtering params.
                 request.session['level'] = 'network'
-                # TODO(Piyush/Shiv): Need to fix this subscriber report
                 if self.url_namespace == 'subscriber-report':
                     request.session['level'] = ''
                 request.session['level_id'] = network.id
                 request.session['reports'] = report_list
                 request.session['topup_percent'] = 100
+                request.session['filter'] = None
+            else:
+                filter = request.GET.get('filter', 1)
+                if filter != request.session['filter']:
+                    request.session['filter'] = filter
+                    request.session['reports'] = self.reports[filter]
         else:
             return HttpResponseBadRequest()
 
@@ -246,6 +263,7 @@ class BillingReportView(ProtectedView):
             datetime.datetime.now()).total_seconds()
         level = request.session['level']
         level_id = int(request.session['level_id'])
+        filter = request.session['filter']
         reports = request.session['reports']
         topup_percent = float(request.session['topup_percent'])
 
@@ -269,6 +287,7 @@ class BillingReportView(ProtectedView):
             'extra_param': ','.join(denom_list2),
             'topup_percent': topup_percent,
             'value_type': currency,
+            'filter': filter
         }
         template = get_template(self.template)
         html = template.render(context, request)

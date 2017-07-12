@@ -4,29 +4,22 @@
         <form action="{{ action_url }}" class="form-horizontal"
               method="post" role="form" onsubmit="setloading()">
             {% csrf_token %}
-            {% if report_list %}
+            {% if filter %}
             <div class="form-group col-md-12">
                 <label class="control-label col-md-1">Reports</label>
                 <div class="col-md-11" style="padding-left: 0px;">    
-                    {% for key, values in report_list.items %}
-                <div class="col-md-12" style="padding-left: 0px;">
-                       <div class="col-md-1">
-                        <span class="label label-default">{{ key }}</span>
-                       </div>
+                {% for key, values in report_list.items %}
+                {% if filter == key %}
                     {% for report in values %}
-                    <div class="col-md-2">
                         <label class="checkbox checkbox-inline" style="padding-top: 0px;">
-                            <input id="checkbox" type="checkbox" name="reports" value="{{ report }}" 
+                            <input id="checkbox" type="checkbox" name="reports" value="{{ report }}"
                                    {% if report in reports %} checked="checked" {% endif %}>
                            {{ report }}
                         </label>
-                    </div>
                     {% endfor %}
-
-                    <div></div>
+                {% endif %}
+                {% endfor %}
                 </div>
-                    {% endfor %}
-                    </div>
             </div>
             {% endif %}
             <div class="form-group col-md-12" id="bts_list" {% if not level_id %} style="display: none;" {% endif %}>
@@ -44,6 +37,7 @@
                         {% endfor %}
                       {% endif %} 
                     </select>
+                    <input type="hidden" name="filter" value="{{ filter }}" />
                 </div>
                 {% if 'Amount Based' not in reports and 'Count Based' not in reports %}
                 <div class="col-md-3">
