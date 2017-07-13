@@ -16,7 +16,7 @@ from django import http
 from django import template
 from django.contrib import messages
 from django.core import urlresolvers
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.shortcuts import redirect, render
 import django_tables2 as tables
 from django.template.loader import get_template
@@ -660,7 +660,6 @@ class NetworkNotifications(ProtectedView):
     def get(self, request):
         """Handles GET requests.
         Show event-notification listing page"""
-
         user_profile = models.UserProfile.objects.get(user=request.user)
         network = user_profile.network
         notifications = models.Notification.objects.filter(network=network)
@@ -707,43 +706,53 @@ class NetworkNotifications(ProtectedView):
     def post(self, request):
         """Handles POST requests.
         Create/edit/edit notifications."""
-
         delete_notification = request.POST.getlist('id') or None
         if delete_notification is None:
             # Create/Edit the notifications
             user_profile = models.UserProfile.objects.get(user=request.user)
             network = user_profile.network
             type = request.POST.get('type')
-            event = request.POST.get('event') or 'N/A'
+            event = request.POST.get('event')
             message = request.POST.get('message')
-            number = request.POST.get('number') or 'N/A'
+            number = request.POST.get('number')
             pk = request.POST.get('pk') or 0
+            if type == 'automatic':
+                number = None
+            else:
+                event = None
+                # Format number to 3 digits
+                if int(number) < 10:
+                    number = '00' + str(number)
+                elif int(number) < 100:
+                    number = '0' + str(number)
             try:
                 with transaction.atomic():
                     try:
                         # Check for existing notification and update
                         notification = models.Notification.objects.get(id=pk)
+                        alert_message = 'Notification updated!'
                     except models.Notification.DoesNotExist:
                         # Create new notification
                         notification = models.Notification.objects.create(
-                        network=network)
+                            network=network)
+                        alert_message = 'Notification added successfully!'
                     notification.type = type
                     notification.message = message
                     notification.event = event
                     notification.number = number
                     notification.save()
-                    message = 'Notification added successfully!'
-                    messages.success(request, message)
-            except Exception as err:
-                message = 'Failed to add notification due to %s' % err
-                messages.error(request, message,
+            except IntegrityError:
+                alert_message = '{0} notification already exists!'.format(
+                    str(type).title())
+                messages.error(request, alert_message,
                                extra_tags="alert alert-danger")
+                return redirect(urlresolvers.reverse('network-notifications'))
         else:
             # Delete the notifications
             records = models.Notification.objects.filter(
                 id__in=delete_notification)
             for notification in records:
                 notification.delete()
-            message = 'Selected notification(s) deleted successfully.'
-            messages.success(request, message)
+            alert_message = 'Selected notification(s) deleted successfully.'
+        messages.success(request, alert_message)
         return redirect(urlresolvers.reverse('network-notifications'))
