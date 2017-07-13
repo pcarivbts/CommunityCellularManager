@@ -149,23 +149,19 @@ $('#update').click(function(){
   $.each(imsi_list, function(key, val){
     imsi_val[i++]=val.value;
   });
-  console.log(imsi_val)
   var data = {
     category: category,
     imsi_val : imsi_val,
     csrfmiddlewaretoken: '{{ csrf_token }}',
   };
-  console.log(data);
   var url = '/dashboard/subscriber_management/subscriber';
   $.ajax({
         url: url,
         data: data,
         type: "POST"
     }).done(function(response) {
-        console.log("done");
         window.location = "/dashboard/subscriber_management/subscriber";
     }).fail(function(response) {
-        console.log(response);
     });
 });
 

@@ -101,34 +101,6 @@ of patent rights can be found in the PATENTS file in the same directory.
                         </div>
                     </div><!--Email Ends-->
 
-                    <!--Password-->
-                    <div class="form-group row">
-                        <div class="col-xs-5">
-                            <label for="password">Password <span class="aseriskField">*</span></label>
-                            <div class="input-group col-xs-8">
-                                <div class="input-group-addon">
-                                    <i class="glyphicon glyphicon-lock"></i>
-                                </div>
-                                <input type="password" class="form-control" id="password" name="password" placeholder="Password" required />
-                            </div>
-                        </div>
-                    </div><!--Password Ends-->
-
-                    <!--Network-->
-                    <div class="form-group row">
-                        <div class="col-xs-5" data-toggle="tooltip" data-placement="left"
-                             title="Current Network">
-                            <label for="network" class="col-3 col-form-label">Current Network:</label>
-                            <div class="input-group col-xs-8">
-                                <div class="input-group-addon">
-                                    <i class="glyphicon glyphicon-signal"></i>
-                                </div>
-                                <input type="hidden" name="network_id" id="network_id" value="{{ network.id }}"/>
-                                <input class="form-control" type="text" id="network" value={{ network.name }} name="network" placeholder="network" disabled/>
-                            </div>
-                        </div>
-                    </div>
-
                 <!--Permissions-->
                     <div class="form-group column">
                         <div>
@@ -259,12 +231,8 @@ of patent rights can be found in the PATENTS file in the same directory.
                 clearInterval(_changeInterval);
                 _changeInterval = setInterval(function() {
                     clearInterval(_changeInterval)
-                    console.log("checking if email exists...");
                     $.ajax({
                         url: "/dashboard/user/management/checkuser?email=" + $('#email').val(),
-                        //beforeSend: function(xhr) {
-                        // xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
-                        //},
                     }).done(function(response) {
                         $('#email').removeClass('form-control-success');
                         $('#email').removeClass('form-control-warning');
@@ -315,8 +283,8 @@ of patent rights can be found in the PATENTS file in the same directory.
             $('.no_perm_error').show();
             $('.no_perm_error').parent().addClass('has-warning');
         }
-        if($('#role').val() && $('#valid_email').val() != 0 && $('#password').val()
-        && $('#permissions_right option').length && $('#network_id').val()) {
+        if($('#role').val() && $('#valid_email').val() != 0
+        && $('#permissions_right option').length) {
             var permissions = [];
             $.each($('#permissions_right option'), function(key, val) {
                 permissions.push($(val).val());
@@ -330,8 +298,6 @@ of patent rights can be found in the PATENTS file in the same directory.
                 data:{
                     role: $('#role').val(),
                     email: $('#email').val(),
-                    password: $('#password').val(),
-                    networks: $('#network_id').val(),
                     permissions: permissions.join(",")
                 }
             }).done(function(response) {

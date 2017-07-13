@@ -958,7 +958,6 @@ class UserManagement(ProtectedView):
         network = user_profile.network
         user = User.objects.get(id=user_profile.user_id)
         available_permissions = get_perms(request.user, network)
-        print network.id
         if not user.is_superuser:  # Network Admin
             role = USER_ROLES[0:len(USER_ROLES) - 1]
         else:  # Cloud Admin
@@ -982,12 +981,13 @@ class UserManagement(ProtectedView):
         return HttpResponse(html)
 
     def post(self, request, *args, **kwargs):
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        available_permissions = get_perms(request.user, network)
         # setting email as username
         username = request.POST['email']
         email = request.POST['email']
-        password = request.POST['password']
         user_role = str(request.POST['role'])
-        networks = str(request.POST['networks'])
         permissions = str(request.POST.get('permissions')).split(',')
 
         if len(permissions) < 1:
@@ -1005,19 +1005,19 @@ class UserManagement(ProtectedView):
                     user.is_staff = True
                 else:
                     user.is_staff = user.is_superuser = False
-                user.set_password(password)
                 user.email = email
                 user.save()
                 # creates Token that BTSs on the network use to authenticate
                 Token.objects.create(user=user)
                 # Setup UserProfile database
                 user_profile = UserProfile.objects.create(user=user)
-                user_network = Network.objects.get(id=networks)
+                user_network = Network.objects.get(id=network.id)
                 # Add the permissions
                 for permission_id in permissions:
                     permission = Permission.objects.get(id=permission_id)
-                    codename = 'endagaweb.' + permission.codename
-                    assign_perm(codename, user, user_network)
+                    if permission.codename in available_permissions:
+                        codename = 'endagaweb.' + permission.codename
+                        assign_perm(codename, user, user_network)
                 # view network permission as minimum permission
                 assign_perm('endagaweb.view_network', user, user_network)
 
@@ -1057,8 +1057,6 @@ class UserManagement(ProtectedView):
 
     def _send_reset_link(self, request):
         return password_reset(request,
-                              # email_template_name='dashboard/user_management/reset_email.html',
-                              # subject_template_name='dashboard/user_management/reset_subject.txt',
                               post_reset_redirect=reverse('user-management'))
 
 
