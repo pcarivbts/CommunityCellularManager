@@ -384,6 +384,6 @@ class NotificationTable(tables.Table):
 
     def render_message(self, record):
         message = record.message
-        if len(record.message) > 30:
-            message = message[:30]+'...(truncated)'
+        if len(record.message) > 60:
+            message = message[:60]+'...(truncated)'
         return message

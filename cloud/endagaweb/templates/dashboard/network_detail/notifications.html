@@ -41,62 +41,117 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endblock %}
 
 {% block content %}
-{% include "dashboard/network_detail/header.html" with network=network %}
+{% include "dashboard/network_detail/header.html" with network=network active_tab='network-notifications' %}
 
 <div class='row'>
     {% include "dashboard/network_detail/nav.html" with active_tab='network-notifications' %}
-    <div class='content col-xs-12 col-sm-10 col-md-6'>
+    <div class='content col-xs-12 col-sm-10 col-md-10'>
         {% for message in messages %}
         <div class="message alert alert-{{ message.tags }}">
             <a href="#" class="close" data-dismiss="alert">&times;</a>
             {{ message }}
         </div>
         {% endfor %}
-        <form action="/dashboard/network/notification" method="POST">
+        <form action="/dashboard/network/notification" method="POST" name="notification_form" id="notification_form">
             <div class="table-container">
                 {% csrf_token %}
                 {% if records > 0 %}
                 {% render_table notification_table %}
-                <input class='btn btn-primary' type='submit'
-                       id='delete' value="Delete">
+                <div class="btn-group actions" role="group" aria-label="Button group with nested dropdown">
+                    <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                      Action(s)
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+                      <div id="action_delete">
+                          <a class="dropdown-item" href="javascript:void(0);" data-target='#delete-event-modal' data-toggle='modal'>Delete</a>
+                      </div>
+                      <div id="action_edit"><a class="dropdown-item" href="javascript:void(0);" data-target="#save-event-modal" data-toggle='modal' onclick="editNotification()">Edit</a></div>
+                    </div>
+                </div>
                 {% else %}
                 <p>No notifications in the current network </p>
                 {% endif %}
             </div>
         </form>
-
     </div>
-    <div class='content col-xs-12 col-sm-10 col-md-4'>
-        <div class="panel panel-default">
-            <div class="panel-heading">
-                <i class='fa fa-bell'></i>
-                  <b>Notification</b>
+</div>
+<div class='modal fade' id='delete-event-modal'>
+    <div class='modal-dialog'>
+        <div class='modal-content'>
+            <div class='modal-header'>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class='modal-title'>
+                    Confirmation
+                </h4>
             </div>
-            <div class="panel-body">
-                <div class="row-fluid">
-                    <form action="/dashboard/network/notification"
-                          id="add-notification-modal" name="notification"
-                          method="POST"
-                          data-toggle="validator" class="form-horizontal">
-                        {% csrf_token %}
-                        <div class="col-md-12">
-                            {% crispy notification %}
-                        </div>
-                        <input type="submit" id="add-notification-submit"
-                               class="btn btn-primary pull-right" value="Add"
-                               onclick="document.getElementById('submit-id-submit').click()"/>
-                    </form>
-                </div>
+            <div class='modal-body'>
+                <h4>
+                    Are you sure you want to delete?
+                </h4>
+            </div>
+            <div class='modal-footer'>
+                <button type='button' class='btn btn-default' data-dismiss='modal'>Cancel</button>
+                <button class='btn btn-primary' type='button' id='delete-confirm'>Confirm</button>
             </div>
         </div>
     </div>
-</div>
+</div><!-- /.delete-user-modal -->
+
+<div class='modal fade' id='save-event-modal'>
+    <div class='modal-dialog'>
+        <div class='modal-content'>
+            <div class='modal-header'>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class='modal-title'>
+                    Notification
+                </h4>
+            </div>
+            <div class='modal-body' style="height: 470px;">
+                <form action="/dashboard/network/notification"
+                      id="add-notification-modal" name="notification"
+                      method="POST"
+                      data-toggle="validator" class="form-horizontal">
+                    {% csrf_token %}
+                    <div class="col-md-12">
+                        {% crispy notification %}
+                    </div>
+                    <input type="submit" id="add-notification-submit"
+                           class="btn btn-primary pull-right" value="Add"
+                           onclick="document.getElementById('submit-id-submit').click()"/>
+                </form>
+            </div>
+            <div class='modal-footer'>
+                <div id='user-messages-container'></div>
+            </div>
+        </div>
+    </div>
+</div><!-- /.delete-user-modal -->
 
 
 {% endblock %}
 {% block js %}
-<script>
+<script type="text/javascript">
+
   $(function() {
+    $('.actions').hide();
+    $('input:checkbox').change(function() {
+        console.log("checkboxes = ", $('form input[name=id]:checked').length);
+        var num_records = $('form input[name=id]:checked').length;
+        if(num_records==1) {
+            $('.actions').show();
+            $('#action_edit').show();
+        } else if(num_records > 1) {
+            $('.actions').show();
+            $('#action_edit').hide();
+        } else {
+            $('.actions').hide();
+        }
+
+    });
     $('input:radio').change(function() {
       var notification_type = $('form input[name=type]:checked').val();
       if (notification_type == 'mapped') {
@@ -108,14 +163,50 @@ of patent rights can be found in the PATENTS file in the same directory.
       }
     });
   });
+  $('#delete-confirm').click(function () {
+    $('#notification_form').submit();
+  });
 
-function toggle(source) {
+  function toggle(source) {
     checkboxes = document.getElementsByName('id');
-    for(var i in checkboxes)
-        checkboxes[i].checked = source.checked;
-
-}
-
+    for(var i in checkboxes) {
+      checkboxes[i].checked = source.checked;
+    }
+  }
+  function editNotification() {
+    var notif_id = $('form input[name=id]:checked').val()
+    // Post to the endagaweb API.
+    $.ajax({
+        url: '/dashboard/network/notification?id=' + notif_id,
+        type: 'GET',
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+        },
+        success: function (response) {
+            var etype = response.data.type;
+            $('form input[value='+ etype +']').prop('checked', true).change();
+            $('#id_number').val(response.data.number);
+            $('#id_event').val(response.data.event);
+            $('#id_message').val(response.data.message);
+            $('#id_pk').val(response.data.id);
+        },
+        error: function (response) {
+            // Show an error message after a small delay.
+            setTimeout(function () {
+                var message = 'Error: ' + response.status;
+                var html = "<div class='alert alert-danger'>" + message + "</div>";
+                $('#user-messages-container').html(html).show();
+            }, 800);
+        },
+    });
+  }
+  function resetForm() {
+    $('#id_type_1').prop('checked', true).change();
+    $('#id_number').val('');
+    $('#id_message').val('');
+    $('#id_event').val('');
+    $('#id_pk').val(0);
+  }
 
 </script>
 

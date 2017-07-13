@@ -391,12 +391,13 @@ class NotificationForm(forms.Form):
         label='Message', widget=forms.Textarea(
             attrs={'title': 'Notification message',
                    'placeholder': 'Enter Message...',
-                   'style': 'width:500px'}), required=True,
+                   'rows': '4'}), required=True,
         min_length=20,
         max_length=160)
     number = forms.IntegerField(widget=forms.NumberInput(
         attrs={'title': 'Notification number', 'style': 'width:250px'}),
         required=True, label='Number', disabled=True, min_value=0)
+    pk = forms.CharField(widget=forms.HiddenInput())
 
     def __init__(self, *args, **kwargs):
         super(NotificationForm, self).__init__(*args, **kwargs)
@@ -415,5 +416,6 @@ class NotificationForm(forms.Form):
             number,
             event,
             message,
+            'pk',
             Submit('submit', 'Submit', css_class='invisible'),
         )

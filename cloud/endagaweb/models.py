@@ -1804,4 +1804,5 @@ class Notification(models.Model):
     event = models.CharField(max_length=100, null=True)
     number = models.CharField(max_length=20, null=True, default=None)
     message = models.TextField(max_length=160)
-    type = models.CharField(max_length=10, choices=notification_type, default='automatic')
+    type = models.CharField(max_length=10, choices=notification_type,
+                            default='automatic')
