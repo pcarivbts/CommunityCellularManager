@@ -74,7 +74,8 @@ class BaseReport(ProtectedView):
                 request.session['level'] = "network"
                 request.session['level_id'] = network.id
             request.session['reports'] = request.POST.getlist('reports', None)
-            filter = request.session['filter'] = request.POST.get('filter', None)
+            filter = request.POST.get('filter', None)
+            request.session['filter'] = filter
 
             # We always just do a redirect to GET. We include page reference
             # to retain the search parameters in the session.
@@ -82,20 +83,20 @@ class BaseReport(ProtectedView):
                 urlresolvers.reverse(self.url_namespace) + '?filter='+filter)
 
         elif request.method == "GET":
-            if 'filter' not in request.GET:
-                # Reset filtering params.
-                request.session['level'] = 'network'
-                if self.url_namespace == 'subscriber-report':
-                    request.session['level'] = 'network'
-                request.session['level_id'] = network.id
-                request.session['reports'] = report_list
-                request.session['filter'] = None
-
-            else:
+            if 'filter' in request.GET and 'filter' in request.session:
                 filter = request.GET.get('filter', 1)
                 if filter != request.session['filter']:
-                    request.session['filter'] = filter
                     request.session['reports'] = self.reports[filter]
+                request.session['filter'] = filter
+            else:
+                request.session['reports'] = report_list
+                request.session['filter'] = None
+            # Reset filtering params.
+            request.session['level'] = 'network'
+            if self.url_namespace == 'subscriber-report':
+                request.session['level'] = 'network'
+            request.session['level_id'] = network.id
+
         else:
             return HttpResponseBadRequest()
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
@@ -105,9 +106,8 @@ class BaseReport(ProtectedView):
         reports = request.session['reports']
         filter = request.session['filter']
 
-        towers = models.BTS.objects.filter(
-            network=user_profile.network).order_by('id').values('nickname', 'uuid', 'id')
-        print(towers)
+        towers = models.BTS.objects.filter(network=user_profile.network).\
+            order_by('id').values('nickname', 'uuid', 'id')
         network_has_activity = UsageEvent.objects.filter(
             network=network).exists()
 
@@ -211,25 +211,27 @@ class BillingReportView(ProtectedView):
                 request.session['level'] = "network"
                 request.session['level_id'] = network.id
             request.session['reports'] = request.POST.getlist('reports', None)
-            filter = request.session['filter'] = request.POST.get('filter', None)
+            filter = request.POST.get('filter', None)
+            request.session['filter'] = filter
             return redirect(
                 urlresolvers.reverse(self.url_namespace) + '?filter='+filter)
-
         elif request.method == "GET":
-            if 'filter' not in request.GET:
-                # Reset filtering params.
-                request.session['level'] = 'network'
-                if self.url_namespace == 'subscriber-report':
-                    request.session['level'] = ''
-                request.session['level_id'] = network.id
-                request.session['reports'] = report_list
-                request.session['topup_percent'] = 100
-                request.session['filter'] = None
-            else:
+            if 'filter' in request.GET and 'filter' in request.session:
                 filter = request.GET.get('filter', 1)
                 if filter != request.session['filter']:
-                    request.session['filter'] = filter
                     request.session['reports'] = self.reports[filter]
+                request.session['filter'] = filter
+            else:
+                request.session['reports'] = report_list
+                request.session['filter'] = None
+            # Reset filtering params.
+            request.session['level'] = 'network'
+            if self.url_namespace == 'subscriber-report':
+                request.session['level'] = 'network'
+            request.session['level_id'] = network.id
+            request.session['topup_percent'] = 100
+
+
         else:
             return HttpResponseBadRequest()
 
