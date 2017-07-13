@@ -29,7 +29,7 @@ from endagaweb import models
 from endagaweb.forms import dashboard_forms
 from endagaweb.views.dashboard import ProtectedView
 from endagaweb.views import django_tables
-
+from endagaweb import tasks
 
 NUMBER_COUNTRIES = {
     'US': 'United States (+1)',
@@ -732,6 +732,10 @@ class NetworkNotifications(ProtectedView):
                     notification.event = event
                     notification.number = number
                     notification.save()
+
+                    # Write message to templete for parseing and translation
+                    tasks.translate(message)
+
                     message = 'Notification added successfully!'
                     messages.success(request, message)
             except Exception as err:

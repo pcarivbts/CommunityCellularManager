@@ -17,6 +17,7 @@ import time
 import os
 import paramiko
 import zipfile
+import subprocess
 try:
     # we only import zlib here to check that it is available
     # (why would it not be?), so we have to disable the 'unused' warning
@@ -43,6 +44,7 @@ from endagaweb.models import UsageEvent
 from endagaweb.models import SystemEvent
 from endagaweb.models import TimeseriesStat
 from endagaweb.ic_providers.nexmo import NexmoProvider
+from endagaweb.settings.dev import TEMPLATES_PATH
 
 
 @app.task(bind=True)
@@ -439,3 +441,24 @@ def req_bts_log(self, obj, retry_delay=60*10, max_retries=432):
         raise
     finally:
       obj.save()
+
+@app.task(bind=True)
+def translate(self, message, retry_delay=60*10, max_retries=432):
+    """Tries to write notification message for translation.
+
+    The default retry is every 10 min for 3 days.
+    """
+    print "writing network notification message for translation '%s'"
+    try:
+        translation_file = "/dashboard/network_detail/translate.html"
+        handle = open(TEMPLATES_PATH + translation_file, 'a+')
+        handle.write('{% trans "' + message + '" %}\r\n')
+        handle.close()
+        subprocess.Popen(
+            ['python', 'manage.py', 'makemessages', '-l', 'en', '-l', 'fil'])
+        subprocess.Popen(['python', 'manage.py', 'compilemessages'])
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+        raise self.retry(countdown=retry_delay, max_retries=max_retries)
+    except Exception as exception:
+        raise self.retry(countdown=retry_delay, max_retries=max_retries)
+        print "Translation ERROR. Exception:- %s" % (exception)

@@ -132,6 +132,7 @@ INSTALLED_APPS = [
     'guardian',
     'rest_framework',
     'rest_framework.authtoken',
+    'rosetta'
 ]
 
 SITE_ID = 1
@@ -329,14 +330,12 @@ USE_I18N = True
 
 LANGUAGES = (
     ('en', translate('English')),
-    ('fil', translate('Filipino')),
-    ('id', translate('Indonesian')),
-    ('es', translate('Spanish')),
+    ('fil', translate('Filipino'))
 )
 # Set the default language for your site.
-LANGUAGE_CODE = 'fil'
+LANGUAGE_CODE = 'en'
 
 LOCALE_PATHS = (
     os.path.join(os.environ["HOME"], 'locale'),
 )
-#STATIC_ROOT = os.path.join(os.environ["HOME"], "static")
+TEMPLATES_PATH = os.path.join(os.environ["HOME"], 'templates')

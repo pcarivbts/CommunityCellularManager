@@ -226,3 +226,9 @@ if 'DatabaseStorage' in settings.DEFAULT_FILE_STORAGE:
         url(r'^file/(?P<fname>.+)$',
             endagaweb.views.file_upload.file_view, name='file-upload')
     ]
+
+# Only use django admin outside of prod.
+if 'rosetta' in settings.INSTALLED_APPS:
+    urlpatterns += [
+        url(r'^rosetta/', include('rosetta.urls')),
+    ]
