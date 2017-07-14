@@ -525,6 +525,8 @@ class Subscriber(models.Model):
     # When toggled, this will protect a subsriber from getting "vacuumed."  You
     # can still delete subs with the usual "deactivate" button.
     prevent_automatic_deactivation = models.BooleanField(default=False)
+    # role of subscriber
+    role = models.TextField(null=True, blank=True, default="Subscriber")
 
     @classmethod
     def update_balance(cls, imsi, other_bal):
@@ -576,8 +578,8 @@ class Subscriber(models.Model):
         self.crdt_balance = bal.serialize()
 
     def __unicode__(self):
-        return "Sub %s, %s, network: %s, balance: %d" % (
-            self.name, self.imsi, self.network, self.balance)
+        return "Sub %s, %s, network: %s, balance: %d, role: %s" % (
+            self.name, self.imsi, self.network, self.balance, self.role)
 
     def numbers(self):
         n = self.number_set.all()

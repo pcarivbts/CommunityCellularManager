@@ -218,47 +218,61 @@ def subscriber_list_view(request):
 
     Returns:
        an HttpResponse
-    """
 
-    user_profile = UserProfile.objects.get(user=request.user)
-    network = user_profile.network
-    all_subscribers = Subscriber.objects.filter(network=network)
+     check with POST method to update the subscriber role"""
 
-    query = request.GET.get('query', None)
-    if query:
-        # Get actual subs with partial IMSI matches or partial name matches.
-        query_subscribers = (
-            network.subscriber_set.filter(imsi__icontains=query) |
-            network.subscriber_set.filter(name__icontains=query))
-        # Get ids of subs with partial number matches.
-        sub_ids = network.number_set.filter(
-            number__icontains=query
-        ).values_list('subscriber_id', flat=True)
-        # Or them together to get list of actual matching subscribers.
-        query_subscribers |= network.subscriber_set.filter(
-            id__in=sub_ids)
-    else:
-        # Display all subscribers.
-        query_subscribers = all_subscribers
+    if request.method == 'GET':
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        all_subscribers = Subscriber.objects.filter(network=network)
+        query = request.GET.get('query', None)
+        if query:
+            # Get actual subs with partial IMSI matches or partial name matches.
+            query_subscribers = (
+                network.subscriber_set.filter(imsi__icontains=query) |
+                network.subscriber_set.filter(name__icontains=query))
+            # Get ids of subs with partial number matches.
+            sub_ids = network.number_set.filter(
+                number__icontains=query
+            ).values_list('subscriber_id', flat=True)
+            # Or them together to get list of actual matching subscribers.
+            query_subscribers |= network.subscriber_set.filter(
+                id__in=sub_ids)
+        else:
+            # Display all subscribers.
+            query_subscribers = all_subscribers
 
-    # Setup the subscriber table.
-    subscriber_table = django_tables.SubscriberTable(list(query_subscribers))
-    tables.RequestConfig(request, paginate={'per_page': 15}).configure(
-        subscriber_table)
+        # Setup the subscriber table.
+        subscriber_table = django_tables.SubscriberTable(
+            list(query_subscribers))
+        tables.RequestConfig(request, paginate={'per_page': 15}).configure(
+            subscriber_table)
 
-    # Render the response with context.
-    context = {
-        'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
-        'currency': CURRENCIES[network.subscriber_currency],
-        'user_profile': user_profile,
-        'total_number_of_subscribers': len(all_subscribers),
-        'number_of_filtered_subscribers': len(query_subscribers),
-        'subscriber_table': subscriber_table,
-        'search': dform.SubscriberSearchForm({'query': query}),
-    }
-    template = get_template("dashboard/subscribers.html")
-    html = template.render(context, request)
-    return HttpResponse(html)
+        # Render the response with context.
+        context = {
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=Network),
+            'currency': CURRENCIES[network.subscriber_currency],
+            'user_profile': user_profile,
+            'total_number_of_subscribers': len(all_subscribers),
+            'number_of_filtered_subscribers': len(query_subscribers),
+            'subscriber_table': subscriber_table,
+            'search': dform.SubscriberSearchForm({'query': query}),
+        }
+        template = get_template("dashboard/subscribers.html")
+        html = template.render(context, request)
+        return HttpResponse(html)
+
+    if request.method == 'POST':
+        subscriber_imsi_list = request.POST.getlist('imsi_val[]')
+        subscriber_role = request.POST.get('category')
+        try:
+            update_imsi = Subscriber.objects.filter(imsi__in=subscriber_imsi_list)
+            update_imsi.update(role=subscriber_role)
+            reponse_message = "Subscriber role updated successfully."
+        except Exception as e:
+            reponse_message = "Subscriber role update fail."
+        return HttpResponse(reponse_message)
 
 
 class SubscriberInfo(ProtectedView):
