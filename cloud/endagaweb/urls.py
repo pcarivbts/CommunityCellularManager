@@ -214,6 +214,11 @@ if 'django.contrib.admin' in settings.INSTALLED_APPS:
     urlpatterns += [
         url(r'^django-admin/', include(admin.site.urls)),
     ]
+    # Only use rosetta when django-admin is used for security.
+    if 'rosetta' in settings.INSTALLED_APPS:
+        urlpatterns += [
+            url(r'^rosetta/', include('rosetta.urls')),
+        ]
 
 
 # We only install the loginas app in the staff version of the site and we hide
@@ -227,8 +232,4 @@ if 'DatabaseStorage' in settings.DEFAULT_FILE_STORAGE:
             endagaweb.views.file_upload.file_view, name='file-upload')
     ]
 
-# Only use django admin outside of prod.
-if 'rosetta' in settings.INSTALLED_APPS:
-    urlpatterns += [
-        url(r'^rosetta/', include('rosetta.urls')),
-    ]
+
