@@ -9,6 +9,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 """
 
 import datetime
+import json
 import logging
 import time
 import urllib
@@ -40,7 +41,7 @@ from guardian.shortcuts import get_objects_for_user
 from ccm.common.currency import parse_credits, humanize_credits, \
     CURRENCIES, Money
 from endagaweb.models import (UserProfile, Ledger, Subscriber, UsageEvent,
-                              Network, PendingCreditUpdate, Number)
+                              Network, PendingCreditUpdate, Number, BTS)
 from endagaweb.util.currency import cents2mc
 from endagaweb.forms import dashboard_forms as dform
 from endagaweb import tasks
@@ -910,3 +911,96 @@ class ActivityView(ProtectedView):
 
                 res_events |= events
             return res_events
+
+
+class BroadcastView(ProtectedView):
+    """Send an SMS to a single subscriber."""
+
+    def post(self, request):
+        """Broadcast bulk SMS to network, tower or selected imsi.
+
+        This API will call tasks.async_post method to send request to
+        Client BTS system for broadcast SMS
+        """
+
+        sendto = request.POST.get('sendto', None)
+        network_id = request.POST.get('network_id', None)
+        tower_id = request.POST.get('tower_id', None)
+        imsi_str = request.POST.get('imsi', None)
+        message = request.POST.get('message', None)
+        response = {
+            'status': 'failed',
+            'messages': [],
+        }
+        if sendto in ['network', 'tower']:
+            if (sendto == 'tower' and not tower_id) or sendto == 'network':
+                # Lookup for BTS inbound_url.
+                bts_list = BTS.objects.filter(network=network_id)
+                level = 'network'
+                level_id = network_id
+            else:
+                # Lookup for BTS inbound_url.
+                bts_list = BTS.objects.filter(id=tower_id)
+                level = 'tower'
+                level_id = tower_id
+
+            for bts in bts_list:
+                # Fire off an async task request to send the SMS.
+                params = {
+                    'to': '*',
+                    'sender': '0000',
+                    'text': message,
+                    'msgid': str(uuid.uuid4()),
+                    'level_id': level_id,
+                    'level': level
+                }
+                url = bts.inbound_url + "/endaga_sms"
+                tasks.async_post.delay(url, params)
+        elif sendto == 'imsi':
+            imsi_list = imsi_str.split(',')
+            invalid_imsi = []
+            subscribers = []
+            for imsi in imsi_list:
+                try:
+                    sub = Subscriber.objects.get(imsi=imsi)
+                    subscribers.append(sub)
+                except Subscriber.DoesNotExist:
+                    invalid_imsi.append(imsi)
+            if not imsi_str:
+                message = "Enter Subscriber IMSI number."
+                response['messages'].append(message)
+                return HttpResponse(json.dumps(response),
+                                    content_type="application/json")
+            if len(invalid_imsi) > 0:
+                message = "Invalid %s in IMSI numbers." % (','.join(
+                    invalid_imsi))
+                response['messages'].append(message)
+                return HttpResponse(json.dumps(response),
+                                    content_type="application/json")
+            for subscriber in subscribers:
+                try:
+                    # We send sms to the subscriber's first number.
+                    num = subscriber.number_set.all()[0]
+                except:
+                    num = None
+                if num:
+                    # Fire off an async task request to send the SMS.
+                    params = {
+                        'to': num.number,
+                        'sender': '0000',
+                        'text': message,
+                        'msgid': str(uuid.uuid4()),
+                        'level_id': 123,
+                        'level': 89
+                    }
+                    url = subscriber.bts.inbound_url + "/endaga_sms"
+                    tasks.async_post.delay(url, params)
+        else:
+            response['messages'].append('Invalid request data.')
+            return HttpResponse(json.dumps(response),
+                                content_type="application/json")
+        message = "Broadcast SMS sent successfully"
+        response['status'] = 'ok'
+        response['messages'].append(message)
+        return HttpResponse(json.dumps(response),
+                            content_type="application/json")

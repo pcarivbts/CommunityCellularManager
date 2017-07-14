@@ -126,6 +126,8 @@ class TowerInfo(ProtectedView):
     def get(self, request, uuid=None):
         """Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
+        towers = models.BTS.objects.filter(network=user_profile.network).values(
+            'nickname', 'uuid', 'id')
         try:
             tower = models.BTS.objects.get(uuid=uuid,
                                            network=user_profile.network)
@@ -145,6 +147,7 @@ class TowerInfo(ProtectedView):
             'tower_endaga_version': tower.printable_version(
                 versions['endaga_version']),
             'uptime': uptime,
+            'towers': towers
         }
         # Render template.
         info_template = template.loader.get_template(
@@ -159,6 +162,9 @@ class TowerMonitor(ProtectedView):
     def get(self, request, uuid=None):
         """Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
+        towers = models.BTS.objects.filter(
+            network=user_profile.network).values(
+            'nickname', 'uuid', 'id')
         try:
             tower = models.BTS.objects.get(
                 uuid=uuid, network=user_profile.network)
@@ -180,6 +186,7 @@ class TowerMonitor(ProtectedView):
             'timezone_offset': timezone_offset,
             'endaga_version': endaga_version,
             'tower_has_monitoring_stats': tower_has_monitoring_stats,
+            'towers': towers
         }
         # Render template.
         monitor_template = template.loader.get_template(
@@ -199,6 +206,9 @@ class TowerEdit(drf_views.APIView):
     def get(self, request, uuid=None):
         """Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
+        towers = models.BTS.objects.filter(
+            network=user_profile.network).values(
+            'nickname', 'uuid', 'id')
         try:
             tower = models.BTS.objects.get(uuid=uuid,
                                            network=user_profile.network)
@@ -217,6 +227,7 @@ class TowerEdit(drf_views.APIView):
             'tower': tower,
             'tower_nickname': tower.nickname if tower.nickname else '',
             'suggested_nickname': suggested_nickname,
+            'towers': towers,
         }
         # Render template.
         edit_template = template.loader.get_template(
@@ -286,6 +297,9 @@ class TowerDeregister(drf_views.APIView):
     def get(self, request, uuid=None):
         """Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
+        towers = models.BTS.objects.filter(
+            network=user_profile.network).values(
+            'nickname', 'uuid', 'id')
         try:
             tower = models.BTS.objects.get(uuid=uuid,
                                            network=user_profile.network)
@@ -298,6 +312,7 @@ class TowerDeregister(drf_views.APIView):
             'tower': tower,
             'endaga_version': endaga_version,
             'status': tower.get_status_display(),
+            'towers': towers,
         }
         # Render template.
         edit_template = template.loader.get_template(
@@ -323,6 +338,9 @@ class TowerEvents(drf_views.APIView):
     def _handle_request(self, request, uuid=None):
         """Handles GET and POST requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
+        towers = models.BTS.objects.filter(
+            network=user_profile.network).values(
+            'nickname', 'uuid', 'id')
 
         if request.method == "POST":
             page = 1
@@ -356,6 +374,7 @@ class TowerEvents(drf_views.APIView):
             'tower': tower,
             'endaga_version': endaga_version,
             'events': events,
+            'towers': towers,
         }
         # Render template.
         edit_template = template.loader.get_template(
