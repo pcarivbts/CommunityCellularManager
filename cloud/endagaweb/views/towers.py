@@ -145,6 +145,7 @@ class TowerInfo(ProtectedView):
             'tower_endaga_version': tower.printable_version(
                 versions['endaga_version']),
             'uptime': uptime,
+            'network': user_profile.network
         }
         # Render template.
         info_template = template.loader.get_template(
@@ -180,6 +181,7 @@ class TowerMonitor(ProtectedView):
             'timezone_offset': timezone_offset,
             'endaga_version': endaga_version,
             'tower_has_monitoring_stats': tower_has_monitoring_stats,
+            'network': user_profile.network
         }
         # Render template.
         monitor_template = template.loader.get_template(
@@ -217,6 +219,7 @@ class TowerEdit(drf_views.APIView):
             'tower': tower,
             'tower_nickname': tower.nickname if tower.nickname else '',
             'suggested_nickname': suggested_nickname,
+            'network': user_profile.network
         }
         # Render template.
         edit_template = template.loader.get_template(
@@ -298,6 +301,7 @@ class TowerDeregister(drf_views.APIView):
             'tower': tower,
             'endaga_version': endaga_version,
             'status': tower.get_status_display(),
+            'network': user_profile.network
         }
         # Render template.
         edit_template = template.loader.get_template(
@@ -356,6 +360,7 @@ class TowerEvents(drf_views.APIView):
             'tower': tower,
             'endaga_version': endaga_version,
             'events': events,
+            'network': user_profile.network
         }
         # Render template.
         edit_template = template.loader.get_template(

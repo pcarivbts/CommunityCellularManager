@@ -79,6 +79,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% block js %}
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+  <script src="/static/js/dashboard/sms-broadcast.js"></script>
   <script>
     $(function() {
       var map = L.map('map').setView([{{ tower.latitude }}, {{ tower.longitude }}], 13);
