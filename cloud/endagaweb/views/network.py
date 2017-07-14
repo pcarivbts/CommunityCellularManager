@@ -699,6 +699,7 @@ class NetworkNotifications(ProtectedView):
                 initial={'type': 'automatic'}),
             'notification_table': notification_table,
             'records': len(list(notifications)),
+            'network': network,
         }
         # Render template.
         template = get_template(
