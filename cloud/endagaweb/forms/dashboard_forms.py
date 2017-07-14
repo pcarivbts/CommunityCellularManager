@@ -385,7 +385,7 @@ class NotificationForm(forms.Form):
         help_text=help_text, choices=types,
         widget=forms.RadioSelect(attrs={'title': 'Notification type'}),)
     event = forms.CharField(widget=forms.TextInput(
-        attrs={'title': 'Event Type', 'style': 'width:500px'}),
+        attrs={'title': 'Event Type', 'style': 'width:300px'}),
         required=True, label='Events')
     message = forms.CharField(
         label='Message', widget=forms.Textarea(
@@ -395,8 +395,13 @@ class NotificationForm(forms.Form):
         min_length=20,
         max_length=160)
     number = forms.IntegerField(widget=forms.NumberInput(
-        attrs={'title': 'Notification number', 'style': 'width:250px'}),
-        required=True, label='Number', disabled=True, min_value=0)
+        attrs={'class': 'form-control', 'pattern': '[0-9]{3}',
+               'title': 'Notification number', 'style': 'width:200px',
+               'oninvalid': "setCustomValidity('Enter number (max: 3 digits)')",
+               'onchange': "try{"
+                           "setCustomValidity('')}catch(e){}"
+               }),
+        required=True, disabled=True, min_value=1, max_value=999)
     pk = forms.CharField(widget=forms.HiddenInput())
 
     def __init__(self, *args, **kwargs):
@@ -406,16 +411,11 @@ class NotificationForm(forms.Form):
         self.helper.form_method = 'POST'
         self.helper.form_action = '/dashboard/network/notification'
 
-        number = Field('number')
-        event = Field('event')
-        message = Field('message')
-        type = Field('type')
-
         self.helper.layout = Layout(
-            type,
-            number,
-            event,
-            message,
+            'type',
+            'number',
+            'event',
+            'message',
             'pk',
             Submit('submit', 'Submit', css_class='invisible'),
         )

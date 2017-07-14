@@ -47,6 +47,7 @@ GET_CMD = 'GET'
 SET_CMD = 'SET'
 TRAP_CMD = 'TRAP'
 
+
 class OsmoIPAccessProtocol(asyncio.Protocol, ABC):
 
     """
@@ -200,8 +201,8 @@ class OsmoIPAccessProtocol(asyncio.Protocol, ABC):
                 return
 
         raise RuntimeError("Unhandled IPA msg: length: %d, stream_id: %d, "
-                            "payload: %s", length, stream_id,
-                            bytearray(payload).decode("utf-8"))
+                           "payload: %s", length, stream_id,
+                           bytearray(payload).decode("utf-8"))
 
 
 class OsmoIPAServer(OsmoIPAccessProtocol):
@@ -313,7 +314,7 @@ class IPAWriter:
         Returns:
             None
         """
-        if self._osmo_extn is not None: # Ctrl extn is 0x00
+        if self._osmo_extn is not None:  # Ctrl extn is 0x00
             struct.pack_into('!HBB', buf, 0, length + 1,
                              self._stream_id, self._osmo_extn)
         else:
@@ -443,7 +444,7 @@ class OsmoCtrlManager:
         Encodes and sends the message to the IPA layer.
         """
         buf_size = len(message)
-        #offset accounts for header_len
+        # offset accounts for header_len
         (buf, offset) = self._ipa_writer.get_write_buf(buf_size)
 
         msg_byte_list = memoryview(bytearray(message.encode('utf-8'))).tolist()

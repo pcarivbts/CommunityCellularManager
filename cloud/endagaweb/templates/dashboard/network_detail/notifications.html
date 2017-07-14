@@ -52,34 +52,42 @@ of patent rights can be found in the PATENTS file in the same directory.
             {{ message }}
         </div>
         {% endfor %}
-        <form action="/dashboard/network/notification" method="POST" name="notification_form" id="notification_form">
+        <form action="/dashboard/network/notification" method="POST"
+              name="notification_form" id="notification_form">
             <div class="table-container">
                 {% csrf_token %}
                 {% if records > 0 %}
                 {% render_table notification_table %}
-                <div class="btn-group actions" role="group" aria-label="Button group with nested dropdown">
-                    <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                      Action(s)
-                    </button>
-                    <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-                      <div id="action_delete">
-                          <a class="dropdown-item" href="javascript:void(0);" data-target='#delete-event-modal' data-toggle='modal'>Delete</a>
-                      </div>
-                      <div id="action_edit"><a class="dropdown-item" href="javascript:void(0);" data-target="#save-event-modal" data-toggle='modal' onclick="editNotification()">Edit</a></div>
-                    </div>
+                <div class="dropdown actions">
+                    <button class="btn btn-primary dropdown-toggle"
+                            type="button" data-toggle="dropdown">Action(s)
+                        <span class="caret"></span></button>
+                    <ul class="dropdown-menu">
+                        <li id="action_delete">
+                            <a data-target='#delete-event-modal'
+                               data-toggle='modal' href="javascript:void(0);">Delete</a>
+                        </li>
+                        <li id="action_edit"><a data-target="#save-event-modal"
+                                                data-toggle='modal'
+                                                onclick="editNotification()"
+                                                href="#">Edit</a></li>
+                    </ul>
                 </div>
-                {% else %}
-                <p>No notifications in the current network </p>
-                {% endif %}
             </div>
+            {% else %}
+            <p>No notifications in the current network </p>
+            {% endif %}
         </form>
     </div>
+
+</div>
 </div>
 <div class='modal fade' id='delete-event-modal'>
     <div class='modal-dialog'>
         <div class='modal-content'>
             <div class='modal-header'>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close" data-dismiss="modal"
+                        aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
                 <h4 class='modal-title'>
@@ -92,8 +100,12 @@ of patent rights can be found in the PATENTS file in the same directory.
                 </h4>
             </div>
             <div class='modal-footer'>
-                <button type='button' class='btn btn-default' data-dismiss='modal'>Cancel</button>
-                <button class='btn btn-primary' type='button' id='delete-confirm'>Confirm</button>
+                <button type='button' class='btn btn-default'
+                        data-dismiss='modal'>Cancel
+                </button>
+                <button class='btn btn-primary' type='button'
+                        id='delete-confirm'>Confirm
+                </button>
             </div>
         </div>
     </div>
@@ -103,14 +115,15 @@ of patent rights can be found in the PATENTS file in the same directory.
     <div class='modal-dialog'>
         <div class='modal-content'>
             <div class='modal-header'>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close" data-dismiss="modal"
+                        aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
                 <h4 class='modal-title'>
                     Notification
                 </h4>
             </div>
-            <div class='modal-body' style="height: 470px;">
+            <div class='modal-body' style="height: 450px;">
                 <form action="/dashboard/network/notification"
                       id="add-notification-modal" name="notification"
                       method="POST"
@@ -120,17 +133,17 @@ of patent rights can be found in the PATENTS file in the same directory.
                         {% crispy notification %}
                     </div>
                     <input type="submit" id="add-notification-submit"
-                           class="btn btn-primary pull-right" value="Add"
+                           class="btn btn-primary pull-right" value="Add Notification"
                            onclick="document.getElementById('submit-id-submit').click()"/>
+                    <button type='button' class='btn btn-default pull-right' data-dismiss='modal'>Cancel</button>
                 </form>
             </div>
             <div class='modal-footer'>
-                <div id='user-messages-container'></div>
+                <!--<div id='user-messages-container'></div>-->
             </div>
         </div>
     </div>
-</div><!-- /.delete-user-modal -->
-
+</div>
 
 {% endblock %}
 {% block js %}

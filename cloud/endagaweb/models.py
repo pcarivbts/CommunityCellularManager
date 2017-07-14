@@ -1801,8 +1801,9 @@ class Notification(models.Model):
             ('mapped', 'Mapped')
         )
     network = models.ForeignKey('Network', on_delete=models.CASCADE)
-    event = models.CharField(max_length=100, null=True)
-    number = models.CharField(max_length=20, null=True, default=None)
+    event = models.CharField(max_length=100, null=True, unique=True)
+    number = models.CharField(max_length=3, null=True, default=None,
+                              unique=True)
     message = models.TextField(max_length=160)
     type = models.CharField(max_length=10, choices=notification_type,
                             default='automatic')
