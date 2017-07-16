@@ -10,7 +10,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load apptags %}
 {% load humanize %}
 {% load crispy_forms_tags %}
-
+{% load guardian_tags %}
 
 {% block title %}
 {% if network.name %}
@@ -37,11 +37,12 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 
 {% include "dashboard/network_detail/header.html" with network=network %}
-
+{% get_obj_perms request.user for network as 'user_permission' %}
 
 <div class = 'row'>
   {% include "dashboard/network_detail/nav.html" with active_tab='edit'%}
 
+  {% if 'edit_network' in user_permission %}
   <div class='col-xs-12 col-offset-sm-2 col-sm-10'>
 
     {% if network.get_lowest_tower_version < '00000.00003.00025' %}
@@ -70,6 +71,9 @@ of patent rights can be found in the PATENTS file in the same directory.
       {% endfor %}
     </div>
   </div>
+  {% else %}
+    {% include 'dashboard/permission_denied.html' %}
+  {% endif %}
 </div>
 
 

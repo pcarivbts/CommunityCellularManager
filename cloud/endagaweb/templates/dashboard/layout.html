@@ -29,7 +29,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     {% block pagestyle %}
     {% endblock %}
 
-    {% if user_profile.user.is_staff %}
+    {% if user_profile.user.is_superuser %}
     <style>
       .navbar,
       .nav-pills > li.active > a,
@@ -111,6 +111,11 @@ of patent rights can be found in the PATENTS file in the same directory.
               </ul>
               </a>
             </li>
+            {% elif networks.count == 1  %}
+            <li>
+              <a href="javascript:void(0);"><i class="fa fa-list-ul"></i> {{user_profile.network.name }}</span></a>
+            </li>
+
             {% endif %}
             <li class="dropdown">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-user"></i> {{ user_profile.display_name }} <b class="caret"></b></a>
@@ -118,14 +123,19 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <li><a href="/dashboard/profile"><i class="fa fa-gear"></i>&nbsp; Settings</a></li>
                 <li><a href="/dashboard/billing"><i class="fa fa-money"></i>&nbsp; Billing</a></li>
                 <li class="divider"></li>
+
+                {% if user_profile.user.is_superuser %}
+                  <li><a href="/django-admin"><i class="fa fa-key"></i>&nbsp; Django Admin</a></li>
+                    <li><a href="/dashboard/staff/all-numbers"><i class="fa fa-space-shuttle"></i>&nbsp; All Numbers</a></li>
+                    <li><a href="/dashboard/staff/all-towers"><i class="fa fa-building-o"></i>&nbsp; All Towers</a></li>
+                    <li><a href="/dashboard/staff/margin-analysis"><i class="fa fa-euro"></i>&nbsp; Margin Analysis</a></li>
+                    <li><a href="/dashboard/staff/tower-monitoring"><i class="fa fa-paper-plane-o"></i>&nbsp; Tower Monitoring</a></li>
+                    <li><a href="/dashboard/staff/network-earnings"><i class="fa fa-credit-card"></i>&nbsp; Network Earnings</a></li>
+                {% endif %}
                 {% if user_profile.user.is_staff %}
-                <li><a href="/django-admin"><i class="fa fa-key"></i>&nbsp; Django Admin</a></li>
-                <li><a href="/dashboard/staff/all-numbers"><i class="fa fa-space-shuttle"></i>&nbsp; All Numbers</a></li>
-                <li><a href="/dashboard/staff/all-towers"><i class="fa fa-building-o"></i>&nbsp; All Towers</a></li>
-                <li><a href="/dashboard/staff/margin-analysis"><i class="fa fa-euro"></i>&nbsp; Margin Analysis</a></li>
-                <li><a href="/dashboard/staff/tower-monitoring"><i class="fa fa-paper-plane-o"></i>&nbsp; Tower Monitoring</a></li>
-                <li><a href="/dashboard/staff/network-earnings"><i class="fa fa-credit-card"></i>&nbsp; Network Earnings</a></li>
-                <li class="divider"></li>
+                    <li><a href="/dashboard/user/management"><i class="fa fa-user" aria-hidden="true"></i>&nbsp; User Management</a></li>
+                    <li><a href="/dashboard/subscriber_management/subscriber"><i class="fa fa-gear"></i>&nbsp; Subscriber Management</a></li>
+                    <li class="divider"></li>
                 {% endif %}
                 <li><a href="/logout"><i class="fa fa-sign-out"></i>&nbsp; Log Out</a></li>
               </ul>

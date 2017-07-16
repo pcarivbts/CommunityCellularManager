@@ -59,6 +59,33 @@ OUTBOUND_ACTIVITIES = (
     'outside_call', 'outside_sms', 'local_call', 'local_sms',
 )
 
+PERMISSIONS = (
+                ('user_management', 'User Management'),
+
+                ('view_bts', 'View Tower'),
+                ('add_bts', 'Add Tower'),
+                ('edit_bts', 'Edit Tower'),
+                ('delete_bts', 'Delete Tower'),
+
+                ('view_subscriber', 'View Subscriber'),
+                ('edit_subscriber', 'Edit Subscriber'),
+                ('delete_subscriber', 'Delete Subscriber'),
+
+                ('view_usage', 'View Usage'),
+                ('download_usage', 'Download Usage Report'),
+
+                ('view_network', 'View Network'),  # default permission
+                ('edit_network', 'Edit Network'),
+
+                ('adjust_credit', 'Adjust Credit'),
+
+                ('send_bulk_sms', 'Bulk SMS'),
+                ('send_sms', 'Broadcast SMS'),
+
+                ('view_graph', 'View Graph'),
+                ('download_graph', 'Download Graphical Report'),
+            )
+
 
 class UserProfile(models.Model):
     """UserProfiles extend the default Django User models.
@@ -71,7 +98,7 @@ class UserProfile(models.Model):
     timezone_choices = [(v, v) for v in pytz.common_timezones]
     timezone = models.CharField(max_length=50, default='UTC',
                                 choices=timezone_choices)
-
+    role = models.CharField(max_length=20, default='Cloud Admin')
     # A UI kludge indicate which network a user is currently viewing
     # Important: This is not the only network a User is associated with
     # because a user may have permissions on other Network instances.
@@ -103,7 +130,9 @@ class UserProfile(models.Model):
         """
         if created and instance.username != settings.ANONYMOUS_USER_NAME:
             profile = UserProfile.objects.create(user=instance)
-            network = Network.objects.create()
+            # Add explicit name to avoid duplicate names when
+            # running setup_test_db
+            network = Network.objects.create(name='Network_%s' % (instance.pk,))
             network.auth_group.user_set.add(instance)
             network.save()
             # Make this the users currently selected network
@@ -295,6 +324,9 @@ class BTS(models.Model):
     #channel number used
     #none is unknown or invalid
     channel = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        default_permissions = ()
 
     def __unicode__(self):
         return "BTS(%s, %s, last active: %s)" % (
@@ -792,6 +824,9 @@ class UsageEvent(models.Model):
     timespan = models.DecimalField(null=True, max_digits=7, decimal_places=1)
     date_synced = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        default_permissions = ()
+
     def voice_sec(self):
         """Gets the number of seconds for this call.
 
@@ -980,9 +1015,8 @@ class Network(models.Model):
     environment = models.TextField(default="default")
 
     class Meta:
-        permissions = (
-            ('view_network', 'View network'),
-        )
+        default_permissions = ()
+        permissions = PERMISSIONS
 
     @property
     def api_token(self):
@@ -1432,14 +1466,14 @@ class Network(models.Model):
         authenticate.
         """
         if not instance.auth_group or not instance.auth_user:
-            instance.auth_group, created_group = Group.objects.get_or_create(name='network_%s'
-                % instance.pk)
+            instance.auth_group, created_group = Group.objects.get_or_create(name='%s_GROUP_%s' %
+                                                                                  (instance.name, instance.pk))
             if created_group:
                 assign_perm('view_network', instance.auth_group, instance)
 
             post_save.disconnect(UserProfile.new_user_hook, sender=User)
-            instance.auth_user, created_user = User.objects.get_or_create(username='network_%s'
-                % instance.pk)
+            instance.auth_user, created_user = User.objects.get_or_create(username='%s_USER_%s' %
+                                                                                   (instance.name, instance.pk))
             if created_user:
                 Token.objects.create(user=instance.auth_user)
                 instance.auth_group.user_set.add(instance.auth_user)

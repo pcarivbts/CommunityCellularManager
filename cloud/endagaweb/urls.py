@@ -81,7 +81,8 @@ urlpatterns = [
     url(r'^auth/', endagaweb.views.user.auth_and_login),
     url(r'^account/password/change', endagaweb.views.user.change_password),
     url(r'^account/update', endagaweb.views.user.update_contact),
-    url(r'^account/', endagaweb.views.dashboard.dashboard_view),
+    url(r'^account/', endagaweb.views.dashboard.DashboardView.as_view(),
+        name='dashboard-view'),
     url(r'^logout/$', django.contrib.auth.views.logout, {'next_page': '/'}),
 
     # Dashboard.
@@ -116,7 +117,8 @@ urlpatterns = [
         name='tower-events'),
     # Subscriber views in the dashboard.
     url(r'^dashboard/subscribers$',
-        endagaweb.views.dashboard.subscriber_list_view),
+        endagaweb.views.dashboard.SubscriberListView.as_view(),
+        name='subscribers-list'),
     url(r'^dashboard/subscribers/(?P<imsi>[^/]+)$',
         endagaweb.views.dashboard.SubscriberInfo.as_view(),
         name='subscriber-info'),
@@ -132,6 +134,44 @@ urlpatterns = [
     url(r'^dashboard/subscribers/(?P<imsi>[^/]+)/edit$',
         endagaweb.views.dashboard.SubscriberEdit.as_view(),
         name='subscriber-edit'),
+    url(r'^dashboard/user/management$',
+        endagaweb.views.dashboard.UserManagement.as_view(),
+        name='user-management'),
+
+    url(r'^dashboard/user/management/update',
+        endagaweb.views.dashboard.UserUpdate.as_view(),
+        name='user-update'),
+
+    url(r'^dashboard/user/management/delete',
+        endagaweb.views.dashboard.UserDelete.as_view(),
+        name='user-delete'),
+
+    url(r'^dashboard/user/management/blocking$',
+        endagaweb.views.dashboard.UserBlockUnblock.as_view(),
+        name='user-blocking'),
+
+    url(r'^dashboard/user/management/checkuser',
+        endagaweb.views.user.check_user),
+
+    url(r'^dashboard/user/management/permissions',
+        endagaweb.views.user.role_default_permissions),
+
+    url(r'^dashboard/network/broadcast_sms$',
+        endagaweb.views.dashboard.SubscriberSendSMS.as_view(),
+        name='broadcast-sms'),
+
+    url(r'^reset$', endagaweb.views.user.reset),
+
+    url(r'^reset/(?P<token>[A-Za-z0-9-]+)/(?P<uidb64>[0-9A-Za-z_\-]+)/$',
+        endagaweb.views.user.reset_confirm,
+        name='password_reset_confirm'),
+
+    url(r'^success/$', endagaweb.views.user.success, name='success'),
+
+
+    url(r'^dashboard/subscriber_management/subscriber$',
+        endagaweb.views.dashboard.SubscriberCategoryEdit.as_view(),
+        name='subscriber-category'),
     # Network views in the dashboard.
     # /network -- GET basic network info
     # /network/prices -- GET pricing data for the network or POST to change it
@@ -193,7 +233,8 @@ if 'django.contrib.admin' in settings.INSTALLED_APPS:
 
 urlpatterns += [
     # The dashboard 'home'.
-    url(r'^dashboard', endagaweb.views.dashboard.dashboard_view),
+    url(r'^dashboard', endagaweb.views.dashboard.DashboardView.as_view(),
+        name='dashboard-view'),
 
     # Old stats.
     url(r'^stats/numbers', endagaweb.views.stats.numbers),

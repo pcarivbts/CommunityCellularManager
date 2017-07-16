@@ -41,6 +41,7 @@ NUMBER_COUNTRIES = {
 
 class NetworkInfo(ProtectedView):
     """View info on a single network."""
+    permission_required = 'view_network'
 
     def get(self, request):
         """Handles GET requests."""
@@ -111,6 +112,7 @@ class NetworkInfo(ProtectedView):
 
 class NetworkInactiveSubscribers(ProtectedView):
     """Edit settings for expiring inactive subs."""
+    permission_required = 'edit_network'
 
     def get(self, request):
         """Handles GET requests."""
@@ -185,6 +187,7 @@ class NetworkInactiveSubscribers(ProtectedView):
 
 class NetworkPrices(ProtectedView):
     """View pricing for a single network."""
+    permission_required = 'view_network'
 
     def get(self, request):
         """Handles GET requests."""
@@ -356,6 +359,7 @@ class NetworkPrices(ProtectedView):
 
 class NetworkEdit(ProtectedView):
     """Edit basic network info (but not prices)."""
+    permission_required = 'edit_network'
 
     def get(self, request):
         """Handles GET requests."""
@@ -441,6 +445,7 @@ class NetworkSelectView(ProtectedView):
     network. They must have view_network permission on the instance
     for this to work.
     """
+    permission_required = 'view_network'
 
     def get(self, request, network_id):
         user_profile = models.UserProfile.objects.get(user=request.user)
@@ -459,6 +464,7 @@ class NetworkSelectView(ProtectedView):
 
 class NetworkDenomination(ProtectedView):
     """Assign denominations bracket for recharge/adjust-credit in network."""
+    permission_required = 'edit_network'
 
     def get(self, request):
         """Handles GET requests."""

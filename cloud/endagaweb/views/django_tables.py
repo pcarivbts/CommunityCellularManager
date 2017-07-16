@@ -81,10 +81,32 @@ def render_name_and_imsi_link(record):
     return safestring.mark_safe(element)
 
 
+def render_name_and_imsi(record):
+    """Show the subscriber name and IMSI together without link."""
+    if not record.imsi:
+        # sometimes empty IMSIs get uploaded to the cloud
+        return "<empty IMSI>"
+    kwargs = {
+        'imsi': record.imsi
+    }
+    if record.name:
+        value = "%s / %s" % (record.name, record.imsi)
+    else:
+        value = record.imsi
+    return safestring.mark_safe(value)
+
+
 def render_balance(record):
     """Show the subscriber's balance in a humanized currency."""
     return humanize_credits(record.balance,
                             CURRENCIES[record.network.subscriber_currency])
+
+
+# Changing Checkbox to Column Name
+class CheckBoxColumnWithName(tables.CheckBoxColumn):
+    @property
+    def header(self):
+        return self.verbose_name
 
 
 class MinimalSubscriberTable(tables.Table):
@@ -365,3 +387,95 @@ class DenominationTable(tables.Table):
         element += "<a href='javascript:void(0)' onclick='doAction(\"delete\",\"%s\");' class='btn btn-xs btn-danger'" \
                    "data-target='#delete-denom-modal' data-toggle='modal'>Delete</a>" % (record.id)
         return safestring.mark_safe(element)
+
+
+def render_username(record, **kwargs):
+    """Shows the username as a link.
+    kwargs:
+    sender: name for the sender to change on click behaviour"""
+
+    if kwargs.get('sender') == 'blocking':
+        element = "<a href='javascript:void(0)' id='user_" + str(
+            record.id) + "'" \
+                         " onclick='block(\"%s\",\"%s\");' " \
+                         "data-target='#block-user-modal' data-toggle='modal'>%s</a>" \
+                         % (record.id, record.is_active, html_utils.escape(
+            record.username))
+
+    elif kwargs.get('sender') == 'delete':
+        element = "<a href='javascript:void(0)' id='user_" + str(
+            record.id) + "'" \
+                         " onclick='remove(\"%s\");' " \
+                         "data-target='#delete-user-modal' " \
+                         "data-toggle='modal'>%s</a>" \
+                         % (record.id, html_utils.escape(record.username))
+
+    return safestring.mark_safe(element)
+
+
+class UserTable(tables.Table):
+    """A django-tables2 Table definition for User."""
+
+    class Meta:
+        model = models.User
+        fields = ('username', 'last_login')
+        attrs = {'class': 'table'}
+        orderable = False
+
+    username = tables.Column(verbose_name='Username')
+    last_login = tables.DateTimeColumn(verbose_name='Last Login', short=True)
+
+    def render_username(self, record):
+        return render_username(record, sender='delete')
+
+
+class BlockedUserTable(tables.Table):
+    """A django-tables2 Table definition for Blocked User."""
+
+    class Meta:
+        model = models.User
+        fields = ('username', 'is_active')
+        attrs = {'class': 'table'}
+        orderable = False
+
+    username = tables.Column(verbose_name='Username', orderable=True)
+    is_active = tables.BooleanColumn(yesno=u'Active, Blocked',
+                                     verbose_name='Status', orderable=True)
+
+    def render_username(self, record):
+        return render_username(record, sender='blocking')
+
+
+def render_imsi(record):
+    element = "<input type = 'checkbox' class ='imsi_id' name='imsi[]' " \
+              "value='{0}'  id ='imsi_id_{0}' " \
+              "onchange = 'imsiSelected(this)' / > ".format(record.imsi)
+    return safestring.mark_safe(element)
+
+
+class SubscriberManagementTable(tables.Table):
+    """A django-tables2 Table definition for managing the subscriber role."""
+
+    class Meta:
+        model = models.Subscriber
+        fields = ('imsi', 'name_and_imsi', 'last_active', 'numbers', 'role')
+        attrs = {'class': 'table'}
+
+    imsi = CheckBoxColumnWithName(verbose_name='', empty_values=(), )
+    name_and_imsi = tables.Column(
+        empty_values=(), verbose_name='Name / IMSI', order_by=('name',
+                                                               'imsi'))
+    role = tables.Column(empty_values=(), order_by='role')
+    numbers = tables.Column(orderable=False, verbose_name='Number(s)')
+    last_active = tables.Column(verbose_name='Last Active')
+
+    def render_name_and_imsi(self, record):
+        return render_name_and_imsi(record)
+
+    def render_last_active(self, value):
+        return render_last_active(value)
+
+    def render_imsi(self, record):
+        return render_imsi(record)
+
+

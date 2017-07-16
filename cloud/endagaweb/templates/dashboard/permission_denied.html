@@ -1,0 +1,39 @@
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+
+{% load account socialaccount %}
+{% block pagestyle %}
+<style>
+      .form-check-label {
+            font-weight: unset;
+      }
+</style>
+{% endblock %}
+
+{% block headerclass %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="error-template">
+                <font color="#00b8e6" size="30">
+                    403
+                <div class="error-details">
+                        <h2>Sorry! Access Denied :(</h2>
+                </div>
+                </font>
+                 <font color="#737373"><h4>You don't have permission to access this page.</h4></font>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+

@@ -7,7 +7,7 @@ This source code is licensed under the BSD-style license found in the
 LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 {% endcomment %}
-
+{% load guardian_tags %}
 {% load apptags %}
 
 
@@ -27,13 +27,15 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 
 {% block content %}
+{% get_obj_perms request.user for network as 'user_permission' %}
+
 
 <div class="row">
   <div class="col-xs-12 page-header">
     <h3>Graphs</h3>
   </div>
 </div>
-
+{% if 'view_graph' in user_permission %}
 {% if network_has_activity %}
   <div id='sms-usage-chart'></div>
   <div id='call-usage-chart'></div>
@@ -42,7 +44,9 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% else %}
   <p>There is no network activity to display.</p>
 {% endif %}
-
+{% else %}
+  {% include 'dashboard/permission_denied.html' %}
+  {% endif %}
 {% endblock %}
 
 

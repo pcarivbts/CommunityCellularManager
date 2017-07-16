@@ -2,7 +2,7 @@
 {% load apptags %}
 {% load humanize %}
 {% load crispy_forms_tags %}
-
+{% load guardian_tags %}
 
 {% block title %} {% tmpl_const "SITENAME" %} | {{ subscriber.imsi }} Edit {% endblock %}
 
@@ -20,6 +20,7 @@
 
 
 {% block content %}
+{% get_obj_perms request.user for network as 'user_permission' %}
 <div class='modal fade' id='deactivate-number-modal'>
   <div class='modal-dialog'>
     <div class='modal-content'>
@@ -81,7 +82,7 @@
 
 <div class = 'row'>
   {% include "dashboard/subscriber_detail/nav.html" with imsi=subscriber.imsi active_tab='edit'%}
-
+{% if 'edit_subscriber' in user_permission %}
   <div class='content col-xs-12 col-sm-4'>
     <div class='col-sm-10'>
       {% crispy subscriber_info_form %}
@@ -125,6 +126,9 @@
         href='#'>Deactivate Subscriber</a>
     </div>
     {% endif %}  {# /network_version check #}
+      {% else %}
+      {% include 'dashboard/permission_denied.html' %}
+      {% endif %}
   </div>
 
 </div>

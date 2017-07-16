@@ -1,0 +1,320 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+{% load guardian_tags %}
+{% load account socialaccount %}
+{% block pagestyle %}
+<style>
+
+    .form-check-label {
+        font-weight: unset;
+    }
+    .msg {
+        display: none;
+    }
+    .error {
+        color: #a94442;
+    }
+    .success {
+        color: green;
+    }
+    .exists {
+        display:none;
+        color:#a94442;
+    }
+    .no_perm_error {
+        color: #a94442;
+    }
+
+
+</style>
+{% endblock %}
+
+{% block headerclass %}
+
+<body id="add_user">
+<header class="navbar navbar-inverse normal" role="banner">
+    {% endblock %}
+    {% block content %}
+    <div class="row">
+        <div class="col-xs-12 col-sm-12 page-header">
+            <h4 class="page-title">
+                <i class='fa fa-user'></i>
+                Add
+            </h4>
+        </div>
+    </div>
+
+    <div class='row'>
+        {% include "dashboard/user_management/nav.html" with active_tab='add'%}
+        {% get_obj_perms request.user for network as 'user_permission' %}
+        <div class="container col-sm-10">
+            {% for message in messages %}
+            <div class="message alert alert-{{message.tags}}">
+                <a href="#" class="close" data-dismiss="alert">&times;</a>
+                {{message}}
+            </div>
+            {% endfor %}
+            {% if 'user_management' in user_permission %}
+            <form action="/dashboard/user/management" id="user_form" name="user_form" method="POST"
+                      data-toggle="validator" onsubmit="return createUser();"> {% csrf_token %}
+                    <!--Role-->
+                    <div class="form-group row" data-toggle="tooltip" title="Select the user role" required>
+                        <div class="col-xs-5">
+                            <label>Role <span class="aseriskField">*</span></label>
+                            <div class="input-group col-xs-8">
+                                <div class="input-group-addon">
+                                    <i class="glyphicon glyphicon-user"></i>
+                                </div>
+                                <select name="role" id="role" class="form-control" onchange="changeRole(this)" required>
+                                    <option value="">-Select role-</option>
+                                    {% for values in roles %}
+                                    <option value="{{ values }}">{{ values }}</option>
+                                    {% endfor %}
+                                </select>
+
+                            </div>
+                        </div>
+                    </div><!--Role Ends-->
+
+                    <!--Email-->
+                    <div class="form-group row">
+                        <div class="col-xs-5" data-toggle="tooltip" data-placement="left"
+                             title="User email to Add or Edit">
+                            <label for="email" id="ariaLable" class="col-3 col-form-label">Email <span class="aseriskField">*</span></label>
+                            <div class="input-group col-xs-8">
+                                <div class="input-group-addon">
+                                    <i class="glyphicon glyphicon-envelope"></i>
+                                </div>
+                                <input type="hidden" name="valid_email" id="valid_email" value="0"/>
+                                <input class="form-control" type="text" id="email" name="email" placeholder="abc@yourdomain.com" required/>
+                            </div>
+                            <span class="msg error">Not a valid email address</span>
+                             <span class="msg exists"><a href="javascript:editUser();">Edit user</a></span>
+                            <span class="msg success"></span>
+                        </div>
+                    </div><!--Email Ends-->
+
+                <!--Permissions-->
+                    <div class="form-group column">
+                        <div>
+                            <div class="row">
+                                <div class="col-xs-5">
+                                    <label><i class="glyphicon glyphicon-list-alt"></i> Avaliable Permissions on {{ network.name }}</label>
+                                    <select name="available_permissions" id="permissions_left" class="form-control"
+                                            size="10"
+                                            multiple="multiple" data-toggle="tooltip"
+                                            title="Add/Remove the permissions for the user">
+                                        {% for entry in permissions %}
+                                        <option value="{{ entry.id }}">{{ entry.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-xs-2">
+                                    <div>&nbsp;</div>
+                                    <div>&nbsp;</div>
+                                    <button type="button" id="lstview_rightAll" class="btn btn-default btn-block"><i
+                                            class="glyphicon glyphicon-forward"></i></button>
+                                    <button type="button" id="lstview_rightSelected"
+                                            class="btn btn-default btn-block"><i
+                                            class="glyphicon glyphicon-chevron-right"></i></button>
+                                    <button type="button" id="lstview_leftSelected"
+                                            class="btn btn-default btn-block"><i
+                                            class="glyphicon glyphicon-chevron-left"></i></button>
+                                    <button type="button" id="lstview_leftAll" class="btn btn-default btn-block"><i
+                                            class="glyphicon glyphicon-backward"></i></button>
+                                </div>
+                                <div class="col-xs-5">
+                                    <label><i class="glyphicon glyphicon-ok-circle"></i> Selected Permissions on {{ network.name }}<span class="aseriskField"> *</span></label>
+                                    <select name="permissions" id="permissions_right" class="form-control" size="10"
+                                            multiple="multiple"></select>
+                                    <span class="msg no_perm_error">Please assign atleast one permission.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- Permission Ends -->
+                    <div class="row">&nbsp;</div>
+                    <div>
+                        <input type="submit" id="submit" class="btn btn-primary" value="Submit" />
+                    </div>
+                </form>
+            {% else %}
+            {% include 'dashboard/permission_denied.html' %}
+            {% endif %}
+        </div>
+    </div>
+    <div class="row">&nbsp;</div>
+    <div class="row">&nbsp;</div>
+    <div class="row">&nbsp;</div>
+</header>
+{% endblock %}
+{% block js %}
+<!--<script src="/static/js/dashboard/validator.js"></script>-->
+<script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
+<script>
+
+    function changeRole(role) {
+        if (role.value) {
+            $.ajax({
+                url: "/dashboard/user/management/permissions?role=" + role.value
+            }).done(function(response) {
+                moveAllItems('#permissions_right', '#permissions_left');
+
+                $.each(response.permissions, function(key,val){
+
+                    var left = $('#permissions_left option[value="'+val+'"]');
+                    $('#permissions_right').append(left);
+
+                });
+            });
+        } else {
+            moveAllItems('#permissions_right', '#permissions_left');
+        }
+    }
+
+    function moveItems(origin, dest) {
+        $(origin).find(':selected').appendTo(dest);
+        $('.no_perm_error').hide();
+        $('.no_perm_error').parent().removeClass('has-warning');
+    }
+
+    function moveAllItems(origin, dest) {
+        $(origin).children().appendTo(dest);
+        $('.no_perm_error').hide();
+        $('.no_perm_error').parent().removeClass('has-warning');
+    }
+
+    $(document).ready(function() {
+        $("#permissions_row tr:odd").css("background", "#DAE4F0");
+        $("#permissions_row tr:even").css("background", "#eee");
+
+        $('#lstview_rightSelected').click(function () {
+            moveItems('#permissions_left', '#permissions_right');
+        });
+
+        $('#lstview_leftSelected').on('click', function () {
+            moveItems('#permissions_right', '#permissions_left');
+        });
+
+        $('#lstview_leftAll').on('click', function () {
+            moveAllItems('#permissions_right', '#permissions_left');
+        });
+
+        $('#lstview_rightAll').on('click', function () {
+            moveAllItems('#permissions_left', '#permissions_right');
+        });
+
+        // Email validation
+
+        $('form input[name="email"]').blur(function () {
+            $('#email').removeClass('form-control-success');
+            $('#email').removeClass('form-control-warning');
+            var email = $(this).val();
+            var _changeInterval = null;
+            var re = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}/igm;
+            if (re.test(email)) {
+
+                $('.msg').hide();
+                $('.success').show();
+                $('.exists').hide();
+                $('#email').parent().parent().removeClass('has-success');
+                $('#email').parent().parent().removeClass('has-warning');
+
+                // Check if email exists...
+
+                clearInterval(_changeInterval);
+                _changeInterval = setInterval(function() {
+                    clearInterval(_changeInterval)
+                    $.ajax({
+                        url: "/dashboard/user/management/checkuser?email=" + $('#email').val(),
+                    }).done(function(response) {
+                        $('#email').removeClass('form-control-success');
+                        $('#email').removeClass('form-control-warning');
+                        if(response.email_available) {
+                            $('#valid_email').val(1);
+                            $('#email').parent().parent().addClass('has-success');
+                            $('#email').addClass('form-control-success');
+                        } else {
+                            $('#valid_email').val(0);
+                            $('#email').parent().parent().addClass('has-warning');
+                            $('#email').addClass('form-control-warning');
+                            $('.exists').show();
+                        }
+                    });
+                }, 2000);
+
+        } else {
+            $('.msg').hide();
+            $('.error').show();
+            $('.exists').hide();
+        }
+
+        });
+
+        //$('#user_form').validator();
+        $('#user_form').validate({
+            highlight: function(element) {
+                $(element).closest('.form-group').addClass('has-error');
+            },
+            unhighlight: function(element) {
+                $(element).closest('.form-group').removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'help-block',
+            errorPlacement: function(error, element) {
+                if(element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+  });
+    //$('#submit').click(function(){
+    function createUser() {
+        if ($('#permissions_right option').length == 0) {
+            $('.no_perm_error').show();
+            $('.no_perm_error').parent().addClass('has-warning');
+        }
+        if($('#role').val() && $('#valid_email').val() != 0
+        && $('#permissions_right option').length) {
+            var permissions = [];
+            $.each($('#permissions_right option'), function(key, val) {
+                permissions.push($(val).val());
+            });
+            $.ajax({
+                url: "/dashboard/user/management",
+                type: 'POST',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                },
+                data:{
+                    role: $('#role').val(),
+                    email: $('#email').val(),
+                    permissions: permissions.join(",")
+                }
+            }).done(function(response) {
+                window.location.href = '/dashboard/user/management';
+            });
+        }
+        return false;
+    }
+    function editUser() {
+    $.ajax({
+                url: "/dashboard/user/management",
+                type: 'GET',
+                success: function () {
+               window.location.href = '/dashboard/user/management/update?user=' + $('#email').val();
+            },
+                });
+    }
+</script>
+
+{% endblock %}

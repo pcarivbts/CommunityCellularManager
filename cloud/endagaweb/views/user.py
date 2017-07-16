@@ -8,25 +8,32 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 """
 
-from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+import logging
+import re
+
 from allauth.account.utils import user_email
 from allauth.exceptions import ImmediateHttpResponse
-from django.template.context_processors import csrf
-from django.shortcuts import render_to_response, redirect
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.models import User
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.http import HttpResponse, HttpResponseBadRequest
-from django.core.validators import validate_email
-from django.core.exceptions import ValidationError
+from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import ContentType, Permission
+from django.contrib.auth.models import User
+from django.contrib.auth.views import password_reset, password_reset_confirm
 from django.core import urlresolvers
+from django.core.exceptions import ValidationError
+from django.core.urlresolvers import reverse
+from django.core.validators import validate_email
+from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.shortcuts import render_to_response, redirect
+from django.template.context_processors import csrf
 from django.template.loader import get_template
 from django.utils.translation import ugettext_lazy as _
 
 from endagaweb.models import UserProfile
-import logging
 
 logger = logging.getLogger('endagaweb')
 
@@ -107,6 +114,11 @@ def auth_and_login(request):
         next_url = '/dashboard'
         if 'next' in request.POST and request.POST['next']:
             next_url = request.POST['next']
+
+        # Notification, if blocked user is trying to log in
+        if not user.is_active:
+            text = "This user is blocked. Please contact admin."
+            messages.error(request, text)
         return redirect(next_url)
     else:
         text = "Sorry, that email / password combination is not valid."
@@ -219,3 +231,95 @@ def update_notify_numbers(request):
             return redirect("/dashboard/profile")
     return HttpResponseBadRequest()
 
+
+@login_required(login_url='/login/')
+def check_user(request):
+    if request.method == 'GET':
+        context = {}
+        if 'email' in request.GET:
+            if User.objects.filter(email=request.GET['email']).exists():
+                context['email_available'] = False
+            else:
+                context['email_available'] = True
+        elif 'username' in request.GET:
+            if User.objects.filter(username=request.GET['username']).exists():
+                context['username_available'] = False
+            else:
+                context['username_available'] = True
+
+        return JsonResponse(context)
+    return HttpResponseBadRequest()
+
+# This view handles the password reset.
+def reset(request):
+    return password_reset(request,
+                          email_template_name=
+                          'dashboard/user_management/reset_email.html',
+                          subject_template_name=
+                          'dashboard/user_management/reset_subject.txt',
+                          post_reset_redirect=reverse('user-management'))
+
+
+# This view handles the changing password to reset.
+def reset_confirm(request, uidb64=None, token=None):
+    return password_reset_confirm(request, uidb64=uidb64,
+                                  template_name=
+                                  'dashboard/user_management/reset_confirm.html',
+                                  token=token, post_reset_redirect=
+                                  reverse('success'))
+
+
+def success(request):
+    return render(request, "dashboard/user_management/success.html")
+
+
+@login_required(login_url='/login/')
+def role_default_permissions(request):
+    if request.method == 'GET':
+        role = request.GET['role']
+
+        business_analyst = ['view_graph', 'view_report', 'view_bts',
+                            'view_usage', 'view_subscriber',
+                            'view_network']
+
+        loader = ['view_graph', 'view_report', 'view_bts', 'view_subscriber',
+                  'view_network', 'edit_subscriber', 'change_network',
+                  'add_subscriber', 'add_sms', 'add_credit', 'download_graph',
+                  'view_usage']
+
+        partner = ['view_graph', 'view_report', 'view_bts', 'view_subscriber',
+                   'view_network', 'edit_subscriber', 'edit_network',
+                   'add_subscriber', 'add_sms', 'download_graph', 'view_usage']
+
+        content_type = ContentType.objects.filter(
+            app_label='endagaweb', model='network').values_list(
+            'id', flat=True)
+        permission = Permission.objects.filter(
+            content_type__in=content_type).values_list('id', flat=True)
+        role_permission = []
+        if role == 'Business Analyst':
+            role_permission = Permission.objects.filter(
+                codename__in=business_analyst).values_list('id', flat=True)
+        elif role == 'Loader':
+            role_permission = Permission.objects.filter(
+                codename__in=loader).values_list('id', flat=True)
+        elif role == 'Partner':
+            role_permission = Permission.objects.filter(
+                codename__in=partner).values_list('id', flat=True)
+        else:
+            for i in permission:
+                role_permission.append(i)
+
+        return JsonResponse({'permissions': list(role_permission)})
+    return HttpResponseBadRequest()
+
+
+def validate_password_strength(value):
+    """Checks that a submitted value should match regex and return
+        boolean value
+    """
+
+    value = value.lower()
+    regex = "(?=.*[a-zA-Z])(?=.*\\d)(?=.*[!@#$%&*()_+=|<>?{}\\[\\]~-]).{8}"
+    pattern = re.compile(regex)
+    return bool(pattern.match(value))
