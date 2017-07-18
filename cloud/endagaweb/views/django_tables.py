@@ -388,27 +388,6 @@ class DenominationTable(tables.Table):
                    "data-target='#delete-denom-modal' data-toggle='modal'>Delete</a>" % (record.id)
         return safestring.mark_safe(element)
 
-def render_username(record, **kwargs):
-    """Shows the username as a link.
-    kwargs:
-    sender: name for the sender to change on click behaviour"""
-    if kwargs.get('sender') == 'blocking':
-        element = "<a href='javascript:void(0)' id='user_" + str(
-            record.id) + "'" \
-                         " onclick='block(\"%s\",\"%s\");' " \
-                         "data-target='#block-user-modal' data-toggle='modal'>%s</a>" \
-                         % (record.id, record.is_active, html_utils.escape(
-            record.username))
-
-    elif kwargs.get('sender') == 'delete':
-        element = "<a href='javascript:void(0)' id='user_" + str(
-            record.id) + "'" \
-                         " onclick='remove(\"%s\");' " \
-                         "data-target='#delete-user-modal' " \
-                         "data-toggle='modal'>%s</a>" \
-                         % (record.id, html_utils.escape(record.username))
-    return safestring.mark_safe(element)
-
 
 class UserTable(tables.Table):
     """A django-tables2 Table definition for User."""
@@ -426,26 +405,6 @@ class UserTable(tables.Table):
     is_active = tables.BooleanColumn(verbose_name='Active', orderable=True)
     last_login = tables.DateTimeColumn(verbose_name='Last Login', short=True,
                                        orderable=True)
-
-    def render_username(self, record):
-        return render_username(record, sender='delete')
-
-
-class BlockedUserTable(tables.Table):
-    """A django-tables2 Table definition for Blocked User."""
-
-    class Meta:
-        model = models.User
-        fields = ('username', 'is_active')
-        attrs = {'class': 'table'}
-        orderable = False
-
-    username = tables.Column(verbose_name='Username', orderable=True)
-    is_active = tables.BooleanColumn(yesno=u'Active, Blocked',
-                                     verbose_name='Status', orderable=True)
-
-    def render_username(self, record):
-        return render_username(record, sender='blocking')
 
 
 def render_imsi(record):

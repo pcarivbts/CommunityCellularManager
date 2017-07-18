@@ -54,19 +54,15 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="page-title col-xs-2">
                 <h4>
                 <i class='fa fa-user'></i>
-                Add
-            </h4>
-            </div>
-             <h4 class="page-title">
+                User Management
                 <a href='#' data-toggle='modal' data-target='#add-user-modal'>
-                    Users
-                    <small>(add a user)</small>
+                    <small>(Add User)</small>
                 </a>
-            </h4>
+                </h4>
+            </div>
         </div>
     </div>
     <div class='row'>
-        {% include "dashboard/user_management/nav.html" with active_tab='add'%}
         {% get_obj_perms request.user for network as 'user_permission' %}
         <div class="container col-sm-10">
             {% for message in messages %}
@@ -77,25 +73,26 @@ of patent rights can be found in the PATENTS file in the same directory.
             {% endfor %}
             {% if 'user_management' in user_permission %}
             {% render_table users %}
-            <form action="/dashboard/user/management/delete" method="POST"
-              name="user_delete" id="user_delete"> {% csrf_token %}
                 <div class="dropdown actions">
-                                <button class="btn btn-primary dropdown-toggle"
-                                        type="button" data-toggle="dropdown">Action(s)
-                                    <span class="caret"></span>
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li id="action_delete">
-                                        <a data-target='#delete-event-modal'
-                                           data-toggle='modal' href="javascript:void(0);">Delete</a>
-                                    </li>
-                                    <li id="action_edit"><a data-target="#save-event-modal"
-                                                            data-toggle='modal'
-                                                            onclick="editNotification()"
-                                                            href="#">Edit</a></li>
-                                </ul>
-                            </div>
-            </form>
+                    <button class="btn btn-primary dropdown-toggle"
+                            type="button" data-toggle="dropdown">Action(s)
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li id="action_delete">
+                            <a data-target='#delete-event-modal'
+                               data-toggle='modal' href="javascript:void(0);">Delete</a>
+                        </li>
+                        <li id="action_block">
+                            <a data-target='#block-event-modal'
+                               data-toggle='modal' href="javascript:void(0);">Active/Inactive</a>
+                        </li>
+                        <li id="action_edit"><a data-target="#edit-event-modal"
+                                                data-toggle='modal'
+                                                onclick="editNotification()"
+                                                href="#">Edit</a></li>
+                    </ul>
+                </div>
 
             <div class='modal fade' id='add-user-modal'>
                 <div class='modal-dialog'>
@@ -239,6 +236,35 @@ of patent rights can be found in the PATENTS file in the same directory.
         </div>
     </div>
 </div><!-- /.delete-user-modal -->
+
+<div class='modal fade' id='block-event-modal'>
+    <div class='modal-dialog'>
+        <div class='modal-content'>
+            <div class='modal-header'>
+                <button type="button" class="close" data-dismiss="modal"
+                        aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class='modal-title'>
+                    Confirmation
+                </h4>
+            </div>
+            <div class='modal-body'>
+                <h4>
+                    Are you sure you want to update user?
+                </h4>
+            </div>
+            <div class='modal-footer'>
+                <button type='button' class='btn btn-default'
+                        data-dismiss='modal'>Cancel
+                </button>
+                <button class='btn btn-primary' type='button'
+                        id='block-confirm'>Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+</div><!-- /.block-user-modal -->
 
 {% endblock %}
 {% block js %}
@@ -426,8 +452,43 @@ of patent rights can be found in the PATENTS file in the same directory.
                 });
     }
 
-   $('#delete-confirm').click(function () {
-    $('#user_delete').submit();
+    $('#delete-confirm').click(function () {
+    //$('#user_delete').submit();
+    var ids = [];
+    $.each($('input[name=id]:checked'), function(key, element){
+        ids.push($(element).val());
+    });
+    $.ajax({
+        url: "/dashboard/user/management?"+$.param({'ids': ids}),
+        type: 'DELETE',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+        },
+        success: function (response) {
+            $('#delete-user-modal').modal('hide');
+            window.location.href = '/dashboard/user/management';
+        }
+    });
+  });
+
+  $('#block-confirm').click(function () {
+    //$('#user_delete').submit();
+    var ids = [];
+    $.each($('input[name=id]:checked'), function(key, element){
+        ids.push($(element).val());
+    });
+    // Sending UnBlock as Delete request
+    $.ajax({
+        url: "/dashboard/user/management?"+$.param({'block_ids': ids}),
+        type: 'DELETE',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+        },
+        success: function (response) {
+            $('#delete-user-modal').modal('hide');
+            window.location.href = '/dashboard/user/management';
+        }
+    });
   });
   function toggle(source) {
     checkboxes = document.getElementsByName('id');
