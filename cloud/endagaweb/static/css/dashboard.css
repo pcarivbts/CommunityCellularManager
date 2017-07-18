@@ -504,3 +504,22 @@ div.message {
         opacity: 1;
     }
 }
+
+/* Reports chart */
+.nv-label, .nv-legend-text {
+  text-transform: capitalize;
+}
+.nvtooltip {
+  text-transform: capitalize;
+}
+.display td {
+  text-align: center;
+}
+.display td:nth-child(1) {
+  background-color: #eee;
+  font-weight: bold;
+}
+.display td:nth-child(2) {
+  background-color: #eee;
+  font-weight: bold;
+}

@@ -34,6 +34,12 @@ from django.template.loader import get_template
 from django.utils.translation import ugettext_lazy as _
 
 from endagaweb.models import UserProfile
+from django.utils import timezone
+import urlparse
+from guardian.shortcuts import get_objects_for_user
+from endagaweb.forms import dashboard_forms as dform
+from endagaweb import models
+from django.core import exceptions
 
 logger = logging.getLogger('endagaweb')
 
@@ -109,17 +115,30 @@ def auth_and_login(request):
     """Handles POSTed credentials for login."""
     user = authenticate(username=request.POST['email'],
                         password=request.POST['password'])
-    if user:
-        login(request, user)
-        next_url = '/dashboard'
-        if 'next' in request.POST and request.POST['next']:
-            next_url = request.POST['next']
-
-        # Notification, if blocked user is trying to log in
-        if not user.is_active:
+    if user is not None:
+        if user.is_active:
+            login(request, user)
+            user = User.objects.get(username=user)
+            today = timezone.now()
+            user_profile = UserProfile.objects.get(user=user)
+            next_url = '/dashboard'
+            if 'next' in request.POST and request.POST['next']:
+                next_url = request.POST['next']
+            if (today - user_profile.last_pwd_update).days >= \
+                    settings.ENDAGA['PASSSWORD_EXPIRED_LAST_SEVEN_DAYS']:
+                password_expired_day_left = str(settings.ENDAGA['PASSWORD_EXPIRED_DAY']
+                                                - (today - user_profile.last_pwd_update).days)
+                text = '%s, your account will be blocked in next  %s days unless' \
+                       ' change your password' %(user, password_expired_day_left)
+                messages.error(request, text)
+                return redirect(next_url)
+            else:
+                return redirect(next_url)
+        else:
+            # Notification, if blocked user is trying to log in
             text = "This user is blocked. Please contact admin."
             messages.error(request, text)
-        return redirect(next_url)
+            return redirect('/login/')
     else:
         text = "Sorry, that email / password combination is not valid."
         messages.error(request, text)
@@ -135,31 +154,69 @@ def change_password(request):
     required_params = ('old_password', 'new_password1', 'new_password2')
     if not all([param in request.POST for param in required_params]):
         return HttpResponseBadRequest()
-    # Validate
-    redirect_url = '/dashboard/profile'
+    # Validate url for redirect
+    if urlparse.urlparse(request.META['HTTP_REFERER']
+                         ).path != '/dashboard/profile':
+        redirect_url = '/password/change'
+    else:
+        redirect_url = '/dashboard/profile'
     if not request.user.check_password(request.POST['old_password']):
         text = 'Error: old password is incorrect.'
         tags = 'password alert alert-danger'
         messages.error(request, text, extra_tags=tags)
         return redirect(redirect_url)
-    if request.POST['new_password1'] != request.POST['new_password2']:
-        text = 'Error: new passwords do not match.'
-        tags = 'password alert alert-danger'
-        messages.error(request, text, extra_tags=tags)
-        return redirect(redirect_url)
-    if request.POST['new_password1'] == '':
-        text = 'Error: new password is not valid.'
-        tags = 'password alert alert-danger'
-        messages.error(request, text, extra_tags=tags)
-        return redirect(redirect_url)
-    # Everything checks out, change the password.
-    request.user.set_password(request.POST['new_password1'])
-    request.user.save()
-    text = 'Password changed successfully.'
-    tags = 'password alert alert-success'
-    messages.success(request, text, extra_tags=tags)
-    return redirect(redirect_url)
+    try:
+        form = dform.ChangePasswordForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            new_password1 =form.clean_password1()
+            form.save()
+            request.user.set_password(new_password1)
+            user_profile = UserProfile.objects.get(user=request.user)
+            user_profile.last_pwd_update = timezone.now()
+            user_profile.save()
+            request.user.save()
+            text = 'Password changed successfully.'
+            tags = 'password alert alert-success'
+            messages.success(request, text, extra_tags=tags)
+            if urlparse.urlparse(request.META['HTTP_REFERER']
+                                 ).path != '/dashboard/profile':
+                redirect_url = '/dashboard'
+                return redirect(redirect_url)
+            else:
+                return redirect(redirect_url)
+        else:
+            """if form is invalid in scenario if conform password not match with
+            new password, so firstly validate new_password strength and raise execption
+            if password strength is success then give error Error:conform password does
+            not match by default djnago called clean_password2()."""
 
+            form.clean_password1()
+            tags = 'password alert alert-danger'
+            messages.error(request, form.error_message, extra_tags=tags)
+            return redirect(redirect_url)
+    except exceptions.ValidationError as e:
+        tags = 'password alert alert-danger'
+        messages.error(request, ''.join(e.messages), extra_tags=tags)
+        return redirect(redirect_url)
+
+@login_required(login_url='/login/')
+def change_expired_password(request):
+    """Render password change template to change
+        password
+    """
+    user_profile = UserProfile.objects.get(user=request.user)
+    network = user_profile.network
+    context = {
+        'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
+        'user_profile': user_profile,
+        'network': network,
+        'user_profile': user_profile,
+        'change_pass_form': dform.ChangePasswordForm(request.user),
+
+    }
+    template = get_template("dashboard/password_change.html")
+    html = template.render(context, request)
+    return HttpResponse(html)
 
 @login_required(login_url='/login/')
 def update_contact(request):

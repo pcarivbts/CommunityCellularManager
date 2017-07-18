@@ -24,6 +24,7 @@ from django.db.models.functions import Coalesce
 from ccm.common.currency import CURRENCIES
 from endagaweb import models
 from endagaweb.templatetags import apptags
+from django.contrib.auth import password_validation
 
 
 class UpdateContactForm(forms.Form):
@@ -154,6 +155,10 @@ class SubscriberSearchForm(forms.Form):
 
 class ChangePasswordForm(PasswordChangeForm):
     """Change password form visible on user profile page."""
+    """Updated for password validation. """
+
+    error_message = ''
+
     def __init__(self, *args, **kwargs):
         super(ChangePasswordForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
@@ -161,8 +166,26 @@ class ChangePasswordForm(PasswordChangeForm):
         self.helper.form_method = 'post'
         self.helper.form_action = '/account/password/change'
         self.helper.form_class = 'profile-form'
+        self.error_message = ''
         self.helper.add_input(Submit('submit', 'Save'))
 
+    def clean_password1(self):
+        old_password = self.cleaned_data.get("old_password")
+        new_password1 = self.cleaned_data.get("new_password1")
+        if new_password1 and old_password and old_password == new_password1:
+            self.error_message = 'Error: new password must not be old password.'
+            raise forms.ValidationError(self.error_message)
+        password_validation.validate_password(new_password1)
+        return new_password1
+
+    def clean_new_password2(self):
+        password1 = self.cleaned_data.get('new_password1')
+        password2 = self.cleaned_data.get('new_password2')
+        if password1 and password2:
+            if password1 != password2:
+                self.error_message = 'Error:conform password does not match.'
+                raise forms.ValidationError(self.error_message)
+        return password2
 
 class NotifyEmailsForm(forms.Form):
     notify_emails = forms.CharField(required=False, label="",
@@ -209,8 +232,20 @@ class SubVacuumForm(forms.Form):
         label='Automatically delete inactive subscribers',
         help_text=inactive_help_text,
         choices=enabled_choices, widget=forms.RadioSelect())
-    inactive_days = forms.CharField(
-        required=False, label='Outbound inactivity threshold (days)')
+    inactive_days = forms.IntegerField(
+        required=False, label='Outbound inactivity threshold (days)',
+        min_value=0, max_value=10000, widget=
+        forms.TextInput(attrs={'class': 'form-control', 'pattern':'[0-9]+',
+                               'oninvalid':"setCustomValidity('Enter days only!')",
+                               'onchange':"try{"
+                                          "setCustomValidity('')}catch(e){}"}))
+    grace_days = forms.IntegerField(
+        required=False, label='Grace Period (days)', min_value=0,
+        max_value=1000, widget=
+        forms.TextInput(attrs={'class': 'form-control', 'pattern':'[0-9]+',
+                               'oninvalid':"setCustomValidity('Enter days only!')",
+                               'onchange':"try{"
+                                          "setCustomValidity('')}catch(e){}"}))
 
     def __init__(self, *args, **kwargs):
         super(SubVacuumForm, self).__init__(*args, **kwargs)
@@ -222,11 +257,14 @@ class SubVacuumForm(forms.Form):
         # not this feature is active.
         if args[0]['sub_vacuum_enabled']:
             days_field = Field('inactive_days')
+            grace_field = Field('grace_days')
         else:
             days_field = Field('inactive_days', disabled=True)
+            grace_field = Field('grace_days', disabled=True)
         self.helper.layout = Layout(
             'sub_vacuum_enabled',
             days_field,
+            grace_field,
             Submit('submit', 'Save', css_class='pull-right'),
         )
 
@@ -396,3 +434,46 @@ class PasswordResetRequestForm(PasswordResetForm):
     class Meta:
         model = User
         fields = ("email")
+
+
+class NetworkBalanceLimit(forms.Form):
+
+    """Crispy form to set Network balance limit and transaction.
+    set min_value =0.01 so that it will not accept 0 value"""
+
+    max_balance_title = 'Maximum account balance of an imsi within a network.'
+    max_balance = forms.CharField(required=False, label="Maximum Balance Limit",
+                                  max_length=10,
+                                  widget=forms.TextInput(attrs={'title': max_balance_title}))
+    max_unsuccessful_transaction_title ='Maximum  consecutive failure ' \
+                                        'transactions an imsi can perform ' \
+                                        'within 24 hrs.'
+    max_unsuccessful_transaction = forms.CharField(required=False, max_length=3,
+                                                   label='Maximum Permissible '
+                                                         'Unsuccessful Transactions',
+                                                   widget=forms.TextInput
+                                                   (attrs={'title': max_unsuccessful_transaction_title}))
+
+    def __init__(self, *args, **kwargs):
+        super(NetworkBalanceLimit, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_id = 'id-NetworkBalanceLimitForm'
+        self.helper.form_method = 'post'
+        self.helper.form_action = '/dashboard/network/balance-limit'
+        self.helper.form_class = 'col-xs-12 col-sm-8 col-md-12 col-xl-8'
+        self.helper.add_input(Submit('submit', 'Save'))
+        self.helper.layout = Layout('max_balance', 'max_unsuccessful_transaction')
+
+    def clean_network_balance(self):
+        cleaned_data = super(NetworkBalanceLimit, self).clean()
+        max_balance = self.cleaned_data.get('max_balance', None)
+        max_unsuccessful_transaction = self.cleaned_data.\
+            get('max_unsuccessful_transaction', None)
+        if  max_balance == "" and max_unsuccessful_transaction == "":
+            raise forms.ValidationError('Error : please provide value.')
+        if max_balance !="":
+            if( float(max_balance) <= 0):
+                raise forms.ValidationError(
+                    'Error : enter positive and non-zero value ' \
+                    'for maximum balance Limit.')
+        return cleaned_data

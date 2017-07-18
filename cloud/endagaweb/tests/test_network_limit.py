@@ -1,4 +1,4 @@
-"""Tests for models.Users.
+"""Tests for NetworkBalanceLimit form
 
 Copyright (c) 2016-present, Facebook, Inc.
 All rights reserved.
@@ -12,18 +12,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
-
-from datetime import datetime
-from random import randrange
-import uuid
 from django import test
-import json
-
-import pytz
-
 from django.test import TestCase
-
-from ccm.common import crdt
 from endagaweb import models
 
 
@@ -31,15 +21,13 @@ class TestBase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.username = 'y'
-        cls.password = 'pw'
+        cls.username = 'testuser'
+        cls.password = 'testpw'
         cls.user = models.User(username=cls.username, email='y@l.com')
         cls.user.set_password(cls.password)
         cls.user.save()
         cls.user_profile = models.UserProfile.objects.get(user=cls.user)
-
         cls.uuid = "59216199-d664-4b7a-a2db-6f26e9a5d208"
-
         # Create a test client.
         cls.client = test.Client()
 
@@ -64,44 +52,55 @@ class TestBase(TestCase):
         self.client.get('/logout')
 
 
-class DenominationUITest(TestBase):
-    """Testing that we can add User in the UI."""
+class NetworkLimitUITest(TestBase):
+    """Testing Network Limit UI."""
 
-    def test_add_denominaton(self):
+    def test_network_balance_limit_unauth_get_request(self):
         self.logout()
-        response = self.client.get('/dashboard/network/denominations')
-        # Anonymous User can not see this page so returning  permission denied.
+        response = self.client.get('/dashboard/network/balance-limit')
         self.assertEqual(302, response.status_code)
 
-    def test_add_denominaton_auth(self):
+    def test_network_balance_limit_auth_get_request(self):
         self.login()
-        response = self.client.get('/dashboard/network/denominations')
+        response = self.client.get('/dashboard/network/balance-limit')
         self.assertEqual(200, response.status_code)
 
-    def test_delete_denominaton(self):
-        self.logout()
-        response = self.client.delete('/dashboard/network/denominations')
-        # Anonymous User can not see this page so returning  permission denied.
-        self.assertEqual(302, response.status_code)
-
-    def test_delete_denominaton_auth(self):
-        self.login()
-        response = self.client.delete('/dashboard/network/denominations')
-        self.assertEqual(200, response.status_code)
-
-    def test_post_add_denominaton(self):
-        self.logout()
-        data = {}
-        response = self.client.post('/dashboard/network/denominations', data)
-        # Anonymous User can not see this page so returning  permission denied.
-        self.assertEqual(302, response.status_code)
-
-    def test_post_add_denominaton_auth(self):
+    def test_post_bad_response_with_invalid_input_limits(self):
         self.login()
         data = {
-            'start_amount': 1,
-            'end_amount': 2,
-            'validity_days': 3
+            'max_balances': 1,
+            'max_unsuccessful_transaction': 2,
+
         }
-        response = self.client.post('/dashboard/network/denominations', data)
+        response = self.client.post('/dashboard/network/balance-limit', data)
+        self.assertEqual(400, response.status_code)
+
+    def test_post_bad_response_with_invalid_input_transactions(self):
+        self.login()
+        data = {
+            'max_balance': 1,
+            'max_unsuccessful_transactions': 2,
+
+        }
+        response = self.client.post('/dashboard/network/balance-limit', data)
+        self.assertEqual(400, response.status_code)
+
+    def test_post_response_redirect_status_code(self):
+        self.login()
+        data = {
+            'max_balance': 4,
+            'max_unsuccessful_transaction': 6,
+
+        }
+        response = self.client.post('/dashboard/network/balance-limit', data)
         self.assertEqual(302, response.status_code)
+
+    def test_post_response_redirect_url(self):
+        self.login()
+        data = {
+            'max_balance': 4,
+            'max_unsuccessful_transaction': 6,
+
+        }
+        response = self.client.post('/dashboard/network/balance-limit', data)
+        self.assertEqual('/dashboard/network/balance-limit', response.url)

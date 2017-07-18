@@ -148,8 +148,10 @@ of patent rights can be found in the PATENTS file in the same directory.
       var sub_vacuum_enabled = 'True' == $('form input[name=sub_vacuum_enabled]:checked').val();
       if (sub_vacuum_enabled) {
         $('#id_inactive_days').prop('disabled', false);
+        $('#id_grace_days').prop('disabled', false);
       } else {
         $('#id_inactive_days').prop('disabled', true);
+        $('#id_grace_days').prop('disabled', true);
       }
     });
   });

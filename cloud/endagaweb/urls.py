@@ -84,11 +84,13 @@ urlpatterns = [
     url(r'^account/', endagaweb.views.dashboard.DashboardView.as_view(),
         name='dashboard-view'),
     url(r'^logout/$', django.contrib.auth.views.logout, {'next_page': '/'}),
+    # Added for ExpiredPassword
+    url(r'^password/change', endagaweb.views.user.change_expired_password),
 
     # Dashboard.
     url(r'^dashboard/card', endagaweb.views.dashboard.addcard),
     url(r'^addmoney/', endagaweb.views.dashboard.addmoney),
-    url(r'^dashboard/billing', endagaweb.views.dashboard.billing_view),
+    url(r'^dashboard/billing$', endagaweb.views.dashboard.billing_view),
     url(r'^dashboard/profile', endagaweb.views.dashboard.profile_view),
     # Tower views in the dashboard.
     # /towers -- GET a list of towers or POST here to add one
@@ -193,10 +195,26 @@ urlpatterns = [
         name='network-edit'),
     url(r'^dashboard/network/select/(?P<network_id>[0-9]+)$',
         endagaweb.views.network.NetworkSelectView.as_view()),
+    # Added for network balance limit
+    url(r'^dashboard/network/balance-limit',
+        endagaweb.views.network.NetworkBalanceLimit.as_view(),
+        name='network_balance_limit'),
     # The activity table.
     url(r'^dashboard/activity',
         endagaweb.views.dashboard.ActivityView.as_view(),
         name='network-activity'),
+    url(r'^dashboard/reports/calls',
+        endagaweb.views.reports.CallReportView.as_view(),
+        name='call-report'),
+    url(r'^dashboard/reports/subscriber',
+        endagaweb.views.reports.SubscriberReportView.as_view(),
+        name='subscriber-report'),
+    url(r'^report/downloadcsv',
+        endagaweb.views.reports.ReportGraphDownload.as_view(),
+        ),
+    url(r'^dashboard/reports/billing',
+        endagaweb.views.reports.BillingReportView.as_view(),
+        name='billing-report'),
 
     # Raise a server error on-demand to test the 500 template.
     url(r'^insta-five-hundred$',
