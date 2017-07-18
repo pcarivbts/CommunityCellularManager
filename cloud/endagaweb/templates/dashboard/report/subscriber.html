@@ -8,6 +8,7 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 {% endcomment %}
 {% load apptags %}
+{% load guardian_tags %}
 
 {% block title %}
 {% tmpl_const "SITENAME" %} | towers
@@ -20,24 +21,27 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endblock %}
 
 {% block content %}
-    {% include "dashboard/report/header.html" with header='Subscriber' %}
-
+{% include "dashboard/report/header.html" with header='Subscriber' %}
+{% get_obj_perms request.user for network as 'user_permission' %}
 <div class='row'>
-  {% include "dashboard/report/nav.html" with active_tab='subscriber_reports' %}
-  <div class='content col-xs-12 col-sm-10 col-md-10'>
-    {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/subscriber' %}
-    {% if network_has_activity %}
-    <div class="row">
-      <div id='subscriber-chart'></div>
-      <div id='subscriber-status'></div>
-    </div>
-    {% include 'dashboard/timezone-notice.html' %}
+    {% include "dashboard/report/nav.html" with active_tab='subscriber_reports' %}
+    {% if 'view_graph' in user_permission %}
+    <div class='content col-xs-12 col-sm-10 col-md-10'>
+        {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/subscriber' %}
+        {% if network_has_activity %}
+        <div class="row">
+            <div id='subscriber-chart'></div>
+        <div id='subscriber-status'></div>
+        </div>
+        {% include 'dashboard/timezone-notice.html' %}
+        {% else %}
+        <p>There is no network activity to display.</p>
+        {% endif %}
+    </div> <!-- /.col-md-4 -->
     {% else %}
-    <p>There is no network activity to display.</p>
+    {% include 'dashboard/permission_denied.html' %}
     {% endif %}
-  </div> <!-- /.col-md-4 -->
 </div>
-
 {% endblock %}
 {% block js %}
 <script>

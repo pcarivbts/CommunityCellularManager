@@ -8,18 +8,16 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 """
 
-from datetime import datetime
 import time
-
+from datetime import datetime, timedelta
 from operator import itemgetter
-from django.db.models import aggregates
-from django.db.models import Q
+
 import pytz
 import qsstats
-
+from dateutil.rrule import rrule, MONTHLY
+from django.db.models import Q
+from django.db.models import aggregates
 from endagaweb import models
-
-
 
 CALL_KINDS = [
     'local_call', 'local_recv_call', 'outside_call', 'incoming_call',

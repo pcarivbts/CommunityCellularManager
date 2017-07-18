@@ -10,7 +10,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load apptags %}
 {% load humanize %}
 {% load crispy_forms_tags %}
-
+{% load guardian_tags %}
 
 {% block title %}
     {% tmpl_const "SITENAME" %} | Report
@@ -34,10 +34,12 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 {% block content %}
     {% include "dashboard/report/header.html" with header='Billing'  %}
+    {% get_obj_perms request.user for network as 'user_permission' %}
 
     <div class='row'>
 
         {% include "dashboard/report/nav.html" with active_tab='billing_reports' %}
+        {% if 'view_graph' in user_permission %}
         <div class='content col-xs-12 col-sm-10 col-md-10'>
             {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/billing' %}
             {% if network_has_activity %}
@@ -77,6 +79,14 @@ of patent rights can be found in the PATENTS file in the same directory.
               </div>
             </div>
             {% endif %}
+            {% if 'Average Load' in reports %}
+            <div class="row">&nbsp;</div>
+            <div class="row">
+              <div id="average_load">
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Average Load" id="waterfall_average_load" %}
+              </div>
+            </div>
+            {% endif %}
             {% if 'Average Frequency' in reports %}
             <div class="row">&nbsp;</div>
             <div class="row">
@@ -85,14 +95,23 @@ of patent rights can be found in the PATENTS file in the same directory.
               </div>
             </div>
             {% endif %}
+
+            {% if 'Total Base' in reports %}
+            <div class="row">
+              <div id="non_loader_base">
+                <h4>Non Loader Report - Total Base</h4>
+                <table id="non_loader_total_base"></table>
+                <div id='non-loder-base'></div>
+              </div>
+            </div>
+            {% endif %}
+
             <div class="row">
                 <div id='add-money-usage-chart'></div>
                 <div id='load-transfer-usage-chart'></div>
                 <div id='sms-usage-chart'></div>
                 <div id='call-sms-usage-chart'></div>
                 <div id='call-usage-chart'></div>
-                <table id="jqGrid"></table>
-                <div id="jqGridPager"></div>
             </div>
 
             {% else %}
@@ -103,6 +122,9 @@ of patent rights can be found in the PATENTS file in the same directory.
             </div>
 
         </div> <!-- /.col-md-4 -->
+        {% else %}
+        {% include 'dashboard/permission_denied.html' %}
+        {% endif %}
     </div>
 {% endblock %}
 
@@ -213,7 +235,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     <TimeseriesChartWithButtonsAndDatePickers
       title='Retailer Recharge Report'
       chartID='add-money-chart'
-      statTypes='add-money'
+      statTypes='add_money'
       level='{{ level }}'
       levelID='{{ level_id }}'
       aggregation='transaction_sum'
@@ -221,8 +243,8 @@ of patent rights can be found in the PATENTS file in the same directory.
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       chartType='bar-chart'
-      tooltipUnits='s of'
-      frontTooltip='{{ value_type }}'
+      tooltipUnits=' added'
+      frontTooltip=' {{ value_type }} '
     />,
     document.getElementById('add-money-usage-chart')
   );
@@ -232,15 +254,14 @@ of patent rights can be found in the PATENTS file in the same directory.
     <TimeseriesChartWithButtonsAndDatePickers
       title='Waterfall Activation Report'
       chartID='summary-chart'
-      statTypes='provisioned'
+      statTypes='Provisioned'
       level='{{ level }}'
       levelID='{{ level_id }}'
       aggregation='valid_through'
       yAxisLabel='numbers of activation'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
-      tooltipUnits='s of'
-      frontTooltip='{{ value_type }}'
+      tooltipUnits=' subscriber'
       chartType='line-chart'
     />,
     document.getElementById('billing-waterfall-summary-chart')
@@ -341,19 +362,33 @@ function renderTable(reportId, tableId) {
       var tableHeader = data['results'][0]['values']['header'];
       var tableData = data['results'][0]['values']['data'];
 
-      var row_width = $("#"+reportId).width();
+      var header = [];
+      var row_width_total = 0;
+
+      $.each(data['results'][0]['values']['header'], function(index, value){
+        value['width'] = 80;
+        value['align'] = 'center';
+        header.push(value);
+        row_width_total += 80;
+      });
+
+      var row_width = parseInt($("#"+reportId).width()) - 50;
+      var shrink = true;
+      if (row_width_total > row_width) {
+        shrink = false;
+      }
       var options = {
-        colModel: tableHeader,
+        colModel: header, //tableHeader,
         data: tableData,
         viewrecords: true,
         width: row_width,
         height: 'auto',
-        rowNum: 18,
         datatype: 'local',
-        shrinkToFit: true
+        "scrollY": true,
+        shrinkToFit: shrink
       };
-      var element = '#'+tableId;
 
+      var element = '#'+tableId;
       var grid = $(element);
 
       if(grid[0].grid == undefined) {
@@ -367,40 +402,71 @@ function renderTable(reportId, tableId) {
     });
   }).click();
 }
+
+function renderNonLoder() {
+  var queryParams = {
+      'stat-types': 'non_loader_base',
+      'interval': 'months',
+      'level-id':{{ level_id }},
+      'aggregation': 'non_loader_base'
+    };
+    var endpoint = '/api/v1/stats/{{ level }}';
+    $.get(endpoint, queryParams, function(data) {
+
+      var tableHeader = data['results'][0]['values']['header'];
+      var tableData = data['results'][0]['values']['data'];
+
+      var header = [];
+      var row_width_total = 0;
+
+      $.each(data['results'][0]['values']['header'], function(index, value){
+        value['width'] = 80;
+        value['align'] = 'center';
+        header.push(value);
+        row_width_total += 80;
+      });
+
+      //var row_width = $("#non_loader_base").width();
+      var row_width = parseInt($("#non_loader_base").width()) - 100;
+      var shrink = true;
+      if (row_width_total > row_width) {
+        shrink = false;
+      }
+      var options = {
+        colModel: header, //tableHeader,
+        data: tableData,
+        viewrecords: true,
+        //width: row_width,
+        height: 'auto',
+        datatype: 'local',
+        "scrollX": true,
+        "scrollY": true,
+        shrinkToFit: shrink
+      };
+      var element = '#non_loader_total_base';
+
+      var grid = $(element);
+
+      if(grid[0].grid == undefined) {
+        grid.jqGrid(options);
+      } else {
+        delete grid;
+        $(element).GridUnload(element);
+        $(element).jqGrid(options);
+        $(element).jqGrid("setFrozenColumns");
+      }
+    });
+}
 $(document).ready(function() {
 
   renderTable('loader', 'waterfall_loader');
   renderTable('reload_rate', 'waterfall_reload_rate');
   renderTable('reload_amount', 'waterfall_reload_amount');
   renderTable('reload_transaction', 'waterfall_reload_transaction');
+  renderTable('average_load', 'waterfall_average_load');
   renderTable('average_frequency', 'waterfall_average_frequency');
-      //$('#'+reportId+' .table').html('');
-      $('#'+reportId+' .table').DataTable({
-        data: tableData,
-        paging:   false,
-        ordering: false,
-        info:     false,
-        searching: false,
-        //autoWidth: true,
-        scrollY: 500,
-        //scrollX: 'auto',
-        destroy: true,
-        columns: tableHeader,
-        scrollX: true,
-        // fixedColumns: true
-        // fixedColumns: {leftColumns: 2}
-      });
-    });
-  }).click();
 
-}
-$(document).ready(function() {
-
-  renderTable('loader');
-  renderTable('reload_rate');
-  renderTable('reload_amount');
-  renderTable('reload_transaction');
-  renderTable('average_frequency');
+  //renderNonLoder();
 
 });
 </script>

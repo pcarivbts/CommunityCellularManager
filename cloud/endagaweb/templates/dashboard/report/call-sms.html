@@ -10,6 +10,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load apptags %}
 {% load humanize %}
 {% load crispy_forms_tags %}
+{% load guardian_tags %}
 
 
 {% block title %}
@@ -26,33 +27,35 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endblock %}
 
 {% block content %}
-    {% include "dashboard/report/header.html" with header='Call & SMS' %}
-
-    <div class='row'>
-        {% include "dashboard/report/nav.html" with active_tab='call_sms' %}
-
-        <div class='content col-xs-12 col-sm-10 col-md-10'>
-
-            {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/calls' %}
-            {% if network_has_activity %}
-            <div class="row">
-              <div id='sms-usage-chart'></div>
-            </div>
-            <div class="row">
-              <div id='call-number-chart'></div>
-            </div>
-            <div class="row">
-              <div id='call-minutes-chart'></div>
-            </div>
-            
-            <div class="row">
-                {% include 'dashboard/timezone-notice.html' %}
-            </div>
-            {% else %}
-                <p>There is no network activity to display.</p>
+{% include "dashboard/report/header.html" with header='Call & SMS' %}
+{% get_obj_perms request.user for network as 'user_permission' %}
+<div class='row'>
+    {% include "dashboard/report/nav.html" with active_tab='call_sms' %}
+    {% if 'view_graph' in user_permission %}
+    <div class='content col-xs-12 col-sm-10 col-md-10'>
+        {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/calls' %}
+        {% if network_has_activity %}
+        <div class="row">
+            <div id='sms-usage-chart'></div>
+        </div>
+        <div class="row">
+            <div id='call-number-chart'></div>
+        </div>
+        <div class="row">
+            <div id='call-minutes-chart'></div>
+        </div>
+        <div class="row">
+            {% include 'dashboard/timezone-notice.html' %}
+        </div>
+        {% else %}
+        <p>There is no network activity to display.</p>
             {% endif %}
         </div> <!-- /.col-md-4 -->
-    </div>
+    {% else %}
+    {% include 'dashboard/permission_denied.html' %}
+    {% endif %}
+</div>
+
 {% endblock %}
 
 
