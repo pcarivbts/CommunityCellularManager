@@ -306,6 +306,7 @@ class SubscriberInfo(ProtectedView):
             'currency': CURRENCIES[network.subscriber_currency],
             'user_profile': user_profile,
             'subscriber': subscriber,
+            'valid_through': subscriber.valid_through
         }
         try:
             context['created'] = subscriber.usageevent_set.order_by(
