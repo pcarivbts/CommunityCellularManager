@@ -326,11 +326,13 @@ SESSION_COOKIE_SECURE = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
 
+# I18 integration for internationalization and localization
 USE_I18N = True
-
 LANGUAGES = (
     ('en', translate('English')),
-    ('fil', translate('Filipino'))
+    ('fil', translate('Filipino')),
+    ('es', translate('Spanish')),
+    ('id', translate('Indonesian'))
 )
 # Set the default language for your site.
 LANGUAGE_CODE = 'en'
