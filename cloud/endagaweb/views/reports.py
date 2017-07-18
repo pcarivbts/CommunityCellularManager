@@ -74,7 +74,7 @@ class BaseReport(ProtectedView):
                 request.session['level'] = "network"
                 request.session['level_id'] = network.id
             request.session['reports'] = request.POST.getlist('reports', None)
-            filter = request.POST.get('filter', None)
+            filter = request.session['filter']
             request.session['filter'] = filter
 
             # We always just do a redirect to GET. We include page reference
@@ -89,23 +89,32 @@ class BaseReport(ProtectedView):
                     request.session['reports'] = self.reports[filter]
                 request.session['filter'] = filter
             else:
+                request.session['level_id'] = request.GET.get('level_id')
                 request.session['reports'] = report_list
                 request.session['filter'] = None
+                request.session['level'] =request.GET.get('level','network')
             # Reset filtering params.
-            request.session['level'] = 'network'
+            #request.session['level'] = 'network'
             if self.url_namespace == 'subscriber-report':
-                request.session['level'] = 'network'
-            request.session['level_id'] = network.id
+                if request.session['level']!=None:
+                    request.session['level'] = request.session['level']
+                else:
+                    request.session['level'] = request.GET.get('level','network')
+
+            request.session['level_id'] =  request.session['level_id']
 
         else:
             return HttpResponseBadRequest()
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
             datetime.datetime.now()).total_seconds()
         level = request.session['level']
-        level_id = int(request.session['level_id'])
+        if request.session['level_id'] !=None:
+            level_id = int(request.session['level_id'])
+        else:
+            level_id = network.id
+        #print("check level_id",level_id)
         reports = request.session['reports']
         filter = request.session['filter']
-
         towers = models.BTS.objects.filter(network=user_profile.network).\
             order_by('id').values('nickname', 'uuid', 'id')
         network_has_activity = UsageEvent.objects.filter(

@@ -19,6 +19,7 @@ from dateutil.rrule import rrule, MONTHLY
 from django.db.models import Q
 from django.db.models import aggregates
 from endagaweb import models
+from decimal import *
 
 CALL_KINDS = [
     'local_call', 'local_recv_call', 'outside_call', 'incoming_call',
@@ -229,11 +230,12 @@ class StatsClientBase(object):
         datetimes, values = zip(*timeseries)
         if report_view == 'summary':
             # Return sum count for pie-chart and table view
+            #print("oooooooooooooooooooooo",aggregation)
             if aggregation == 'transaction_sum':
                 # When kind is change
                 return sum(values) * 0.000001
             elif aggregation == 'duration_minute':
-                return (sum(values) / 60) or 0
+                return (sum(values) / 60.00) or 0
             else:
                 return sum(values)
 

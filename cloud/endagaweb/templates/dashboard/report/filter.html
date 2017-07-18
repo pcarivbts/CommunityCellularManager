@@ -6,10 +6,13 @@
             {% csrf_token %}
 
             <div class="form-group col-md-12">
+                {% if filter != 'SMS' %}
                 <label class="control-label col-md-1">Reports</label>
-                <div class="col-md-11" style="padding-left: 0px;">    
+                <div class="col-md-11" style="padding-left: 0px;">
+
                 {% for key, values in report_list.items %}
                 {% if filter == key %}
+
                     {% for report in values %}
                         <label class="checkbox checkbox-inline" style="padding-top: 0px;">
                             <input id="checkbox" type="checkbox" name="reports" value="{{ report }}"
@@ -17,9 +20,12 @@
                            {{ report }}
                         </label>
                     {% endfor %}
+
                 {% endif %}
                 {% endfor %}
+
                 </div>
+                 {% endif %}
             </div>
 
             <div class="form-group col-md-12" id="bts_list" {% if not level_id %} style="display: none;" {% endif %}>
@@ -64,7 +70,7 @@
             </div>
             {% endif %}
         </form>
-        <canvas id="canvas" style="display: none;"></canvas>
+
     </div>
 </div>
 {% endif %}

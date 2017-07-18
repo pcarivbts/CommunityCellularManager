@@ -22,7 +22,8 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       activeButtonText: '',
       xAxisFormatter: '%x',
       yAxisFormatter: '',
-      activeView:''
+      activeView:'',
+      tablesColumnValueName:''
     }
   },
   getDefaultProps: function() {
@@ -171,7 +172,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
   // First figure out how to set the interval (or, more aptly, the bin width)
   // and the x-axis formatter (see the d3 wiki on time formatting).
   updateChartData: function() {
-    var interval, newXAxisFormatter, newYAxisFormatter;
+    var interval, newXAxisFormatter, newYAxisFormatter, tablesColumnValueName;
     var delta = this.state.endTimeEpoch - this.state.startTimeEpoch;
     if (delta <= 60) {
       interval = 'seconds';
@@ -200,6 +201,46 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
     } else {
       newYAxisFormatter = '';
     }
+    if(this.props.chartID == 'call-chart' | this.props.chartID =='sms-chart'){
+    newYAxisFormatter = 'd';
+    tablesColumnValueName =[
+          { title: "Type" },
+          { title: "Count" }
+      ]
+    }
+   else if(this.props.chartID == 'data-chart'){
+        newYAxisFormatter = '.2f';
+        tablesColumnValueName = [
+          { title: "Type" },
+          { title: "Minutes" }
+      ]
+
+    }
+  else if (this.props.chartID == 'topupSubscriber-chart'){
+        newYAxisFormatter = '.2f';
+        tablesColumnValueName = [
+          { title: "Denomination bracket" },
+          { title: "Amount in" }
+      ]
+
+    }
+
+      else if (this.props.chartID == 'topup-chart'){
+        newYAxisFormatter = '.2f';
+        tablesColumnValueName = [
+          { title: "Denomination bracket" },
+          { title: "Count" }
+      ]
+
+    }
+
+
+    else{
+            tablesColumnValueName = [
+          { title: "Type" },
+          { title: "Count" }
+      ]
+    }
     var queryParams = {
       'start-time-epoch': this.state.startTimeEpoch,
       'end-time-epoch': this.state.endTimeEpoch,
@@ -219,6 +260,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
         chartData: data,
         xAxisFormatter: newXAxisFormatter,
         yAxisFormatter: newYAxisFormatter,
+        tablesColumnValueName: tablesColumnValueName,
       });
     }.bind(this));
   },
@@ -289,6 +331,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
           frontTooltip={this.props.frontTooltip}
           chartType={this.props.chartType}
           activeView={this.state.activeView}
+          tablesColumnValueName={this.state.tablesColumnValueName}
         />
       </div>
     );
@@ -310,7 +353,7 @@ var add = function (a, b){
 
 // Builds the target chart from scratch.  NVD3 surprisingly handles this well.
 // domTarget is the SVG element's parent and data is the info that will be graphed.
-var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxisLabel, timezoneOffset, tooltipUnits, frontTooltip, chartType, domTargetId) {
+var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxisLabel, timezoneOffset, tooltipUnits, frontTooltip, chartType, domTargetId, tablesColumnValueName) {
   // We pass in the timezone offset and calculate a locale offset.  The former
   // is based on the UserProfile's specified timezone and the latter is the user's
   // computer's timezone offset.  We manually shift the data to work around
@@ -321,6 +364,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
   var shiftedData = [];
   var changeAmount = [];
   var tableData = [];
+
 
   for (var index in data) {
     var newSeries = { 'key': data[index]['key'] };
@@ -341,20 +385,59 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
       changeAmount = []
       // sum can be of all negative values
       if ( sumAmount < 0 ){
+      console.log("tttttt");
       newSeries['total'] = (sumAmount * -1);
       }
       else{
+  //    console.log("qqqq");
       newSeries['total'] = (sumAmount);
       }
+      console.log("wwww");
       newSeries['values'] = newValues;
     } else {
-      newSeries['total'] = data[index]['values'];
+         if(domTargetId =='data-chart' || domTargetId =='add-money-chart' || domTargetId =='call-sms-chart'  || domTargetId == 'topupSubscriber-chart' ){
+         newSeries['total'] = (data[index]['values'].toFixed(2));
+
+         }else{
+
+         newSeries['total'] = data[index]['values']
+         }
+
+
     }
+
     tableData.push([newSeries['key'], newSeries['total']]);
+
     shiftedData.push(newSeries);
+    console.log("frontTooltip ", frontTooltip)
+    if(frontTooltip!="" && domTargetId =='topupSubscriber-chart'){
+
+    tablesColumnValueName = [
+          { title: "Denomination bracket" },
+          { title: "Amount in ("+ frontTooltip +")" }
+      ]
+    }
+    else if (frontTooltip!="" &&   domTargetId =='add-money-chart' || domTargetId =='call-sms-chart'  ){
+   // console.log("dcdcdcddddddddddddd ",tableData)
+
+
+     tablesColumnValueName = [
+          { title: "Type" },
+          { title: "Amount in ("+ frontTooltip +")" }
+      ]
+
+    }
+
+    else{
+
+    tablesColumnValueName = tablesColumnValueName
+    }
+
   }
+   //console.log("qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq",this.props.chartID == 'topupSubscriber-chart')
 
   $('.'+domTargetId).DataTable({
+
       data: tableData,
       paging:   false,
       ordering: false,
@@ -363,22 +446,21 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
       autoWidth: true,
       scrollY: 320,
       destroy: true,
-      columns: [
-          { title: "Title" },
-          { title: "Value" }
-      ]
+
+      columns: tablesColumnValueName
   });
 
   
   nv.addGraph(function() {
     if(chartType == 'pie-chart') {
         var chart = nv.models.pieChart()
-            .x(function(d) { return d.key.replace('_'," "); })
+            .x(function(d) { return d.key.replace(/[_]/g,' '); })
             .y(function(d) { return d.total; })
             .showLabels(true)
             .labelType("percent");
 
         chart.tooltipContent(function(key, x, y) {
+        chart.valueFormat(d3.format(yAxisFormatter));
             return '<p><h3>'+ key + '</p></h3>' + '<center>'+ '<b>' + '<h4>' + frontTooltip + x + '</center>'+ '</b>' + '<h4>'
         });
 
@@ -481,7 +563,9 @@ var TimeseriesChart = React.createClass({
       frontTooltip: '',
       tooltipUnits: '',
       chartType:'',
-      activeView:''
+      activeView:'',
+      tablesColumnValueName:''
+
     }
   },
 
@@ -554,7 +638,8 @@ var TimeSeriesChartElement = React.createClass({
         this.props.tooltipUnits,
         this.props.frontTooltip,
         this.props.chartType,
-        this.props.chartID
+        this.props.chartID,
+       nextProps.tablesColumnValueName
       );
     }
     return false;
@@ -721,7 +806,6 @@ var DownloadButton = React.createClass({
 
       var width = $("#"+domTargetId).width();
       var height = $("#"+domTargetId).height();
-
       var canvas = document.getElementById('canvas');
       canvas.width = width;
       canvas.height = height;
@@ -842,7 +926,8 @@ var Table = React.createClass({
         this.props.tooltipUnits,
         this.props.frontTooltip,
         this.props.chartType,
-        this.props.chartID
+        this.props.chartID,
+        nextProps.tablesColumnValueName
       );
     }
     return false;
