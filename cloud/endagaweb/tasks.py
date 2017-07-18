@@ -439,3 +439,20 @@ def req_bts_log(self, obj, retry_delay=60*10, max_retries=432):
         raise
     finally:
       obj.save()
+
+
+@app.task(bind=True)
+def unblock_blocked_subscribers(self):
+    """Unblock subscribers who are blocked for past 24 hrs.
+
+    This runs this as a periodic task managed by celerybeat.
+    """
+    unblock_time = django.utils.timezone.now() - datetime.timedelta(days=1)
+    subscribers = Subscriber.objects.filter(is_blocked=True,
+                                            block_time__lte=unblock_time)
+    if not subscribers:
+        return  # Do nothing
+    print 'Unblocking subscribers %s blocked for past 24 hours' % (
+        [subscriber.imsi for subscriber in subscribers], )
+    subscribers.update(is_blocked=False, block_time=None,
+                       block_reason='No reason to block yet!')
