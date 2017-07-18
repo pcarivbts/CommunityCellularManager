@@ -1,0 +1,75 @@
+
+<div class="row panel">
+    <div class="container-fluid">
+        <form action="{{ action_url }}" class="form-horizontal"
+              method="post" role="form" onsubmit="setloading()">
+            {% csrf_token %}
+            {% if report_list %}
+            <div class="form-group col-md-12">
+                <label class="control-label col-md-1">Reports</label>
+                <div class="col-md-11" style="padding-left: 0px;">    
+                    {% for key, values in report_list.items %}
+                <div class="col-md-12" style="padding-left: 0px;">
+                       <div class="col-md-1">
+                        <span class="label label-default">{{ key }}</span>
+                       </div>
+                    {% for report in values %}
+                    <div class="col-md-2">
+                        <label class="checkbox checkbox-inline" style="padding-top: 0px;">
+                            <input id="checkbox" type="checkbox" name="reports" value="{{ report }}" 
+                                   {% if report in reports %} checked="checked" {% endif %}>
+                           {{ report }}
+                        </label>
+                    </div>
+                    {% endfor %}
+
+                    <div></div>
+                </div>
+                    {% endfor %}
+                    </div>
+            </div>
+            {% endif %}
+            <div class="form-group col-md-12" id="bts_list" {% if not level_id %} style="display: none;" {% endif %}>
+                <label class="control-label col-md-1">Tower</label>
+                <div class="col-md-5">
+                    <select name="level_id" class="form-control">
+                      <option value="">All Towers</option>
+                      {% if towers %} 
+                        {% for tower in towers %} 
+                        {% if tower.id == level_id and level == 'tower' %}
+                        <option value="{{ tower.id }}" selected="selected">{{ tower.nickname }} ( {{tower.uuid}} )</option>
+                        {% else %} 
+                        <option value="{{ tower.id }}">{{ tower.nickname }} ( {{tower.uuid}} )</option>
+                        {% endif %}
+                        {% endfor %}
+                      {% endif %} 
+                    </select>
+                </div>
+                {% if 'Amount Based' not in reports and 'Count Based' not in reports %}
+                <div class="col-md-3">
+                    <button id="submit" type="submit" name="submit" value="Filter"
+                            class="btn btn-primary col-md-4">Filter
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            {% if 'Amount Based' in reports or 'Count Based' in reports %}
+            <div class="form-group col-md-12">
+                <label class="control-label col-md-1">Top&nbsp;Transfers</label>
+                <div class="col-md-5">
+                    <span class="input-group ">
+                    <input name="top_percent" id="top_percent" type="number" class="form-control" min="1" max="100" placeholder="percentage value" value="{{ topup_percent }}">
+                    <span class="input-group-addon">%</span>
+                    </span>
+                </div>
+                <div class="col-md-3">
+                    <button id="submit" type="submit" name="submit" value="Filter"
+                            class="btn btn-primary col-md-4">Filter
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+        </form>
+        <canvas id="canvas" style="display: none;"></canvas>
+    </div>
+</div>

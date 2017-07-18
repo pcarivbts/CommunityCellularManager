@@ -1,0 +1,154 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+{% load apptags %}
+{% load humanize %}
+{% load crispy_forms_tags %}
+
+
+{% block title %}
+    {% tmpl_const "SITENAME" %} | Report
+    {% if report_summary  %}
+        | "{{ report_summary }}"
+    {% endif %}
+{% endblock %}
+
+{% block pagestyle %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css" type="text/css"/>
+{% endblock %}
+
+{% block content %}
+    {% include "dashboard/report/header.html" with header='Call & SMS' %}
+
+    <div class='row'>
+        {% include "dashboard/report/nav.html" with active_tab='call_sms' %}
+
+        <div class='content col-xs-12 col-sm-10 col-md-10'>
+
+            {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/calls' %}
+            {% if network_has_activity %}
+            <div class="row">
+              <div id='sms-usage-chart'></div>
+            </div>
+            <div class="row">
+              <div id='call-number-chart'></div>
+            </div>
+            <div class="row">
+              <div id='call-minutes-chart'></div>
+            </div>
+            
+            <div class="row">
+                {% include 'dashboard/timezone-notice.html' %}
+            </div>
+            {% else %}
+                <p>There is no network activity to display.</p>
+            {% endif %}
+        </div> <!-- /.col-md-4 -->
+    </div>
+{% endblock %}
+
+
+{% block js %}
+{% if network_has_activity %}
+<script>
+  $(function() {
+    setTimeout(function() {
+      $('.timezone-notice').fadeIn(500);
+    }, 800);
+  });
+  $("#save-btn").click(function() {
+      $("#call-number-chart").get(0).toBlob(function(blob) {
+        saveAs(blob, "call-number-chart.png");
+    });
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/react.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/JSXTransformer.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.1.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
+<script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+<script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
+<script type="text/jsx">
+  var currentTimeEpoch = {{ current_time_epoch }};
+  var timezoneOffset = {{ timezone_offset }};
+  {% if 'Number of Calls' in reports %}
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Number of Calls'
+      chartID='call-chart'
+      statTypes='free_call,outside_call,local_call,local_recv_call,incoming_call,error_call'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
+      aggregation='count'
+      yAxisLabel='numbers of calls'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      tooltipUnits='s of'
+      chartType='pie-chart'
+      reportView='summary'
+    />,
+    document.getElementById('call-number-chart')
+  );
+  {% endif %}
+  {% if 'Minutes of Call' in reports %}
+
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Minutes of Calls'
+      chartID='data-chart'
+      statTypes='free_call,outside_call,local_call,local_recv_call,incoming_call,error_call'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
+      aggregation='duration_minute'
+      yAxisLabel='minutes of call'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      tooltipUnits='s of'
+      chartType='pie-chart'
+      reportView='summary'
+    />,
+    document.getElementById('call-minutes-chart')
+  );
+
+  {% endif %}
+  {% if 'Number of SMS' in reports %}
+
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Number of SMS '
+      chartID='sms-chart'
+      statTypes='local_sms,local_recv_sms,outside_sms,incoming_sms,free_sms,error_sms'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
+      aggregation='count'
+      yAxisLabel='number of SMS'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      tooltipUnits=''
+      chartType='pie-chart'
+      reportView='summary'
+    />,
+    document.getElementById('sms-usage-chart')
+  );
+  {% endif %}
+
+</script>
+<script type="text/javascript">
+function setloading() {
+  var $btn = $('#submit').button().button('loading');
+}
+</script>
+
+{% endif %}
+
+{% endblock %}
