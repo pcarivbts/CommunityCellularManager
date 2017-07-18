@@ -43,5 +43,11 @@ of patent rights can be found in the PATENTS file in the same directory.
         {% else %}{% url 'network-edit' %}
         {% endif %}">Edit</a>
     </li>
+    <li role="presentation" class="{% if active_tab == 'security' %} active {% endif %}">
+      <a href="
+        {% if active_tab == 'security' %} #
+        #{% else %}{% url 'network_balance_limit' %}
+        {% endif %}">Security</a>
+    </li>
   </ul>
 </div>

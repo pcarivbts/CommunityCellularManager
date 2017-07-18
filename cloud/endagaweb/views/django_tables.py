@@ -477,5 +477,3 @@ class SubscriberManagementTable(tables.Table):
 
     def render_imsi(self, record):
         return render_imsi(record)
-
-

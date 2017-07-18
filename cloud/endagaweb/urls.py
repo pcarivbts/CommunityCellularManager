@@ -84,6 +84,8 @@ urlpatterns = [
     url(r'^account/', endagaweb.views.dashboard.DashboardView.as_view(),
         name='dashboard-view'),
     url(r'^logout/$', django.contrib.auth.views.logout, {'next_page': '/'}),
+    # Added for ExpiredPassword
+    url(r'^password/change', endagaweb.views.user.change_expired_password),
 
     # Dashboard.
     url(r'^dashboard/card', endagaweb.views.dashboard.addcard),
@@ -193,6 +195,10 @@ urlpatterns = [
         name='network-edit'),
     url(r'^dashboard/network/select/(?P<network_id>[0-9]+)$',
         endagaweb.views.network.NetworkSelectView.as_view()),
+    # Added for network balance limit
+    url(r'^dashboard/network/balance-limit',
+        endagaweb.views.network.NetworkBalanceLimit.as_view(),
+        name='network_balance_limit'),
     # The activity table.
     url(r'^dashboard/activity',
         endagaweb.views.dashboard.ActivityView.as_view(),

@@ -107,7 +107,10 @@ class UserProfile(models.Model):
     # because a user may have permissions on other Network instances.
     # For example to get a list of networks the user can view:
     # >>> get_objects_for_user(user_profile.user, 'view_network', klass=Network)
-    network = models.ForeignKey('Network', null=True, on_delete=models.SET_NULL)
+    network = models.ForeignKey('Network', null=True,
+                                on_delete=models.SET_NULL)
+    # Added for Password Expiry
+    last_pwd_update = models.DateTimeField(auto_now=True)
 
     def __str__(self):
           return "%s's profile" % self.user
@@ -549,7 +552,7 @@ class Subscriber(models.Model):
     imsi = models.CharField(max_length=50, unique=True)
     name = models.TextField()
     crdt_balance = models.TextField(default=crdt.PNCounter("default").serialize())
-    state = models.CharField(max_length=10)
+    state = models.CharField(max_length=15)
     # Time of the last received UsageEvent that's not in NON_ACTIVITIES.
     last_active = models.DateTimeField(null=True, blank=True)
     # Time of the last received UsageEvent that is in OUTBOUND_ACTIVITIES.  We
@@ -565,6 +568,7 @@ class Subscriber(models.Model):
     block_reason = models.TextField(default='No reason to block yet!',
                                     max_length=255)
     block_time = models.DateTimeField(null=True, blank=True)
+    valid_through = models.DateTimeField(null=True, auto_now_add=True)
 
     class Meta:
         default_permissions = ()
@@ -573,6 +577,7 @@ class Subscriber(models.Model):
             ('change_subscriber', 'Edit subscriber'),
             ('deactive_subscriber', 'Deactive subscriber'),
         )
+
 
     @classmethod
     def update_balance(cls, imsi, other_bal):
@@ -1054,7 +1059,8 @@ class Network(models.Model):
     # Whether or not to automatically delete inactive subscribers, and
     # associated parameters.
     sub_vacuum_enabled = models.BooleanField(default=False)
-    sub_vacuum_inactive_days = models.IntegerField(default=180)
+    sub_vacuum_inactive_days = models.PositiveIntegerField(default=180)
+    sub_vacuum_grace_days = models.PositiveIntegerField(default=30)
 
     # csv of endpoints to notify for downtime
     notify_emails = models.TextField(blank=True, default='')
@@ -1092,6 +1098,10 @@ class Network(models.Model):
     # Network environments let you specify things like "prod", "test", "dev",
     # etc so they can be filtered out of alerts. For internal use.
     environment = models.TextField(default="default")
+    # Added for Network Balance Limit
+    max_account_limit = models.BigIntegerField(default=10000)
+    max_balance = models.BigIntegerField(default=10000)
+    max_failure_transaction = models.PositiveIntegerField(blank=True, default=3)
 
     class Meta:
         default_permissions = ()
@@ -1603,8 +1613,7 @@ class ConfigurationKey(models.Model):
     Can be associated with many things.
     """
     bts = models.ForeignKey(BTS, null=True, blank=True, on_delete=models.CASCADE)
-    network = models.ForeignKey(Network, null=True, blank=True,
-                                on_delete=models.CASCADE)
+    network = models.ForeignKey(Network, null=True, blank=True, on_delete=models.CASCADE)
     category = models.TextField()  # "endaga", "openbts", etc..
     key = models.TextField()
     value = models.TextField()

@@ -17,6 +17,7 @@ import time
 import os
 import paramiko
 import zipfile
+import pytz
 try:
     # we only import zlib here to check that it is available
     # (why would it not be?), so we have to disable the 'unused' warning
@@ -30,6 +31,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.db.models import Avg, Count
+from django.db import transaction
 import django.utils.timezone
 import requests
 
@@ -41,9 +43,10 @@ from endagaweb.models import ConfigurationKey
 from endagaweb.models import Subscriber
 from endagaweb.models import UsageEvent
 from endagaweb.models import SystemEvent
-from endagaweb.models import TimeseriesStat
+from endagaweb.models import NetworkDenomination
+from endagaweb.models import TimeseriesStat, UserProfile
 from endagaweb.ic_providers.nexmo import NexmoProvider
-
+from ccm.common import crdt
 
 @app.task(bind=True)
 def usageevents_to_sftp(self):
@@ -211,11 +214,30 @@ def update_credit(self, imsi, update_id):
             url, params={'jwt': jwt},
             timeout=settings.ENDAGA['BTS_REQUEST_TIMEOUT_SECS'])
         if request.status_code >= 200 and request.status_code < 300:
-            print "update_credit SUCCESS. id=%s, imsi=%s, amount=%s. (%d)" % (
-                update_id, imsi, update.amount, request.status_code)
-            update.delete()
-            bts.mark_active()
-            bts.save()
+            with transaction.atomic():
+                # Check for existing denomination range exist.
+                denom = NetworkDenomination.objects.get(
+                    start_amount__lte=update.amount,
+                    end_amount__gte=update.amount,
+                    network=update.subscriber.network)
+                expiry_date = datetime.datetime.now(pytz.UTC) + \
+                              datetime.timedelta(days=denom.validity_days)
+                if update.subscriber.valid_through:
+                    # Check if existing validity is greater than new validity
+                    # then dont update new validity
+                    if expiry_date >= update.subscriber.valid_through:
+                        update.subscriber.valid_through = expiry_date
+                else:
+                    # Check if subscriber has no validity set
+                    update.subscriber.valid_through = expiry_date
+
+                update.subscriber.state = 'active'
+                update.subscriber.save()
+                print "update_credit SUCCESS. id=%s, imsi=%s, amount=%s. (%d)"\
+                      % (update_id, imsi, update.amount, request.status_code)
+                update.delete()
+                bts.mark_active()
+                bts.save()
         else:
             message = ("update_credit FAIL. id=%s, imsi=%s, (bts=%s), "
                        "amount=%s. (%d)")
@@ -246,11 +268,11 @@ def vacuum_inactive_subscribers(self):
         # Do nothing if subscriber vacuuming is disabled for the network.
         if not network.sub_vacuum_enabled:
             continue
-        inactives = network.get_outbound_inactive_subscribers(
-            network.sub_vacuum_inactive_days)
+        inactives = Subscriber.objects.filter(
+            state='recycle', network_id=network.id,
+            prevent_automatic_deactivation=False
+        )
         for subscriber in inactives:
-            if subscriber.prevent_automatic_deactivation:
-                continue
             print 'vacuuming %s from network %s' % (subscriber.imsi, network)
             subscriber.deactivate()
             # Sleep a bit in between each deactivation so we don't flood the
@@ -440,7 +462,6 @@ def req_bts_log(self, obj, retry_delay=60*10, max_retries=432):
     finally:
       obj.save()
 
-
 @app.task(bind=True)
 def unblock_blocked_subscribers(self):
     """Unblock subscribers who are blocked for past 24 hrs.
@@ -456,3 +477,151 @@ def unblock_blocked_subscribers(self):
         [subscriber.imsi for subscriber in subscribers], )
     subscribers.update(is_blocked=False, block_time=None,
                        block_reason='No reason to block yet!')
+
+def zero_out_subscribers_balance(self):
+    """Subscriber balance zero outs when validity expires.
+
+    This runs this as a periodic task managed by celerybeat.
+    """
+    today = django.utils.timezone.now()
+    subscribers = Subscriber.objects.filter(
+        valid_through__lte=today)
+    if not subscribers:
+        return  # Do nothing
+    credit_balance = crdt.PNCounter("default").serialize()
+    print "Validity expired for Susbcribers %s setting balance to 0" % (
+        [subscriber.imsi for subscriber in subscribers],)
+    subscribers.update(crdt_balance=credit_balance)
+
+def subscriber_validity_state(self):
+    """ Updates the subscribers state to inactive/active/"""
+
+    today = django.utils.timezone.now()
+    subscribers = Subscriber.objects.filter(
+        number__valid_through__lte=today)
+    today = today.date()
+    for subscriber in subscribers:
+        try:
+            number = subscriber.number_set.all()[0]
+            if number.valid_through is None:
+                continue
+        except IndexError:
+            continue
+        subscriber_validity = number.valid_through.date()
+        first_expire = subscriber_validity + datetime.timedelta(
+            days=subscriber.network.sub_vacuum_inactive_days)
+        recycle = first_expire + datetime.timedelta(
+            days=subscriber.network.sub_vacuum_grace_days)
+        current_state = str(subscriber.state)
+
+        if subscriber_validity < today:
+            if today <= first_expire:
+                # Do nothing if it's already first expired
+                if current_state != 'first_expired':
+                    subscriber.state = 'first_expired'
+                    subscriber.save()
+                    print "Updating subscriber(%s) state to 'First Expired'" % (
+                        subscriber.imsi,)
+            elif today > recycle:
+                # Let deactivation of subscriber be handled by
+                # vacuum_inactive_subscribers
+                # Do nothing if it's already recycle
+                if current_state != 'recycle':
+                    subscriber.state = 'recycle'
+                    subscriber.save()
+                    print "Updating subscriber(%s) state to 'Recycle'" % (
+                        subscriber.imsi,)
+            else:
+                if current_state != 'expired':
+                    subscriber.state = 'expired'
+                    subscriber.save()
+                    print "Updating subscriber(%s) state to 'Expired'" % (
+                        subscriber.imsi,)
+
+
+@app.task(bind=True)
+def validity_expiry_sms(self, days=7):
+    """Sends SMS to the number whose validity is:
+     about to get expire, 
+     if expired (i.e 1st expired), or
+     if the number is in grace period and is about to recycle.
+
+     Args:
+         days: Days prior (state change) which the SMS is sent to Subscriber.
+     Runs as everyday task managed by celerybeat.
+     """
+    today = django.utils.timezone.datetime.now().date()
+    for subscriber in Subscriber.objects.iterator():
+        # Do nothing if subscriber vacuuming is disabled for the network.
+        if not subscriber.network.sub_vacuum_enabled:
+            continue
+        try:
+            number = subscriber.number_set.all()[0]
+            subscriber_validity = number.valid_through
+            # In case where number has no validity
+            if subscriber_validity is None:
+                print '%s has no validity' % (subscriber.imsi,)
+                continue
+        except IndexError:
+            print 'No number attached to subscriber %s' % (subscriber.imsi,)
+            continue
+
+        subscriber_validity = subscriber_validity.date()
+        inactive_period = subscriber.network.sub_vacuum_inactive_days
+        grace_period = subscriber.network.sub_vacuum_grace_days
+
+        prior_first_expire = subscriber_validity + datetime.timedelta(
+            days=inactive_period) - datetime.timedelta(days=days)
+
+        prior_recycle = prior_first_expire + datetime.timedelta(
+            days=grace_period)
+
+        # Prior to expiry state (one on last day and before defined days)
+        if subscriber_validity > today and (
+                            (subscriber_validity - datetime.timedelta(
+                                days=days)
+                             ) == today or today == (
+                                subscriber_validity - datetime.timedelta(
+                                days=1)) or today == subscriber_validity):
+            body = 'Your validity is about to get expired on %s , Please ' \
+                   'recharge to continue the service. Please ignore if ' \
+                   'already done! ' % (subscriber_validity,)
+            sms_notification(body=body, to=number)
+        # Prior 1st_expired state
+        elif subscriber_validity < today:
+            if prior_first_expire == today or today == (
+                        prior_first_expire + datetime.timedelta(
+                        days=days - 1)):
+                body = 'Your validity has expired on %s, Please recharge ' \
+                       'immediately to activate your services again! ' % (
+                           subscriber_validity,)
+                sms_notification(body=body, to=number)
+            # Prior to recycle state
+            elif prior_recycle == today or today == (
+                        prior_recycle + datetime.timedelta(days=days - 1)):
+                body = 'Warning: Your validity has expired on %s , Please ' \
+                       'recharge immediately to avoid deactivation of your ' \
+                       'connection! ' % (subscriber_validity,)
+                sms_notification(body=body, to=number)
+        # SMS on same day of expiry
+        elif subscriber_validity == today:
+            body = 'Your validity expiring today %s, Please recharge ' \
+                   'immediately to continue your services again!, ' \
+                   'Ignore if already done! ' % (subscriber_validity,)
+            sms_notification(body=body, to=number)
+        else:
+            return  # Do nothing
+
+@app.task(bind=True)
+def block_user(self):
+    """ Block  User if User password is not updated
+    for last number of days which is  configured in a settings .
+    """
+    password_expired_duration = (django.utils.timezone.now() -
+                        datetime.timedelta(
+                            days=settings.ENDAGA['PASSWORD_EXPIRED_DAY']))
+    user_profiles = UserProfile.objects.filter(last_pwd_update__lte=password_expired_duration)
+    for user_profile in user_profiles:
+        user_profile.user.is_active = False
+        print '%s user is Blocked!' % user_profile.user.username
+        user_profile.user.save()

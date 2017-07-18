@@ -28,6 +28,8 @@ from endagaweb import models
 from endagaweb.forms import dashboard_forms
 from endagaweb.views.dashboard import ProtectedView
 from endagaweb.views import django_tables
+from endagaweb.forms import dashboard_forms as dform
+from django.core import exceptions
 
 
 NUMBER_COUNTRIES = {
@@ -147,6 +149,7 @@ class NetworkInactiveSubscribers(ProtectedView):
             'sub_vacuum_form': dashboard_forms.SubVacuumForm({
                 'sub_vacuum_enabled': network.sub_vacuum_enabled,
                 'inactive_days': network.sub_vacuum_inactive_days,
+                'grace_days': network.sub_vacuum_grace_days,
             }),
             'protected_subs': protected_subs,
             'unprotected_subs': unprotected_subs,
@@ -171,17 +174,21 @@ class NetworkInactiveSubscribers(ProtectedView):
             if 'inactive_days' in request.POST:
                 try:
                     inactive_days = int(request.POST['inactive_days'])
+                    grace_days = int(request.POST['grace_days'])
                     if inactive_days > 10000:
                         inactive_days = 10000
+                    if grace_days > 1000:
+                        grace_days = 1000
                     network.sub_vacuum_inactive_days = inactive_days
+                    network.sub_vacuum_grace_days = grace_days
                     network.save()
+                    messages.success(
+                        request, 'Subscriber auto-deletion settings saved.',
+                        extra_tags='alert alert-success')
                 except ValueError:
                     text = 'The "inactive days" parameter must be an integer.'
                     messages.error(request, text,
                                    extra_tags="alert alert-danger")
-            messages.success(
-                request, 'Subscriber auto-deletion settings saved.',
-                extra_tags='alert alert-success')
         return redirect(urlresolvers.reverse('network-inactive-subscribers'))
 
 
@@ -575,12 +582,12 @@ class NetworkDenomination(ProtectedView):
                         denom = models.NetworkDenomination.objects.get(
                             id=dnm_id)
                         # Check for existing denomination range exist.
-                        denom_exists = \
-                          models.NetworkDenomination.objects.filter(
-                              end_amount__gte=start_amount,
-                              start_amount__lte=end_amount,
-                              network=user_profile.network).exclude(
-                                  id=dnm_id).count()
+                        denom_exists = models.NetworkDenomination.objects.\
+                            filter(
+                            end_amount__gte=start_amount,
+                            start_amount__lte=end_amount,
+                            network=user_profile.network).\
+                            exclude(id=dnm_id).count()
                         if denom_exists:
                             messages.error(
                                 request, 'Denomination range already exists.',
@@ -643,7 +650,8 @@ class NetworkDenomination(ProtectedView):
                 denom = models.NetworkDenomination.objects.get(id=dnm_id)
                 denom.delete()
                 response['status'] = 'success'
-                messages.success(request, 'Denomination deleted successfully.',
+                messages.success(request,
+                                 'Denomination deleted successfully.',
                                  extra_tags='alert alert-success')
             except models.NetworkDenomination.DoesNotExist:
                 response['status'] = 'failed'
@@ -657,3 +665,80 @@ class NetworkDenomination(ProtectedView):
                 extra_tags='alert alert-danger')
         return http.HttpResponse(json.dumps(response),
                                  content_type="application/json")
+
+
+class NetworkBalanceLimit(ProtectedView):
+    """Edit basic network info (to add credit to Network)."""
+
+    def get(self, request):
+        """Handles GET requests."""
+        user_profile = models.UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        # Set the context with various stats.
+        currency = network.subscriber_currency
+        context = {
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=models.Network),
+            'user_profile': user_profile,
+            'network': network,
+            'currency': CURRENCIES[network.subscriber_currency],
+            'network_balance_limit_form': dashboard_forms.NetworkBalanceLimit({
+                'max_balance': '',
+                'max_unsuccessful_transaction': '',
+
+            }),
+        }
+        # Render template.
+        edit_template = template.loader.get_template(
+            'dashboard/network_detail/network-balancelimit.html')
+        html = edit_template.render(context, request)
+        return http.HttpResponse(html)
+
+    def post(self, request):
+        """Handles POST requests."""
+        user_profile = models.UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        success = []
+        if 'max_balance' not in request.POST:
+            return http.HttpResponseBadRequest()
+        if 'max_unsuccessful_transaction' not in request.POST:
+            return http.HttpResponseBadRequest()
+        try:
+            form = dform.NetworkBalanceLimit(data=request.POST)
+            if form.is_valid():
+                cleaned_field_data = form.clean_network_balance()
+                max_balance = cleaned_field_data.get("max_balance")
+                max_failure_transaction = cleaned_field_data.get("max_unsuccessful_transaction")
+                with transaction.atomic():
+                    try:
+                        currency = network.subscriber_currency
+                        if max_balance:
+                            balance = float(max_balance)
+                            max_network_amount = parse_credits(balance,
+                                                               CURRENCIES[
+                                                                   currency]).amount_raw
+                            network.max_balance = max_network_amount
+                            print("stored valued ", network.max_balance)
+                            success.append(
+                                'Network maximum balance limit updated.')
+                        if max_failure_transaction:
+                            transaction_val = int(max_failure_transaction)
+                            network.max_failure_transaction = transaction_val
+                            success.append(
+                                'Network maximun permissible unsuccessful' \
+                                ' transactions limit updated.')
+                        network.save()
+                    except ValueError:
+                        error_text = 'Error : please provide valid value.'
+                        messages.error(request, error_text,
+                                       extra_tags="alert alert-danger")
+                        return redirect(
+                            urlresolvers.reverse('network_balance_limit'))
+                messages.success(request,
+                                 ''.join(success),
+                                 extra_tags="alert alert-success")
+                return redirect(urlresolvers.reverse('network_balance_limit'))
+        except exceptions.ValidationError as e:
+            tags = 'password alert alert-danger'
+            messages.error(request, ''.join(e.messages), extra_tags=tags)
+            return redirect(urlresolvers.reverse('network_balance_limit'))
