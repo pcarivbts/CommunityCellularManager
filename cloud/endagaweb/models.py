@@ -569,6 +569,7 @@ class Subscriber(models.Model):
                                     max_length=255)
     block_time = models.DateTimeField(null=True, blank=True)
     valid_through = models.DateTimeField(null=True, auto_now_add=True)
+    role = models.TextField(default='subscriber')
 
     class Meta:
         default_permissions = ()
@@ -577,7 +578,6 @@ class Subscriber(models.Model):
             ('change_subscriber', 'Edit subscriber'),
             ('deactive_subscriber', 'Deactive subscriber'),
         )
-
 
     @classmethod
     def update_balance(cls, imsi, other_bal):
@@ -1613,7 +1613,8 @@ class ConfigurationKey(models.Model):
     Can be associated with many things.
     """
     bts = models.ForeignKey(BTS, null=True, blank=True, on_delete=models.CASCADE)
-    network = models.ForeignKey(Network, null=True, blank=True, on_delete=models.CASCADE)
+    network = models.ForeignKey(Network, null=True, blank=True,
+                                on_delete=models.CASCADE)
     category = models.TextField()  # "endaga", "openbts", etc..
     key = models.TextField()
     value = models.TextField()

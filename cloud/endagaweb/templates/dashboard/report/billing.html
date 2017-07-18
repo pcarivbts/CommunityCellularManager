@@ -91,10 +91,8 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <div id='sms-usage-chart'></div>
                 <div id='call-sms-usage-chart'></div>
                 <div id='call-usage-chart'></div>
-
-              <table id="jqGrid"></table>
-              <div id="jqGridPager"></div>
-
+                <table id="jqGrid"></table>
+                <div id="jqGridPager"></div>
             </div>
 
             {% else %}
@@ -127,9 +125,6 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jqgrid/4.6.0/js/jquery.jqGrid.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jqgrid/4.6.0/js/i18n/grid.locale-en.js"></script>
-
-
-
 <script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
 <script type="text/jsx">
   var currentTimeEpoch = {{ current_time_epoch }};
@@ -306,7 +301,6 @@ function setloading() {
   var $btn = $('#submit').button().button('loading');
 }
 function renderTable(reportId, tableId) {
-
   var secondsMap = {
     'month': 30 * 24 * 60 * 60,
     'year': 365 * 24 * 60 * 60,
@@ -348,7 +342,6 @@ function renderTable(reportId, tableId) {
       var tableData = data['results'][0]['values']['data'];
 
       var row_width = $("#"+reportId).width();
-
       var options = {
         colModel: tableHeader,
         data: tableData,
@@ -381,6 +374,33 @@ $(document).ready(function() {
   renderTable('reload_amount', 'waterfall_reload_amount');
   renderTable('reload_transaction', 'waterfall_reload_transaction');
   renderTable('average_frequency', 'waterfall_average_frequency');
+      //$('#'+reportId+' .table').html('');
+      $('#'+reportId+' .table').DataTable({
+        data: tableData,
+        paging:   false,
+        ordering: false,
+        info:     false,
+        searching: false,
+        //autoWidth: true,
+        scrollY: 500,
+        //scrollX: 'auto',
+        destroy: true,
+        columns: tableHeader,
+        scrollX: true,
+        // fixedColumns: true
+        // fixedColumns: {leftColumns: 2}
+      });
+    });
+  }).click();
+
+}
+$(document).ready(function() {
+
+  renderTable('loader');
+  renderTable('reload_rate');
+  renderTable('reload_amount');
+  renderTable('reload_transaction');
+  renderTable('average_frequency');
 
 });
 </script>

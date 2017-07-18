@@ -74,7 +74,13 @@ of patent rights can be found in the PATENTS file in the same directory.
             <li><a href="/dashboard/towers"><i class="fa fa-signal"></i> Towers</a></li>
             <li><a href="/dashboard/subscribers"><i class="fa fa-users"></i> Subscribers</a></li>
             <li><a href="/dashboard/network"><i class="fa fa-cogs"></i> Network</a></li>
-            <li><a href="/dashboard/reports/calls"><i class="fa fa-area-chart"></i> Reports</a></li>
+            <li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-area-chart"></i> Reports</a>
+              <ul class="dropdown-menu">
+                <li><a href="{% url 'call-report' %}">Call & SMS</a></li>
+                <li><a href="{% url 'subscriber-report' %}?filter=Subscriber">Subscriber</a></li>
+                <li><a href="{% url 'billing-report' %}">Billing</a></li>
+              </ul>
+            </li>
           </ul>
 
           <ul class="nav navbar-nav navbar-top-links navbar-right navbar-user">
@@ -112,11 +118,6 @@ of patent rights can be found in the PATENTS file in the same directory.
               </ul>
               </a>
             </li>
-            {% elif networks.count == 1  %}
-            <li>
-              <a href="javascript:void(0);"><i class="fa fa-list-ul"></i> {{user_profile.network.name }}</span></a>
-            </li>
-
             {% endif %}
             <li class="dropdown">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-user"></i> {{ user_profile.display_name }} <b class="caret"></b></a>

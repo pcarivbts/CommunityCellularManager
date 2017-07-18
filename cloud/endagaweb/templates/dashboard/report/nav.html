@@ -8,12 +8,21 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endcomment %}
 <div class='col-xs-12 col-sm-2'>
   <ul class='nav nav-pills nav-stacked' id='sub-detail-nav'>
-
     <li role="presentation" class="{% if active_tab == 'call_sms' %} active {% endif %}">
       <a href="
         {% if active_tab == 'call_sms' %} #
         {% else %} {% url 'call-report' %}
         {% endif %} ">Call & SMS</a>
+    <li role="presentation" class="{% if active_tab == 'billing_reports' %} active {% endif %}">
+      <a href="
+        {% if active_tab == 'billing_reports' %} #
+        {% else %}{% url 'billing-report' %}
+        {% endif %}">Billing</a>
     </li>
+    {% if active_tab == 'subscriber_reports' %}
+      <li role="presentation" class="active">
+        <a href="{% url 'subscriber-report' %}?filter=Subscriber">Subscriber Reports</a>
+      </li>
+    {% endif %}
   </ul>
 </div>

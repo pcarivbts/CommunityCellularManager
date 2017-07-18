@@ -90,7 +90,7 @@ urlpatterns = [
     # Dashboard.
     url(r'^dashboard/card', endagaweb.views.dashboard.addcard),
     url(r'^addmoney/', endagaweb.views.dashboard.addmoney),
-    url(r'^dashboard/billing', endagaweb.views.dashboard.billing_view),
+    url(r'^dashboard/billing$', endagaweb.views.dashboard.billing_view),
     url(r'^dashboard/profile', endagaweb.views.dashboard.profile_view),
     # Tower views in the dashboard.
     # /towers -- GET a list of towers or POST here to add one
@@ -206,6 +206,15 @@ urlpatterns = [
     url(r'^dashboard/reports/calls',
         endagaweb.views.reports.CallReportView.as_view(),
         name='call-report'),
+    url(r'^dashboard/reports/subscriber',
+        endagaweb.views.reports.SubscriberReportView.as_view(),
+        name='subscriber-report'),
+    url(r'^report/downloadcsv',
+        endagaweb.views.reports.ReportGraphDownload.as_view(),
+        ),
+    url(r'^dashboard/reports/billing',
+        endagaweb.views.reports.BillingReportView.as_view(),
+        name='billing-report'),
 
     # Raise a server error on-demand to test the 500 template.
     url(r'^insta-five-hundred$',
