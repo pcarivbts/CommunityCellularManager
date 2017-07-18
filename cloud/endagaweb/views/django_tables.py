@@ -388,12 +388,10 @@ class DenominationTable(tables.Table):
                    "data-target='#delete-denom-modal' data-toggle='modal'>Delete</a>" % (record.id)
         return safestring.mark_safe(element)
 
-
 def render_username(record, **kwargs):
     """Shows the username as a link.
     kwargs:
     sender: name for the sender to change on click behaviour"""
-
     if kwargs.get('sender') == 'blocking':
         element = "<a href='javascript:void(0)' id='user_" + str(
             record.id) + "'" \
@@ -409,7 +407,6 @@ def render_username(record, **kwargs):
                          "data-target='#delete-user-modal' " \
                          "data-toggle='modal'>%s</a>" \
                          % (record.id, html_utils.escape(record.username))
-
     return safestring.mark_safe(element)
 
 
@@ -418,12 +415,17 @@ class UserTable(tables.Table):
 
     class Meta:
         model = models.User
-        fields = ('username', 'last_login')
+        fields = ('id', 'username', 'is_active', 'last_login')
         attrs = {'class': 'table'}
         orderable = False
 
-    username = tables.Column(verbose_name='Username')
-    last_login = tables.DateTimeColumn(verbose_name='Last Login', short=True)
+    id = tables.CheckBoxColumn(accessor="pk",
+                               attrs={
+                                   "th__input": {"onclick": "toggle(this)"}})
+    username = tables.Column(verbose_name='Username', orderable=True)
+    is_active = tables.BooleanColumn(verbose_name='Active', orderable=True)
+    last_login = tables.DateTimeColumn(verbose_name='Last Login', short=True,
+                                       orderable=True)
 
     def render_username(self, record):
         return render_username(record, sender='delete')

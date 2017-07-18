@@ -973,7 +973,15 @@ class UserManagement(ProtectedView):
             codename__in=available_permissions,
             content_type_id=content.id).exclude(
             codename='view_network')
+        # Users in current network
+        existing_users = User.objects.filter(
+            userprofile__in=UserProfile.objects.filter(network=network))
+        user_table = django_tables.UserTable(list(existing_users))
+        tables.RequestConfig(request, paginate={'per_page': 10}).configure(
+            user_table)
+
         context = {
+            'users' : user_table,
             'network': network,
             'user_profile': user_profile,
             'networks': get_objects_for_user(request.user,
@@ -986,6 +994,10 @@ class UserManagement(ProtectedView):
         return HttpResponse(html)
 
     def post(self, request, *args, **kwargs):
+        print args
+        print kwargs
+        print request.POST
+        print request.GET
         user_profile = UserProfile.objects.get(user=request.user)
         network = user_profile.network
         available_permissions = get_perms(request.user, network)
@@ -1038,7 +1050,6 @@ class UserManagement(ProtectedView):
             # Re-connect the signal before return if it reaches exception
             post_save.connect(UserProfile.new_user_hook, sender=User)
             return JsonResponse({'status': 'error', 'message': message})
-
         # Sending email now to reset password
         try:
             self._send_reset_link(request)
@@ -1054,7 +1065,6 @@ class UserManagement(ProtectedView):
                              extra_tags="alert alert-danger")
         # Re-connect the signal before return if it reaches exception
         post_save.connect(UserProfile.new_user_hook, sender=User)
-
         messages.success(request, 'User added successfully!')
 
         return JsonResponse(
@@ -1220,6 +1230,11 @@ class UserDelete(ProtectedView):
 
     def post(self, request, *args, **kwargs):
         """Handles POST requests to delete User."""
+        print args
+        print kwargs
+        print request.GET
+        print request.POST
+        print '**************************'
         user_profile = UserProfile.objects.get(user=request.user)
         try:
             user = User.objects.get(id=request.GET['user'])
