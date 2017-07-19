@@ -389,12 +389,17 @@ class DenominationTable(tables.Table):
         return safestring.mark_safe(element)
 
 
+# def render_is_active(record):
+#     element = "<label class='switch'> <input type='checkbox' data-size='mini'> " \
+#               "<span class='slider round'></span> </label>"
+#     return safestring.mark_safe(element)
+
 class UserTable(tables.Table):
     """A django-tables2 Table definition for User."""
 
     class Meta:
         model = models.User
-        fields = ('id', 'username', 'is_active', 'last_login')
+        fields = ('id', 'username', 'email', 'is_active', 'last_login')
         attrs = {'class': 'table'}
         orderable = False
 
@@ -402,10 +407,13 @@ class UserTable(tables.Table):
                                attrs={
                                    "th__input": {"onclick": "toggle(this)"}})
     username = tables.Column(verbose_name='Username', orderable=True)
+    email = tables.Column(verbose_name='Email', orderable=True)
     is_active = tables.BooleanColumn(verbose_name='Active', orderable=True)
     last_login = tables.DateTimeColumn(verbose_name='Last Login', short=True,
                                        orderable=True)
-
+    # TODO(sagar): Check for toggle for block unblock
+    # def render_is_active(self,record):
+    #     return render_is_active(record)
 
 def render_imsi(record):
     element = "<input type = 'checkbox' class ='imsi_id' name='imsi[]' " \

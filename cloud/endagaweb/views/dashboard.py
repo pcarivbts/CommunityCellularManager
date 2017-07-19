@@ -982,6 +982,9 @@ class ActivityView(ProtectedView):
 
 
 class UserManagement(ProtectedView):
+    """
+    Handles User management operations like Add, Block or Delete
+    """
     permission_required = 'user_management'
 
     def get(self, request, *args, **kwargs):
@@ -990,10 +993,12 @@ class UserManagement(ProtectedView):
         user_profile = UserProfile.objects.get(user=request.user)
         network = user_profile.network
         user = User.objects.get(id=user_profile.user_id)
+        network_admin = True
         available_permissions = get_perms(request.user, network)
-        if not user.is_superuser:  # Network Admin
+        if not user.is_superuser:  # If Cloud Admin
             role = USER_ROLES[0:len(USER_ROLES) - 1]
-        else:  # Cloud Admin
+            network_admin = False
+        else:  # If Network Admin
             role = USER_ROLES
         content = ContentType.objects.get(
             app_label='endagaweb',model='network')
@@ -1004,12 +1009,15 @@ class UserManagement(ProtectedView):
         # Users in current network
         existing_users = User.objects.filter(
             userprofile__in=UserProfile.objects.filter(network=network))
+        # Exclude Network Admins for Cloud admin view
+        if not network_admin:
+            existing_users = existing_users.exclude(is_superuser=True)
         user_table = django_tables.UserTable(list(existing_users))
-        tables.RequestConfig(request, paginate={'per_page': 10}).configure(
+        tables.RequestConfig(request, paginate={'per_page': 12}).configure(
             user_table)
 
         context = {
-            'users' : user_table,
+            'users': user_table,
             'network': network,
             'user_profile': user_profile,
             'networks': get_objects_for_user(request.user,
@@ -1022,7 +1030,6 @@ class UserManagement(ProtectedView):
         return HttpResponse(html)
 
     def post(self, request, *args, **kwargs):
-
         user_profile = UserProfile.objects.get(user=request.user)
         network = user_profile.network
         available_permissions = get_perms(request.user, network)
@@ -1081,8 +1088,6 @@ class UserManagement(ProtectedView):
             mail_info = ' (Reset mail has been sent to %s)' % email
             # messages.success(request, mail_info)
         except Exception as ex:
-            # Todo: proper handling of email
-            # Checking mail log on terminal
             logger.error(ex)
             mail_info = '\n Please configure email to send password reset ' \
                         'link to user'
@@ -1124,7 +1129,7 @@ class UserManagement(ProtectedView):
                 else:
                     # Not deleting Admins either
                     admin_users.append(user.username)
-            if len(_users )>0:
+            if len(_users)>0:
                 if action == 'delete':
                     for user in _users :
                         user.delete()
@@ -1155,6 +1160,10 @@ class UserManagement(ProtectedView):
 
 
 class UserUpdate(ProtectedView):
+    """
+    Updates the existing user's permissions or role,
+    this view is specific to cloud/network admins.
+    """
     permission_required = 'user_management'
 
     def get(self, request, *args, **kwargs):
@@ -1164,49 +1173,44 @@ class UserUpdate(ProtectedView):
         user = User.objects.get(id=user_profile.user_id)
         # Admin permissions on current network
         network_permissions = get_perms(request.user, network)
-        update_user = False
-        user_role = user_perms = None
-        existing_user = request.GET.get('user', None)
 
-        if not user.is_superuser:  # Network Admin
-            role = USER_ROLES[0:len(USER_ROLES) - 1]
-        else:  # Cloud Admin
-            role = USER_ROLES
-        available_permissions = Permission.objects.filter(
-            codename__in=network_permissions).exclude(
-            codename='view_network')
-        # if altering existing user
-        if existing_user is not None and User.objects.filter(
-                email=existing_user).exists():
+        if not user.is_superuser:  # if cloud admin
+            roles = USER_ROLES[0:len(USER_ROLES) - 1]
+        else:  # if network admin
+            roles = USER_ROLES
+        try:
+            existing_user = request.GET['user']
+            if len(existing_user) == 0:
+                existing_user = request.GET['id']
+                _user = User.objects.get(id=existing_user)
+            else:
+                _user = User.objects.get(email=existing_user)
             update_user = True
-            _user = User.objects.get(email=existing_user)
             _user_profile = UserProfile.objects.get(user=_user)
             user_role = _user_profile.role
-            existing_permissions = get_perms(_user, user_profile.network)
-
             # Setup available and assigned permissions
+            existing_permissions = get_perms(_user, user_profile.network)
             user_perms = Permission.objects.filter(
                 codename__in=existing_permissions).exclude(
                 codename='view_network')
             available_permissions = Permission.objects.filter(
                 codename__in=network_permissions).exclude(
                 codename__in=existing_permissions)
-
-        context = {
-            'network': network,
-            'user_profile': user_profile,
-            'networks': get_objects_for_user(request.user,
-                                             'view_network', klass=Network),
-            'permissions': available_permissions,
-            'roles': role,
-            'user_role': user_role,
-            'update': update_user,
-            'email': existing_user,
-            'user_permissions': user_perms,
+            permissions = [(a.id, a.name) for a in available_permissions]
+            user_permissions = [(a.id, a.name) for a in user_perms]
+            context = {
+                'permissions': permissions,
+                'user_permissions': user_permissions,
+                'roles': roles,
+                'user_role': user_role,
+                'update': update_user,
+                'email': _user.email,
             }
-        info_template = get_template('dashboard/user_management/edit.html')
-        html = info_template.render(context, request)
-        return HttpResponse(html)
+            return HttpResponse(json.dumps(context),
+                                content_type="application/json")
+        except User.DoesNotExist:
+            message = 'Strange! %s not found!' % existing_user
+            raise LookupError(message)
 
     def post(self, request, *args, **kwargs):
         user_profile = UserProfile.objects.get(user=request.user)
@@ -1244,9 +1248,8 @@ class UserUpdate(ProtectedView):
             if user_profile.role != user_role:
                 user_profile.role = user_role
             user_profile.save()
-            message = 'User updated successfully!'
+            message = 'User updated!'
             messages.success(request, message)
-
         else:
             if len(existing_permissions) < 1:
                 message = 'Nothing to update!'
@@ -1258,14 +1261,6 @@ class UserUpdate(ProtectedView):
             messages.info(request, message)
 
         return HttpResponse(request, message)
-
-class UserDelete(ProtectedView):
-    permission_required = 'user_management'
-    pass
-
-class UserBlockUnblock(ProtectedView):
-    permission_required = 'user_management'
-    pass
 
 
 class SubscriberCategoryEdit(ProtectedView):

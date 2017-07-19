@@ -40,12 +40,73 @@ of patent rights can be found in the PATENTS file in the same directory.
         margin: 10% auto; /* 15% from the top and centered */
         padding: 20px;
     }
+    .sortable tr {
+    cursor: pointer;
+    }
+    /* The switch - the box around the slider */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
 
+    /* Hide default HTML checkbox */
+    .switch input {display:none;}
+
+    /* The slider */
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      -webkit-transition: .4s;
+      transition: .4s;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      -webkit-transition: .4s;
+      transition: .4s;
+    }
+
+    input:checked + .slider {
+      background-color: #2196F3;
+    }
+
+    input:focus + .slider {
+      box-shadow: 0 0 1px #2196F3;
+    }
+
+    input:checked + .slider:before {
+      -webkit-transform: translateX(26px);
+      -ms-transform: translateX(26px);
+      transform: translateX(26px);
+    }
+
+    /* Rounded sliders */
+    .slider.round {
+      border-radius: 34px;
+    }
+
+    .slider.round:before {
+      border-radius: 50%;
+}
 </style>
 {% endblock %}
 {% block headerclass %}
 
 <body id="add_user">
+<link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
 <header class="navbar navbar-inverse normal" role="banner">
     {% endblock %}
     {% block content %}
@@ -56,29 +117,31 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <i class='fa fa-user'></i>
                 User Management
                 <a href='#' data-toggle='modal' data-target='#add-user-modal'>
-                    <small>(Add User)</small>
+                    <small>(Add New User)</small>
                 </a>
                 </h4>
             </div>
         </div>
+
     </div>
     <div class='row'>
         {% get_obj_perms request.user for network as 'user_permission' %}
         <div class="container col-sm-10">
             {% for message in messages %}
-            <div class="message alert alert-{{message.tags}}">
+            <div class="col-sm-8 message alert alert-{{message.tags}}">
                 <a href="#" class="close" data-dismiss="alert">&times;</a>
                 {{message}}
             </div>
             {% endfor %}
             {% if 'user_management' in user_permission %}
-            {% render_table users %}
+            <div class="col-sm-8">
+                {% render_table users %}
                 <div class="dropdown actions">
                     <button class="btn btn-primary dropdown-toggle"
                             type="button" data-toggle="dropdown">Action(s)
                         <span class="caret"></span>
                     </button>
-                    <ul class="dropdown-menu">
+                    <ul class="dropdown-menu ">
                         <li id="action_delete">
                             <a data-target='#delete-event-modal'
                                data-toggle='modal' href="javascript:void(0);">Delete</a>
@@ -87,13 +150,13 @@ of patent rights can be found in the PATENTS file in the same directory.
                             <a data-target='#block-event-modal'
                                data-toggle='modal' href="javascript:void(0);">Active/Inactive</a>
                         </li>
-                        <li id="action_edit"><a data-target="#edit-event-modal"
-                                                data-toggle='modal'
-                                                onclick="editNotification()"
-                                                href="#">Edit</a></li>
+                        <li id="action_edit">
+                            <a  data-target='#add-user-modal'
+                                data-toggle='modal'
+                                href="javascript: void();" onclick="editUser()">Edit</a></li>
                     </ul>
                 </div>
-
+            </div>
             <div class='modal fade' id='add-user-modal'>
                 <div class='modal-dialog'>
                     <div class='modal-content'>
@@ -104,48 +167,59 @@ of patent rights can be found in the PATENTS file in the same directory.
                                  <span aria-hidden="true">&times;</span>
                              </button>
                              <h4 class='modal-title'>
+
                                  <i class='fa fa-user'></i>
-                                 Add User ({{ network.name }})
+                                 <span class="title">Add </span> User ({{ network.name }})
+
                              </h4>
+
                          </div>
                             <div class='modal-body'>
+                                <span class="msg exists">
+                                        <h4>User Exists!</h4>
+                                </span>
                                 <div class='form-group'>
-                                    <label for='role' class='control-label requiredField'>
-                                        <div class="form-group row" data-toggle="tooltip" title="Select the user role" required>
-                                            <div class="col-xs-10">
-                                                <div class="input-group col-xs-8">
-                                                    <label>Role <span class="aseriskField">*</span></label>
-                                                    <div class="input-group-addon">
-                                                        <i class="glyphicon glyphicon-user"></i>
-                                                    </div>
-                                                    <select name="role" id="role" class="form-control" onchange="changeRole(this)" required>
-                                                        <option value="">-Select role-</option>
-                                                        {% for values in roles %}
-                                                        <option value="{{ values }}">{{ values }}</option>
-                                                        {% endfor %}
-                                                    </select>
+                                    <div class="form-group row" data-toggle="tooltip" title="Select the user role" required>
+                                        <div class="col-sm-12">
+                                            <div class="input-group col-sm-8">
+                                                <label>Role<span class="aseriskField">*</span></label>
+                                                <div class="input-group-addon">
+                                                    <i class="glyphicon glyphicon-user"></i>
                                                 </div>
+                                                <select name="role" id="role" class="form-control" onchange="changeRole(this)" required>
+                                                    <option value="">-Select role-</option>
+                                                    {% for values in roles %}
+                                                    <option value="{{ values }}">{{ values }}</option>
+                                                    {% endfor %}
+                                                </select>
                                             </div>
-                                        </div><!--Role Ends-->
-                                    </label>
-                                    <div class='controls'>
+                                        </div>
+                                    </div><!--Role Ends-->
+
+                                    <div class="col-sm-12">
                                         <div class="form-group row">
-                                            <div class="col-xs-10" data-toggle="tooltip" data-placement="left"
-                                                 title="User email to Add or Edit">
-                                                <div class="input-group col-xs-8">
-                                                    <label for="email" id="ariaLable" class="col-3 col-form-label">Email <span class="aseriskField">*</span></label>
-                                                    <div class="input-group-addon">
-                                                        <i class="glyphicon glyphicon-envelope"></i>
-                                                    </div>
-                                                    <input type="hidden" name="valid_email" id="valid_email" value="0"/>
-                                                    <input class="form-control" type="text" id="email" name="email" placeholder="abc@yourdomain.com" required/>
+                                            <div class="input-group col-sm-8" style="float:left;" data-toggle="tooltip" title="User email to Add or Edit">
+                                                <label for="email" id="ariaLable" class="col-3 col-form-label">Email
+                                                    <span class="aseriskField">*</span></label>
+                                                <div class="input-group-addon">
+                                                    <i class="glyphicon glyphicon-envelope"></i>
                                                 </div>
-                                                <span class="msg error">Not a valid email address</span>
-                                                <span class="msg exists"><a href="javascript:editUser();">Edit user</a></span>
-                                                <span class="msg success"></span>
+                                                <input type="hidden" name="valid_email" id="valid_email" value="0"/>
+                                                <input class="form-control" type="text" id="email" name="email"
+                                                       placeholder="abc@yourdomain.com" required/>
                                             </div>
-                                        </div><!--Email Ends-->
-                                    </div>
+                                            <div class="input-group col-sm-4" style="float:right; cursor: pointer; cursor: hand;" title="click to edit user">
+                                                <span class="msg exists">
+                                                    &nbsp;&nbsp;
+                                                        <span onclick="editUser()" class="glyphicon glyphicon-edit"></span>
+                                                </span>
+                                            </div>
+                                            <span class="msg success"></span>
+                                            <span class="msg error">Not a valid email address</span>
+                                        </div>
+                                    </div><!--Email Ends-->
+
+
                                     <div>
                                         <label><h4>Permissions</h4></label>
                                         <hr style="height: 10px; margin:0 auto;line-height:2px;">
@@ -200,6 +274,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                         </form>
                     </div>
                 </div>
+
             </div>
             {% else %}
             {% include 'dashboard/permission_denied.html' %}
@@ -251,7 +326,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             </div>
             <div class='modal-body'>
                 <h4>
-                    Are you sure you want to update user?
+                    Are you sure you want to change <b>Active</b> state ?
                 </h4>
             </div>
             <div class='modal-footer'>
@@ -268,6 +343,8 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 {% endblock %}
 {% block js %}
+
+<script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
 <script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
 <script type="text/javascript">
   $(function() {
@@ -363,7 +440,6 @@ of patent rights can be found in the PATENTS file in the same directory.
                 $('#email').parent().parent().removeClass('has-warning');
 
                 // Check if email exists...
-
                 clearInterval(_changeInterval);
                 _changeInterval = setInterval(function() {
                     clearInterval(_changeInterval)
@@ -377,7 +453,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                             $('#email').parent().parent().addClass('has-success');
                             $('#email').addClass('form-control-success');
                         } else {
-                            $('#valid_email').val(0);
+                            $('#valid_email').val(2);
                             $('#email').parent().parent().addClass('has-warning');
                             $('#email').addClass('form-control-warning');
                             $('.exists').show();
@@ -419,14 +495,18 @@ of patent rights can be found in the PATENTS file in the same directory.
             $('.no_perm_error').show();
             $('.no_perm_error').parent().addClass('has-warning');
         }
-        if($('#role').val() && $('#valid_email').val() != 0
+        if($('#role').val() && $('#valid_email').val() >= 1
         && $('#permissions_right option').length) {
             var permissions = [];
             $.each($('#permissions_right option'), function(key, val) {
                 permissions.push($(val).val());
             });
+            var action_url = "/dashboard/user/management";
+            if($('#valid_email').val() == 2) {
+                var action_url = "/dashboard/user/management/update"
+            }
             $.ajax({
-                url: "/dashboard/user/management",
+                url: action_url,
                 type: 'POST',
                 beforeSend: function(xhr) {
                     xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
@@ -443,13 +523,35 @@ of patent rights can be found in the PATENTS file in the same directory.
         return false;
     }
     function editUser() {
-    $.ajax({
-                url: "/dashboard/user/management",
-                type: 'GET',
-                success: function () {
-               window.location.href = '/dashboard/user/management/update?user=' + $('#email').val();
-            },
+        $.ajax({
+            url: '/dashboard/user/management/update?user=' + $('#email').val() + '&id='+$('input[name=id]:checked').val(),
+            type: 'GET',
+            success: function (response) {
+                $('#role').val(response.user_role);
+                $('#email').attr({'disabled':'disabled'});
+                $('#permissions_left').html('');
+                $.each(response.permissions, function(key, val) {
+                    $('#permissions_left').append($('<option>', {
+                        value: val[0],
+                        text: val[1]
+                    }));
                 });
+
+                $('#permissions_right').html('');
+                $.each(response.user_permissions, function(key, val) {
+                    $('#permissions_right').append($('<option>', {
+                        value: val[0],
+                        text: val[1]
+                    }));
+                });
+                $('.exists').hide(); //email
+                $('#valid_email').val(2);
+                $('#email').val(response.email)
+                $('.title').html('Update');
+                $('#submit').html('Update');
+
+            },
+        });
     }
 
     $('#delete-confirm').click(function () {
@@ -477,7 +579,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     $.each($('input[name=id]:checked'), function(key, element){
         ids.push($(element).val());
     });
-    // Sending UnBlock as Delete request
+    // Sending Block/UnBlock as Delete request
     $.ajax({
         url: "/dashboard/user/management?"+$.param({'block_ids': ids}),
         type: 'DELETE',
