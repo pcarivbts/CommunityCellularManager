@@ -1,0 +1,297 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+{% load apptags %}
+{% load humanize %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+
+
+{% block title %}
+{% if network.name %}
+{% tmpl_const "SITENAME" %} | "{{ network.name }}"
+{% else %}
+{% tmpl_const "SITENAME" %} | Network
+{% endif %}
+{% endblock %}
+
+{% block pagestyle %}
+<style>
+
+    .btn{
+        margin-left: 5px;
+    }
+    .btn:last-child{
+        margin-left: 0;
+    }
+    table tbody tr.highlight td {
+        background-color: #ddd;
+    }
+    label.btn span {
+  font-size: 1.5em ;
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "dashboard/network_detail/header.html" with network=network active_tab='network-notifications' %}
+
+<div class='row'>
+    {% include "dashboard/network_detail/nav.html" with active_tab='network-notifications' %}
+    <div class='content col-xs-12 col-sm-10 col-md-10'>
+        {% for message in messages %}
+        <div class="message alert alert-{{ message.tags }}">
+            <a href="#" class="close" data-dismiss="alert">&times;</a>
+            {{ message }}
+        </div>
+        {% endfor %}
+        <form action="/dashboard/network/notification" method="POST"
+              name="notification_form" id="notification_form">
+            <div class="table-container">
+                {% csrf_token %}
+                {% if records > 0 %}
+                {% render_table notification_table %}
+                <div class="dropdown actions">
+                    <button class="btn btn-primary dropdown-toggle"
+                            type="button" data-toggle="dropdown">Action(s)
+                        <span class="caret"></span></button>
+                    <ul class="dropdown-menu">
+                        <li id="action_delete">
+                            <a data-target='#delete-event-modal'
+                               data-toggle='modal' href="javascript:void(0);">Delete</a>
+                        </li>
+                        <li id="action_edit"><a data-target="#save-event-modal"
+                                                data-toggle='modal'
+                                                onclick="editNotification()"
+                                                href="#">Edit</a></li>
+                    </ul>
+                </div>
+            </div>
+            {% else %}
+            <p>No notifications in the current network </p>
+            {% endif %}
+        </form>
+    </div>
+
+</div>
+</div>
+<div class='modal fade' id='delete-event-modal'>
+    <div class='modal-dialog'>
+        <div class='modal-content'>
+            <div class='modal-header'>
+                <button type="button" class="close" data-dismiss="modal"
+                        aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class='modal-title'>
+                    Confirmation
+                </h4>
+            </div>
+            <div class='modal-body'>
+                <h4>
+                    Are you sure you want to delete?
+                </h4>
+            </div>
+            <div class='modal-footer'>
+                <button type='button' class='btn btn-default'
+                        data-dismiss='modal'>Cancel
+                </button>
+                <button class='btn btn-primary' type='button'
+                        id='delete-confirm'>Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+</div><!-- /.delete-user-modal -->
+
+<div class='modal fade' id='save-event-modal'>
+    <div class='modal-dialog'>
+        <div class='modal-content'>
+            <div class='modal-header'>
+                <button type="button" class="close" data-dismiss="modal"
+                        aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class='modal-title'>
+                    Notification
+                </h4>
+            </div>
+            <div class='modal-body' style="height: 450px;">
+                <form action="/dashboard/network/notification"
+                      id="add-notification-modal" name="notification"
+                      method="POST"
+                      data-toggle="validator" class="form-horizontal">
+                    {% csrf_token %}
+                    <div class="col-md-12">
+                        {% crispy notification %}
+                    </div>
+                    <input type="submit" id="add-notification-submit"
+                           class="btn btn-primary pull-right" value="Add Notification"
+                           onclick="document.getElementById('submit-id-submit').click()"/>
+                    <button type='button' class='btn btn-default pull-right' data-dismiss='modal'>Cancel</button>
+                </form>
+            </div>
+            <div class='modal-footer'>
+                <!--<div id='user-messages-container'></div>-->
+            </div>
+        </div>
+    </div>
+</div>
+{% include "dashboard/subscriber_detail/broadcast.html" with target='network' %}
+{% endblock %}
+{% block js %}
+<script type="text/javascript">
+
+  $(function() {
+    $('.actions').hide();
+    $('input:checkbox').change(function() {
+        console.log("checkboxes = ", $('form input[name=id]:checked').length);
+        var num_records = $('form input[name=id]:checked').length;
+        if(num_records==1) {
+            $('.actions').show();
+            $('#action_edit').show();
+        } else if(num_records > 1) {
+            $('.actions').show();
+            $('#action_edit').hide();
+        } else {
+            $('.actions').hide();
+        }
+
+    });
+    $('input:radio').change(function() {
+      var notification_type = $('form input[name=type]:checked').val();
+      if (notification_type == 'mapped') {
+        $('#id_number').prop('disabled', false);
+        $('#id_event').prop('disabled', true);
+      } else {
+        $('#id_number').prop('disabled', true);
+        $('#id_event').prop('disabled', false);
+      }
+    });
+  });
+  $('#delete-confirm').click(function () {
+    $('#notification_form').submit();
+  });
+
+  function toggle(source) {
+    checkboxes = document.getElementsByName('id');
+    for(var i in checkboxes) {
+      checkboxes[i].checked = source.checked;
+    }
+  }
+  function editNotification() {
+    var notif_id = $('form input[name=id]:checked').val()
+    // Post to the endagaweb API.
+    $.ajax({
+        url: '/dashboard/network/notification?id=' + notif_id,
+        type: 'GET',
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+        },
+        success: function (response) {
+            var etype = response.data.type;
+            $('form input[value='+ etype +']').prop('checked', true).change();
+            $('#id_number').val(response.data.number);
+            $('#id_event').val(response.data.event);
+            $('#id_message').val(response.data.message);
+            $('#id_pk').val(response.data.id);
+        },
+        error: function (response) {
+            // Show an error message after a small delay.
+            setTimeout(function () {
+                var message = 'Error: ' + response.status;
+                var html = "<div class='alert alert-danger'>" + message + "</div>";
+                $('#user-messages-container').html(html).show();
+            }, 800);
+        },
+    });
+  }
+  function resetForm() {
+    $('#id_type_1').prop('checked', true).change();
+    $('#id_number').val('');
+    $('#id_message').val('');
+    $('#id_event').val('');
+    $('#id_pk').val(0);
+  }
+
+</script>
+<script type="text/javascript">
+
+$(document).ready(function() {
+
+  $('input[type=radio][name="send_to"]').change(function() {
+    if (this.value == 'network') {
+        $('#network_row').show();
+        $('#tower_row').hide();
+        $('#imsi_row').hide();
+    } else if (this.value == 'tower') {
+        $('#network_row').hide();
+        $('#tower_row').show();
+        $('#imsi_row').hide();
+    } else if (this.value == 'imsi') {
+        $('#network_row').hide();
+        $('#tower_row').hide();
+        $('#imsi_row').show();
+    } else {
+        $('#network_row').show();
+        $('#tower_row').show();
+    }
+  });
+  $('#broadcast-modal').on('shown.bs.modal', function() {
+    $('#broadcast-form')[0].reset();
+    $('#network_row').show();
+    $('#tower_row').hide();
+    $('#imsi_row').hide();
+  });
+
+});
+  function broadcastSms() {
+    var data = {
+      sendto: $('input[type=radio][name="send_to"]:checked').val(),
+      network_id: $('#network_id').val(),
+      tower_id: $('#bts_id').val(),
+      imsi: $('#imsi').val(),
+      message: $('#message').val(),
+      csrfmiddlewaretoken: '{{ csrf_token }}',
+    };
+    $.post('/dashboard/broadcast', data, function(response) {
+      if (response['status'] == 'ok') {
+        // Show that it was successful and then reload the page.
+        // Clear out any old messages and show the div again.
+        $('#messages-container').html();
+        $('#messages-container').css('opacity', 1);
+        var html = '';
+        response['messages'].map(function(message) {
+          html += '<div class="alert alert-success">' + message + '</div>';
+        });
+        $('#messages-container').html(html).show();
+        setTimeout(function() {
+          location.reload();
+        }, 800);
+      } else {
+        // Show the messages that were sent back.
+        // Clear out any old messages and show the div again.
+        $('#messages-container').html();
+        $('#messages-container').css('opacity', 1);
+        var html = '';
+        response['messages'].map(function(message) {
+          html += '<div class="alert alert-danger">' + message + '</div>';
+        });
+        $('#messages-container').html(html).show();
+        setTimeout(function() {
+          $('#messages-container').fadeTo(500, 0);
+          $('#messages-container').hide();
+        }, 4000);
+      }
+    });
+    return false;
+  }
+</script>
+{% endblock %}

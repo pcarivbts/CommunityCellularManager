@@ -153,6 +153,9 @@ urlpatterns = [
         name='network-edit'),
     url(r'^dashboard/network/select/(?P<network_id>[0-9]+)$',
         endagaweb.views.network.NetworkSelectView.as_view()),
+    url(r'^dashboard/network/notification$',
+        endagaweb.views.network.NetworkNotifications.as_view(),
+        name='network-notifications'),
     # The activity table.
     url(r'^dashboard/activity',
         endagaweb.views.dashboard.ActivityView.as_view(),
@@ -211,6 +214,11 @@ if 'django.contrib.admin' in settings.INSTALLED_APPS:
     urlpatterns += [
         url(r'^django-admin/', include(admin.site.urls)),
     ]
+    # Only use rosetta when django-admin is used for security.
+    if 'rosetta' in settings.INSTALLED_APPS:
+        urlpatterns += [
+            url(r'^rosetta/', include('rosetta.urls')),
+        ]
 
 
 # We only install the loginas app in the staff version of the site and we hide
@@ -223,3 +231,5 @@ if 'DatabaseStorage' in settings.DEFAULT_FILE_STORAGE:
         url(r'^file/(?P<fname>.+)$',
             endagaweb.views.file_upload.file_view, name='file-upload')
     ]
+
+
