@@ -74,10 +74,12 @@ def main():
     client_completed = asyncio.Future()
 
     # Wrapping protocol class because event loop can notaccept extra arguments.
-    ctrl_client = functools.partial(OsmoCtrlClient, msg, \
-                        future=client_completed, callback=processor_cb)
+    ctrl_client = functools.partial(OsmoCtrlClient, msg,
+                                    future=client_completed,
+                                    callback=processor_cb)
 
-    # Protocol class, msg, future, and callback passed to the event loop to create the connection.
+    # Protocol class, msg, future, and callback passed to the event loop to create
+    # the connection.
     client_coro = loop.create_connection(ctrl_client, HOST, PORT)
 
     logging.info('waiting for client to complete')
@@ -87,7 +89,7 @@ def main():
 
         # Display response from GET/SET request or from TRAP
         response = processor_cb.response
-        print('\nResponse for {} request, var: {}, val: {}\n'.format(response['msg_type'],\
+        print('\nResponse for {} request, var: {}, val: {}\n'.format(response['msg_type'],
               response['var'], response['val']), file=output)
 
         # Called again to run until the protocol defined by OsmoCtrlClient has completed
@@ -148,7 +150,7 @@ class CtrlProcessor:
 
     def process_response(self, response):
         """ Interface to application layer processing of Osmo CTRL responses"""
-        self.response = response # enabling callback access to attribute
+        self.response = response  # enabling callback access to attribute
         if self.request_id == response['id']:
             if response['msg_type'] == "ERROR":
                 raise OsmoCtrlError('Request id: {}, returned error response: {}'.
@@ -175,7 +177,7 @@ class OsmoCtrlClient(OsmoIPAClient):
         super().__init__(ctrl_callback=callback)
         self.future = future
         self.message = message
-        self.trap = not bool(self.message) # TRAP request have no message
+        self.trap = not bool(self.message)  # TRAP request have no message
 
     def connection_made(self, transport):
         """
@@ -200,7 +202,7 @@ class OsmoCtrlClient(OsmoIPAClient):
         CTRL protocol doesn't specify an End of File (eof) nor does the
         server necesarily close after communication terminates. TRAP
         communication maintains an open connection, while GET/SET terminate
-    
+
         Args:
             data (bytes): new data read from the transport
         Returns:
@@ -209,7 +211,6 @@ class OsmoCtrlClient(OsmoIPAClient):
         super().data_received(data)
         if not self.trap:
             self.transport.close()
-
 
     def connection_lost(self, exc):
         """
@@ -223,20 +224,23 @@ class OsmoCtrlClient(OsmoIPAClient):
         if not self.future.done():
             self.future.set_result(True)
         self._ctrl_manager = None
-        super().connection_lost(exc) # rare case of calling super() after cleaning up locally
+        super().connection_lost(exc)  # rare case of calling super() after cleaning up locally
 
 
 class Error(Exception):
     """Base class for exceptions in this module."""
     pass
 
+
 class MsgIdError(Error):
     """Error when response_id from Osmo stack doesn't match request_id"""
     pass
 
+
 class OsmoCtrlError(Error):
     """Error message returned from Osmo stack"""
     pass
+
 
 if __name__ == '__main__':
     main()
