@@ -11,6 +11,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 from django import test
 import mock
 
+
 from endagaweb import models
 
 
@@ -33,16 +34,29 @@ class SubscriberBaseTest(test.TestCase):
 
         cls.subscriber_imsi = 'IMSI000123'
         cls.subscriber_num = '5551234'
+        cls.subscriber_role = 'Subscriber'
         cls.subscriber = models.Subscriber.objects.create(
             balance=100, name='test-name', imsi=cls.subscriber_imsi,
-            network=cls.bts.network, bts=cls.bts)
+            role=cls.subscriber_role, network=cls.bts.network, bts=cls.bts)
         cls.subscriber.save()
+        cls.subscriber_imsi2 = 'IMSI000124'
+        cls.subscriber_num2 = '5551235'
+        cls.subscriber_role2 ='Retailer'
+        cls.subscriber2 = models.Subscriber.objects.create(
+            balance=1000, name='test-name', imsi=cls.subscriber_imsi2,
+            role=cls.subscriber_role2, network=cls.bts.network, bts=cls.bts)
+        cls.subscriber2.save()
 
         cls.number = models.Number(number=cls.subscriber_num, state="inuse",
                                    network=cls.user_profile.network,
                                    kind="number.nexmo.monthly",
                                    subscriber=cls.subscriber)
         cls.number.save()
+        cls.number2 = models.Number(number=cls.subscriber_num2, state="inuse",
+                                   network=cls.user_profile.network,
+                                   kind="number.nexmo.monthly",
+                                   subscriber=cls.subscriber2)
+        cls.number2.save()
 
         cls.adjust_credit_endpoint = (
             '/dashboard/subscribers/%s/adjust-credit' % cls.subscriber_imsi)
@@ -58,6 +72,8 @@ class SubscriberBaseTest(test.TestCase):
         cls.bts.delete()
         cls.subscriber.delete()
         cls.number.delete()
+        cls.subscriber2.delete()
+        cls.number2.delete()
 
     def setUp(self):
         self.client = test.Client()
@@ -71,6 +87,46 @@ class SubscriberInfoTest(SubscriberBaseTest):
         response = self.client.get('/dashboard/subscribers/%s' %
                                    self.subscriber_imsi)
         self.assertEqual(200, response.status_code)
+
+    def test_post_update_role_single_subscriber(self):
+        data = {
+            'category': 'Retailer',
+            'imsi_val[] ': 'IMSI000123'
+        }
+        url = '/dashboard/subscribers'
+        response = self.client.post(
+            url, data)
+        self.assertEqual(200, response.status_code)
+        update_subscriber =models.Subscriber.objects.get(imsi='IMSI000123')
+        self.assertEqual(update_subscriber.role,'Retailer')
+
+    def test_post_update_test_sim_role_single_subscriber(self):
+        data = {
+            'category': 'Test Sim',
+            'imsi_val[] ': 'IMSI000123'
+        }
+        url = '/dashboard/subscribers'
+        response = self.client.post(
+            url, data)
+        self.assertEqual(200, response.status_code)
+        update_subscriber =models.Subscriber.objects.get(imsi='IMSI000123')
+        self.assertEqual(update_subscriber.role,'Test Sim')
+
+    def test_post_update_role_bulk_subscriber(self):
+        imsi_list =[self.subscriber_imsi,self.subscriber_imsi2]
+        data = {
+            'category': 'Subscriber',
+            'imsi_val[] ':imsi_list
+        }
+
+        url = '/dashboard/subscribers'
+        response = self.client.post(
+            url, data)
+        self.assertEqual(200, response.status_code)
+        update_subscriber = models.Subscriber.objects.get(imsi=self.subscriber_imsi)
+        self.assertEqual(update_subscriber.role,'Subscriber')
+        update_subscriber2 = models.Subscriber.objects.get(imsi=self.subscriber_imsi2)
+        self.assertEqual(update_subscriber2.role, 'Subscriber')
 
 
 class SubscriberActivityTest(SubscriberBaseTest):

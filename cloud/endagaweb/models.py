@@ -569,7 +569,8 @@ class Subscriber(models.Model):
                                     max_length=255)
     block_time = models.DateTimeField(null=True, blank=True)
     valid_through = models.DateTimeField(null=True, auto_now_add=True)
-    role = models.TextField(default='subscriber')
+    # role of subscriber
+    role = models.TextField(null=True, blank=True, default="Subscriber")
 
     class Meta:
         default_permissions = ()
@@ -629,8 +630,8 @@ class Subscriber(models.Model):
         self.crdt_balance = bal.serialize()
 
     def __unicode__(self):
-        return "Sub %s, %s, network: %s, balance: %d" % (
-            self.name, self.imsi, self.network, self.balance)
+        return "Sub %s, %s, network: %s, balance: %d, role: %s" % (
+            self.name, self.imsi, self.network, self.balance, self.role)
 
     def numbers(self):
         n = self.number_set.all()

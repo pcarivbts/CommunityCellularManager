@@ -266,15 +266,16 @@ class SubscriberListView(ProtectedView):
             query_subscribers = all_subscribers
 
         # Setup the subscriber table.
-        subscriber_table = django_tables.SubscriberTable(list(query_subscribers))
+        subscriber_table = django_tables.SubscriberTable(
+            list(query_subscribers))
         tables.RequestConfig(request, paginate={'per_page': 15}).configure(
             subscriber_table)
 
         # Render the response with context.
         context = {
             'network': network,
-            'networks': get_objects_for_user(request.user,
-                                             'view_network', klass=Network),
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=Network),
             'currency': CURRENCIES[network.subscriber_currency],
             'user_profile': user_profile,
             'total_number_of_subscribers': len(all_subscribers),
@@ -285,6 +286,17 @@ class SubscriberListView(ProtectedView):
         template = get_template("dashboard/subscribers.html")
         html = template.render(context, request)
         return HttpResponse(html)
+
+    def post(self, request, *args, **kwargs):
+        subscriber_imsi_list = request.POST.getlist('imsi_val[]')
+        subscriber_role = request.POST.get('category')
+        try:
+            update_imsi = Subscriber.objects.filter(imsi__in=subscriber_imsi_list)
+            update_imsi.update(role=subscriber_role)
+            response_message = "Subscriber role updated successfully."
+        except Exception as e:
+            response_message = "Subscriber role update fail."
+        return HttpResponse(response_message)
 
 
 class SubscriberInfo(ProtectedView):
@@ -472,7 +484,7 @@ class SubscriberActivity(ProtectedView):
 
 class SubscriberSendSMS(ProtectedView):
     """Send an SMS to a single subscriber."""
-    permission_required = 'view_subscriber'
+    permission_required = ['send_sms', 'view_subscriber']
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -536,7 +548,7 @@ class SubscriberSendSMS(ProtectedView):
 
 class SubscriberAdjustCredit(ProtectedView):
     """Adjust credit for a single subscriber."""
-    permission_required = 'view_subscriber'
+    permission_required = ['adjust_credit','view_subscriber']
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -653,7 +665,7 @@ class SubscriberAdjustCredit(ProtectedView):
 
 class SubscriberEdit(ProtectedView):
     """Edit a single subscriber's info."""
-    permission_required = 'view_subscriber'
+    permission_required = 'edit_subscriber'
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
