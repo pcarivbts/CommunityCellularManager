@@ -44,7 +44,7 @@ from endagaweb.models import UsageEvent
 from endagaweb.models import SystemEvent
 from endagaweb.models import TimeseriesStat
 from endagaweb.ic_providers.nexmo import NexmoProvider
-from endagaweb.settings.dev import TEMPLATES_PATH
+from endagaweb.settings.prod import TEMPLATES_PATH
 
 
 @app.task(bind=True)

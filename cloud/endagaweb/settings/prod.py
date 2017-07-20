@@ -338,6 +338,6 @@ LANGUAGES = (
 LANGUAGE_CODE = 'en'
 
 LOCALE_PATHS = (
-    os.path.join(os.environ["HOME"], 'locale'),
+    os.path.join(os.environ["ENDAGA_BASE_PATH"], 'locale'),
 )
-TEMPLATES_PATH = os.path.join(os.environ["HOME"], 'templates')
+TEMPLATES_PATH = os.path.join(os.environ["ENDAGA_BASE_PATH"], 'templates')
