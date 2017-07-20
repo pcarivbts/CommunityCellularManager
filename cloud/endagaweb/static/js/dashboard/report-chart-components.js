@@ -49,7 +49,8 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       tooltipUnits: '',
       frontTooltip: '',
       chartType: 'line-chart',
-      reportView: 'list'
+      reportView: 'list',
+      info: 'info of report type'
     }
   },
 
@@ -219,7 +220,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
   else if (this.props.chartID == 'topupSubscriber-chart'){
         newYAxisFormatter = '.2f';
         tablesColumnValueName = [
-          { title: "Denomination bracket" },
+          { title: "Denomination Bracket" },
           { title: "Amount in" }
       ]
 
@@ -228,7 +229,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       else if (this.props.chartID == 'topup-chart'){
         newYAxisFormatter = '.2f';
         tablesColumnValueName = [
-          { title: "Denomination bracket" },
+          { title: "Denomination Bracket" },
           { title: "Count" }
       ]
 
@@ -270,7 +271,10 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
     var toDatepickerID = 'to-datepicker-' + this.props.chartID;
     return (
       <div>
-        <h4>{this.props.title}</h4>
+        <h4>
+            {this.props.title}
+            &nbsp; <a rel="tooltip" className='glyphicon glyphicon-info-sign' data-toggle="tooltip" data-placement="right" background-color='#483D8B' title={this.props.info}></a>
+        </h4>
         <span>past &nbsp;&nbsp;</span>
         {this.props.buttons.map(function(buttonText, index) {
           return (
@@ -385,41 +389,36 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
       changeAmount = []
       // sum can be of all negative values
       if ( sumAmount < 0 ){
-      console.log("tttttt");
       newSeries['total'] = (sumAmount * -1);
       }
       else{
-  //    console.log("qqqq");
       newSeries['total'] = (sumAmount);
       }
-      console.log("wwww");
       newSeries['values'] = newValues;
-    } else {
-         if(domTargetId =='data-chart' || domTargetId =='add-money-chart' || domTargetId =='call-sms-chart'  || domTargetId == 'topupSubscriber-chart' ){
-         newSeries['total'] = (data[index]['values'].toFixed(2));
+    }else {
+      newSeries['total'] = data[index]['values'];
+    }
+
+      if(domTargetId =='data-chart' || domTargetId =='add-money-chart' || domTargetId =='call-sms-chart' ||  domTargetId == 'topupSubscriber-chart' ){
+         if( newSeries['total'] !=undefined){
+         newSeries['total'] = newSeries['total'].toFixed(2);}
 
          }else{
-
-         newSeries['total'] = data[index]['values']
+         newSeries['total'] = newSeries['total']
          }
-
-
-    }
 
     tableData.push([newSeries['key'], newSeries['total']]);
 
     shiftedData.push(newSeries);
-    console.log("frontTooltip ", frontTooltip)
     if(frontTooltip!="" && domTargetId =='topupSubscriber-chart'){
 
     tablesColumnValueName = [
-          { title: "Denomination bracket" },
+          { title: "Denomination Bracket" },
           { title: "Amount in ("+ frontTooltip +")" }
       ]
     }
     else if (frontTooltip!="" &&   domTargetId =='add-money-chart' || domTargetId =='call-sms-chart'  ){
    // console.log("dcdcdcddddddddddddd ",tableData)
-
 
      tablesColumnValueName = [
           { title: "Type" },
@@ -434,7 +433,6 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
     }
 
   }
-   //console.log("qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq",this.props.chartID == 'topupSubscriber-chart')
 
   $('.'+domTargetId).DataTable({
 

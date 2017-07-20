@@ -17,6 +17,12 @@ of patent rights can be found in the PATENTS file in the same directory.
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css" type="text/css"/>
+<style type="text/css">
+  div.tooltip-inner {
+    max-width: 350px;
+    background-color:#483D8B;
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -46,6 +52,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       $('.timezone-notice').fadeIn(500);
     }, 800);
   });
+
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/react.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/JSXTransformer.js"></script>
@@ -73,6 +80,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       timezoneOffset={timezoneOffset}
       tooltipUnits='s of'
       chartType='bar-chart'
+      info='This report shows total number of provisioned, de-provisioned & subscribers with zero balance for selected time window.'
     />,
     document.getElementById('subscriber-chart')
   );
@@ -91,10 +99,23 @@ of patent rights can be found in the PATENTS file in the same directory.
       timezoneOffset={timezoneOffset}
       tooltipUnits='s of'
       chartType='bar-chart'
+      info='This report shows different status of subscribers in terms their balance expiry, validity and blocked state for selected time window.'
     />,
     document.getElementById('subscriber-status')
   );
   {% endif %}
+</script>
+<script type="text/javascript">
+
+
+
+$(document).ready(function () {
+  $("a").tooltip({
+    'selector': '',
+    'placement': 'top',
+    'container':'body'
+  });
+});
 </script>
 
 {% endblock %}

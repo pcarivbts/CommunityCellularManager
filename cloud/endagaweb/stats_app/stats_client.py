@@ -133,7 +133,6 @@ class StatsClientBase(object):
             filters = Q(kind='transfer')
         # Filter by infrastructure level.
         if self.level == 'tower':
-            print(self.level_id)
             filters = filters & Q(bts__id=self.level_id)
         elif self.level == 'network' and param not in HEALTH_STATUS:
             filters = filters & Q(network__id=self.level_id)

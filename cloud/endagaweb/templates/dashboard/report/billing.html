@@ -28,6 +28,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 <style type="text/css">
   .ui-jqgrid tr.jqgrow th {font-size:1.3em}
   .ui-jqgrid tr.jqgrow td {font-size:1.2em}
+
 </style>
 
 {% endblock %}
@@ -49,7 +50,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             {% if 'Loader' in reports %}
             <div class="row">
               <div id="loader">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Loader" id="waterfall_loader" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Loader" info="This report shows count of subscribers who did  top-up in assessing month. So, total count of such subscribers will get updated against their provisioned month." id="waterfall_loader" %}
               </div>
             </div>
             {% endif %}
@@ -57,7 +58,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="reload_rate">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Rate" id="waterfall_reload_rate" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Rate" info='This report shows average number of time top-up done by all the subscribers  in assessing month against the number of subscriber provisioned in that particular month' id="waterfall_reload_rate" %}
               </div>
             </div>
             {% endif %}
@@ -65,7 +66,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="reload_amount">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Amount" id="waterfall_reload_amount" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Amount" info="This report shows total top-up done by all the subscribers through retailer in assessing month. so, sum of top-up amount done by all the subscriber will get updated against their provisioned month" id="waterfall_reload_amount" %}
               </div>
             </div>
             {% endif %}
@@ -73,7 +74,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="reload_transaction">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Transaction" id="waterfall_reload_transaction" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Transaction" info="This report shows number of transaction done by all the subscribers in assessing month. So, number of transaction done by all the subscribers will get updated against their provisioned month" id="waterfall_reload_transaction"  %}
               </div>
             </div>
             {% endif %}
@@ -81,7 +82,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="average_load">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Average Load" id="waterfall_average_load" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Average Load" info="This report shows average top-up done by each subscriber in assessing month. So, average amount per subscriber will get updated against their provisioned month" id="waterfall_average_load" %}
               </div>
             </div>
             {% endif %}
@@ -89,7 +90,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="average_frequency">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Average Frequency" id="waterfall_average_frequency" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Average Frequency" info="This report shows average number of time top-up done by each subscriber in assessing month. So, average frequency per subscriber will get updated against their provisioned month" id="waterfall_average_frequency" %}
               </div>
             </div>
             {% endif %}
@@ -169,6 +170,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       tooltipUnits='s of'
       reportView='summary'
       frontTooltip='{{ value_type }}'
+      info='This report shows total billing amount  charged to all the subscribers for all kind of outbound Calls ( Local & Outside).'
     />,
     document.getElementById('call-usage-chart')
   );
@@ -189,6 +191,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       tooltipUnits='s of'
       reportView='summary'
       frontTooltip='{{ value_type }}'
+      info='This report shows total billing amount  charged to all the subscribers for all types of outbound ( Local & Outside) SMS’s.'
     />,
     document.getElementById('sms-usage-chart')
   );
@@ -209,6 +212,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       tooltipUnits='s of'
       reportView='summary'
       frontTooltip='{{ value_type }}'
+      info='This report shows total billing amount  charged to all the subscribers for all kind of outbound Calls & SMS’s ( Local & Outside).'
     />,
     document.getElementById('call-sms-usage-chart')
   );
@@ -228,6 +232,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       chartType='bar-chart'
       tooltipUnits=' of '
       frontTooltip='{{ value_type }}'
+      info='This report shows total top-up done by all the retailers to the subscribers  in a given time window.'
     />,
     document.getElementById('load-transfer-usage-chart')
   );
@@ -247,6 +252,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       chartType='bar-chart'
       tooltipUnits=' added'
       frontTooltip=' {{ value_type }} '
+      info='This report shows on total amount transferred to retailers by business analyst using add credit function in endagaweb for selected time window.'
     />,
     document.getElementById('add-money-usage-chart')
   );
@@ -265,6 +271,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       timezoneOffset={timezoneOffset}
       tooltipUnits=' subscriber'
       chartType='line-chart'
+      info='This report shows the count of provisioned subscribers for selected time window.'
     />,
     document.getElementById('billing-waterfall-summary-chart')
   );
@@ -290,6 +297,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     topupPercent='{{ topup_percent }}'
     extras='{{ extra_param }}'
     dynamicStat='true'
+    info='This report shows number of  top-ups done by subscribers through retailer for selected time window in defined denomination brackets.'
   />,
   document.getElementById('top-up-chart')
   );
@@ -314,6 +322,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     dynamicStat='true'
     topupPercent='{{ topup_percent }}'
     frontTooltip='{{ value_type }}'
+    info='This report shows sum of top-ups done by subscribers through retailer for selected time window in defined denomination brackets.'
   />,
   document.getElementById('top-up-subscriber-chart')
 );
@@ -473,6 +482,7 @@ $(document).ready(function() {
   renderNonLoder();
 
 });
+
 </script>
 
 {% endif %}
