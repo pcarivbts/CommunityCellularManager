@@ -605,11 +605,9 @@ class SubscriberAdjustCredit(ProtectedView):
         error_text = 'Credit value must be between -10M and 10M.'
 
         try:
-
             currency = network.subscriber_currency
             amount = parse_credits(request.POST['amount'],
-                    CURRENCIES[currency]).amount_raw
-            currency_value = str(humanize_credits(network.max_balance, CURRENCIES[currency]))
+                                   CURRENCIES[currency]).amount_raw
             if abs(amount) > 2147483647:
                 error_text = 'Credit value must be between -10M and 10M.'
                 raise ValueError(error_text)
