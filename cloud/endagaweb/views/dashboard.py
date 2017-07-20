@@ -1431,6 +1431,7 @@ class SubscriberCategoryEdit(ProtectedView):
 
 class BroadcastView(ProtectedView):
     """Send an SMS to a single subscriber."""
+    permission_required = 'send_sms'
 
     def post(self, request):
         """Broadcast bulk SMS to network, tower or selected imsi.

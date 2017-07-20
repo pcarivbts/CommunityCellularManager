@@ -1,7 +1,10 @@
 {% load apptags %}
+{% load guardian_tags %}
+{% get_obj_perms request.user for network as 'user_permission' %}
 <div class='modal fade' id='broadcast-modal'>
     <form id='broadcast-form' name="broadcast-form" method="post" onsubmit="return broadcastSms();">
         <div class='modal-dialog'>
+            {% if 'send_sms' in user_permission %}
             <div class='modal-content'>
                 <div class='modal-header'>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -66,6 +69,13 @@
                     <input class="btn btn-primary" type="submit" value="Broadcast" id='broadcast_submit'>
                 </div>
             </div>
+            {% else %}
+            <div class="alert alert-warning" role="alert">
+                <strong><h4>403! Permission Denied!</h4></strong>
+                <p><b>SMS Broadcast</b> is not allowed, Please contact your administrator.</p>
+            </div>
+            {% endif %}
         </div>
     </form>
+
 </div>
