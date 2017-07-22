@@ -1106,16 +1106,22 @@ class UserManagement(ProtectedView):
 
     def delete(self, request, *args, **kwargs):
         """Handles POST requests to delete or block User."""
+
         user_ids = request.GET.getlist('ids[]') or None
         action = 'delete'
+        status = None
         if user_ids is None:
-            user_ids = request.GET.getlist('block_ids[]') or None
             action = 'block'
-
+            user_ids = request.GET.getlist('block_ids[]') or None
+            # For toggles
+            if user_ids is None:
+                user_ids = [int(request.GET.get('block_id'))]
+                status = request.GET.get('status')
         user_profile = UserProfile.objects.get(user=request.user)
         _users = []
         admin_users = []
         self_delete = False
+        message = None
         try:
             users = User.objects.filter(id__in=user_ids)
             for user in users:
@@ -1133,25 +1139,27 @@ class UserManagement(ProtectedView):
                 if action == 'delete':
                     for user in _users :
                         user.delete()
-                    action = 'deleted'
+                    action = ' %s is now deleted' % user.username
                 elif action == 'block':
                     for user in _users:
                         if user.is_active:
                             user.is_active = False
+                            action = "%s is now 'Blocked'" % user.username
                         else:
                             user.is_active = True
-                        action = 'updated'
+                            action = "%s is now 'Active'" % user.username
                         user.save()
-                message = 'Successfully %s!' % action
-                messages.success(request, message,
-                                 extra_tags="alert alert-success")
+                message = 'Success! %s!' % action
+                if status is None:
+                    messages.success(request, message,
+                                    extra_tags="alert alert-success")
             if len(admin_users)>0:
                 message = 'Cannot %s admin(s): %s ' % (action,
                                                        ', '.join(admin_users))
                 messages.warning(request, message,
                                  extra_tags="alert alert-warning")
             if self_delete:
-                message = 'You cannot %s yourself' % action
+                message = 'You cannot delete yourself.'
                 messages.warning(request, message,
                                  extra_tags="alert alert-warning")
             return HttpResponse(request, message)

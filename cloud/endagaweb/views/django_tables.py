@@ -389,10 +389,26 @@ class DenominationTable(tables.Table):
         return safestring.mark_safe(element)
 
 
-# def render_is_active(record):
-#     element = "<label class='switch'> <input type='checkbox' data-size='mini'> " \
-#               "<span class='slider round'></span> </label>"
-#     return safestring.mark_safe(element)
+def render_is_active(record):
+    user = record.id
+    is_superuser = ''
+    if record.is_active:
+        status = 'checked'
+    else:
+        status = ''
+
+    # Disable toggle for Cloud Admin
+    if record.is_superuser:
+        is_superuser = 'disabled'
+    element = "<input id='%d' type='checkbox' %s " \
+              "data-toggle='toggle' data-size='mini' data-off='Blocked' " \
+              "data-on='Active' %s><span id='toggle-%d' hidden>&nbsp;&nbsp;" \
+              "<span class='glyphicon glyphicon-ok'></span>"" \
+              ""</span>" % (
+        user, status, is_superuser, user)
+
+    return safestring.mark_safe(element)
+
 
 class UserTable(tables.Table):
     """A django-tables2 Table definition for User."""
@@ -408,12 +424,13 @@ class UserTable(tables.Table):
                                    "th__input": {"onclick": "toggle(this)"}})
     username = tables.Column(verbose_name='Username', orderable=True)
     email = tables.Column(verbose_name='Email', orderable=True)
-    is_active = tables.BooleanColumn(verbose_name='Active', orderable=True)
+    is_active = tables.BooleanColumn(verbose_name='Status', orderable=True)
     last_login = tables.DateTimeColumn(verbose_name='Last Login', short=True,
                                        orderable=True)
-    # TODO(sagar): Check for toggle for block unblock
-    # def render_is_active(self,record):
-    #     return render_is_active(record)
+
+    def render_is_active(self,record):
+        return render_is_active(record)
+
 
 def render_imsi(record):
     element = "<input type = 'checkbox' class ='imsi_id' name='imsi[]' " \

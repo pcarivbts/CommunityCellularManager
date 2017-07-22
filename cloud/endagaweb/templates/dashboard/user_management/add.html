@@ -116,15 +116,12 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <h4>
                 <i class='fa fa-user'></i>
                 User Management
-                <a href='#' data-toggle='modal' data-target='#add-user-modal'>
+                <a href='#' data-toggle='modal' data-target='#add-user-modal'> <!--add-user-modal-->
                     <small>(Add New User)</small>
                 </a>
                 </h4>
             </div>
         </div>
-
-    </div>
-    <div class='row'>
         {% get_obj_perms request.user for network as 'user_permission' %}
         <div class="container col-sm-10">
             {% for message in messages %}
@@ -136,34 +133,36 @@ of patent rights can be found in the PATENTS file in the same directory.
             {% if 'user_management' in user_permission %}
             <div class="col-sm-8">
                 {% render_table users %}
+
                 <div class="dropdown actions">
                     <button class="btn btn-primary dropdown-toggle"
                             type="button" data-toggle="dropdown">Action(s)
                         <span class="caret"></span>
                     </button>
                     <ul class="dropdown-menu ">
+                        <li id="action_edit">
+                            <a  data-target='#add-user-modal'
+                                data-toggle='modal'
+                                href="javascript: void();" onclick="editUser()">Edit</a>
+                        </li>
+                        <li id="action_block">
+                            <a data-target='#block-event-modal'
+                               data-toggle='modal' href="javascript:void(0);">Block/Unblock</a>
+                        </li>
                         <li id="action_delete">
                             <a data-target='#delete-event-modal'
                                data-toggle='modal' href="javascript:void(0);">Delete</a>
                         </li>
-                        <li id="action_block">
-                            <a data-target='#block-event-modal'
-                               data-toggle='modal' href="javascript:void(0);">Active/Inactive</a>
-                        </li>
-                        <li id="action_edit">
-                            <a  data-target='#add-user-modal'
-                                data-toggle='modal'
-                                href="javascript: void();" onclick="editUser()">Edit</a></li>
                     </ul>
                 </div>
             </div>
-            <div class='modal fade' id='add-user-modal'>
+            <div class='modal fade' id='add-user-modal' data-backdrop="static" data-keyboard="false">
                 <div class='modal-dialog'>
                     <div class='modal-content'>
                         <form id='user_form' action='/dashboard/user/management' name='user_form'
                                   method='POST' data-toggle='validator' onsubmit='return createUser();'> {% csrf_token %}
                             <div class='modal-header'>
-                             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                             <button type="button" class="close" onclick="destroyContent()" data-dismiss="modal" aria-label="Close">
                                  <span aria-hidden="true">&times;</span>
                              </button>
                              <h4 class='modal-title'>
@@ -172,7 +171,6 @@ of patent rights can be found in the PATENTS file in the same directory.
                                  <span class="title">Add </span> User ({{ network.name }})
 
                              </h4>
-
                          </div>
                             <div class='modal-body'>
                                 <span class="msg exists">
@@ -215,11 +213,11 @@ of patent rights can be found in the PATENTS file in the same directory.
                                                 </span>
                                             </div>
                                             <span class="msg success"></span>
-                                            <span class="msg error">Not a valid email address</span>
                                         </div>
                                     </div><!--Email Ends-->
-
-
+                                    <span class="msg error">
+                                        Invalid email address
+                                    </span>
                                     <div>
                                         <label><h4>Permissions</h4></label>
                                         <hr style="height: 10px; margin:0 auto;line-height:2px;">
@@ -266,7 +264,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                                 </div>
                             </div>
                             <div class='modal-footer'>
-                                <button type='button' class='btn btn-default' data-dismiss='modal'>Cancel</button>
+                                <button type='button' class='btn btn-default' onclick="destroyContent()" data-dismiss='modal'>Cancel</button>
                                 <button class='btn btn-primary' type='submit' id='submit'>Add User</button>
                                 <div id='messages-container'></div>
                             </div>
@@ -274,7 +272,6 @@ of patent rights can be found in the PATENTS file in the same directory.
                         </form>
                     </div>
                 </div>
-
             </div>
             {% else %}
             {% include 'dashboard/permission_denied.html' %}
@@ -326,7 +323,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             </div>
             <div class='modal-body'>
                 <h4>
-                    Are you sure you want to change <b>Active</b> state ?
+                    Are you sure you want to change Status ?
                 </h4>
             </div>
             <div class='modal-footer'>
@@ -344,9 +341,34 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endblock %}
 {% block js %}
 
+<link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
 <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
 <script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
 <script type="text/javascript">
+
+  $('input:checkbox').change(function() {
+    $('#console-event').html('Toggle: ' + $(this).prop('checked'));
+    //console.log("Change event: " + this.id + ' ' + $(this).prop('checked'));
+    var res = [];
+    res = Number(this.id);
+    var status = $(this).prop('checked');
+    if(res){
+    $.ajax({
+      url: "/dashboard/user/management?"+$.param({'block_id': res, 'status': status }),
+        type: 'DELETE',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+        },
+        success: function () {
+            $('#toggle-'+ res).show()
+            setTimeout(function() {
+                $('#toggle-'+ res).fadeOut(800);
+            }, 1000);
+            window.location.href = '/dashboard/user/management';
+        }
+    });
+    }
+  });
   $(function() {
     $('.actions').hide();
     $('input:checkbox').change(function() {
@@ -572,6 +594,19 @@ of patent rights can be found in the PATENTS file in the same directory.
         }
     });
   });
+  $('input[name=toggle]').change(function(){
+    var mode= $(this).prop('checked');
+    var id=$( this ).val();
+    $.ajax({
+      url: "/dashboard/user/management?"+$.param({'block_ids': ids}),
+        type: 'DELETE',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+        },
+        success: function (response) {
+        }
+    });
+  });
 
   $('#block-confirm').click(function () {
     //$('#user_delete').submit();
@@ -597,6 +632,9 @@ of patent rights can be found in the PATENTS file in the same directory.
     for(var i in checkboxes) {
       checkboxes[i].checked = source.checked;
     }
+  }
+  function destroyContent() {
+    window.location.href = '/dashboard/user/management';
   }
 </script>
 

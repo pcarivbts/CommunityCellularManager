@@ -80,9 +80,6 @@ class Command(BaseCommand):
                          "628555", None)
         self.create_data("testuser2", "testpw2", 2, "number.telecom.permanent",
                          "63917555", '0.3.26')
-        for a in range(3,15):
-            self.create_data("testuser" + str(a), "testpw", a, "number.nexmo.monthly",
-                             "628555"+str(a*2), '0.3.26')
         # Add one user with no such activity.
         username = 'newuser'
         sys.stdout.write('creating user "%s"..\n' % username)
