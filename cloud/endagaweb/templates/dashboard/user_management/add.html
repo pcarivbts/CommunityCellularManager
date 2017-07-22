@@ -11,6 +11,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load account socialaccount %}
 {% block pagestyle %}
 {% load render_table from django_tables2 %}
+{% load crispy_forms_tags %}
 <style xmlns="http://www.w3.org/1999/html">
 
     .form-check-label {
@@ -111,19 +112,20 @@ of patent rights can be found in the PATENTS file in the same directory.
     {% endblock %}
     {% block content %}
     <div class="row">
+
         <div class="col-xs-12 col-sm-12 page-header">
-            <div class="page-title col-xs-2">
-                <h4>
+            <div class="page-title col-xs-4">
+                <h3>
                 <i class='fa fa-user'></i>
                 User Management
                 <a href='#' data-toggle='modal' data-target='#add-user-modal'> <!--add-user-modal-->
-                    <small>(Add New User)</small>
+                    <small>(add user)</small>
                 </a>
-                </h4>
+                </h3>
             </div>
         </div>
         {% get_obj_perms request.user for network as 'user_permission' %}
-        <div class="container col-sm-10">
+        <div class="container col-sm-12">
             {% for message in messages %}
             <div class="col-sm-8 message alert alert-{{message.tags}}">
                 <a href="#" class="close" data-dismiss="alert">&times;</a>
@@ -132,8 +134,11 @@ of patent rights can be found in the PATENTS file in the same directory.
             {% endfor %}
             {% if 'user_management' in user_permission %}
             <div class="col-sm-8">
+                {% if total_users_found == 0 %}
+                <h4>No subscribers matched your search.</h4>
+                {% else %}
                 {% render_table users %}
-
+                {% endif %}
                 <div class="dropdown actions">
                     <button class="btn btn-primary dropdown-toggle"
                             type="button" data-toggle="dropdown">Action(s)
@@ -155,6 +160,24 @@ of patent rights can be found in the PATENTS file in the same directory.
                         </li>
                     </ul>
                 </div>
+            </div>
+            <div class="col-xs-12 col-md-4 pull-right">
+                {% if total_users %}
+                <p>Search by Username or Email:</p>
+                {% crispy search %}
+                <p>
+                    {% if total_users == 1 %}
+                    You have only 1 user on <b>{{ network.name }}</b>.
+                    {% else %}
+                    You have {{ total_users }} total users on <b>{{ network.name }} </b>.
+                    {% if total_users != total_users_found %}
+                        <a href="/dashboard/user/management">(See All)</a>
+                    {% endif %}
+                    {% endif %}
+                    <div></div>
+                    Keep it up!
+                </p>
+                {% endif %}
             </div>
             <div class='modal fade' id='add-user-modal' data-backdrop="static" data-keyboard="false">
                 <div class='modal-dialog'>
