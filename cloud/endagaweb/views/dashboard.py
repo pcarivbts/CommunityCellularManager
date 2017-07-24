@@ -40,7 +40,8 @@ from django.utils import timezone as django_utils_timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import View
 from guardian.mixins import PermissionRequiredMixin
-from guardian.shortcuts import assign_perm, get_perms, remove_perm
+from guardian.shortcuts import assign_perm, get_perms, remove_perm, \
+    get_users_with_perms
 from guardian.shortcuts import (get_objects_for_user)
 from rest_framework.authtoken.models import Token
 
@@ -994,10 +995,12 @@ class UserManagement(ProtectedView):
         network = user_profile.network
         user = User.objects.get(id=user_profile.user_id)
         available_permissions = get_perms(request.user, network)
-        users_in_network = User.objects.filter(
-            userprofile__in=UserProfile.objects.filter(
-                network=network)).exclude(
-            userprofile__role='Cloud Admin')
+
+        # Get all users except Cloud Admin
+        users_in_network = get_users_with_perms(
+            network, attach_perms=False, with_superusers=False).exclude(
+            Q(is_superuser=True)|Q(email=''))
+
         if not user_profile.user.is_superuser:
             users_in_network = users_in_network.exclude(
                 userprofile__role='Network Admin')
@@ -1117,6 +1120,8 @@ class UserManagement(ProtectedView):
     def delete(self, request, *args, **kwargs):
         """Handles POST requests to delete or block User."""
 
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
         user_ids = request.GET.getlist('ids[]') or None
         action = 'delete'
         status = None
@@ -1147,9 +1152,21 @@ class UserManagement(ProtectedView):
                     admin_users.append(user.username)
             if len(_users)>0:
                 if action == 'delete':
-                    for user in _users :
-                        user.delete()
-                    action = ' %s is now deleted' % user.username
+                    for user in _users:
+                        # Check if user exists in other N/Ws
+                        networks_assigned = get_objects_for_user(
+                            user, 'view_network', klass=Network)
+                        existing_permissions = get_perms(user, network)
+                        if len(networks_assigned) > 1:
+
+                            for perm in existing_permissions:
+                                permission = 'endagaweb.' + perm
+                                # remove from current network only
+                                remove_perm(permission, user, network)
+                        else:
+                            # if only one n/w it is associated with
+                            user.delete()
+                    action = 'Removed from %s' % network.name
                 elif action == 'block':
                     for user in _users:
                         if user.is_active:
