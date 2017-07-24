@@ -995,7 +995,6 @@ class UserManagement(ProtectedView):
         network = user_profile.network
         user = User.objects.get(id=user_profile.user_id)
         available_permissions = get_perms(request.user, network)
-
         # Get all users except Cloud Admin
         users_in_network = get_users_with_perms(
             network, attach_perms=False, with_superusers=False).exclude(
@@ -1171,12 +1170,11 @@ class UserManagement(ProtectedView):
                     for user in _users:
                         if user.is_active:
                             user.is_active = False
-                            action = "%s is now 'Blocked'" % user.username
                         else:
                             user.is_active = True
-                            action = "%s is now 'Active'" % user.username
+                        action = 'Updated'
                         user.save()
-                message = 'Success! %s!' % action
+                message = 'Successfully! %s!' % action
                 if status is None:
                     messages.success(request, message,
                                     extra_tags="alert alert-success")

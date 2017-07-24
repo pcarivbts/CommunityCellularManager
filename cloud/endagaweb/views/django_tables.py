@@ -415,7 +415,7 @@ class UserTable(tables.Table):
 
     class Meta:
         model = models.User
-        fields = ('id', 'username', 'email', 'role', 'is_active', 'last_login')
+        fields = ('id', 'email', 'role', 'is_active', 'last_login')
         attrs = {'class': 'table'}
         orderable = False
 
@@ -424,7 +424,7 @@ class UserTable(tables.Table):
                                    "th__input": {"onclick": "toggle(this)"}})
     # Get user role from userprofile
     role = tables.Column(accessor='userprofile.role', verbose_name='Role', orderable=True)
-    username = tables.Column(verbose_name='Username', orderable=True)
+    # username = tables.Column(verbose_name='Username', orderable=True)
     email = tables.Column(verbose_name='Email', orderable=True)
     is_active = tables.BooleanColumn(verbose_name='Status', orderable=True)
     last_login = tables.DateTimeColumn(verbose_name='Last Login', short=True,
@@ -433,6 +433,14 @@ class UserTable(tables.Table):
     def render_is_active(self, record):
         return render_is_active(record)
 
+    def render_role(self, record):
+        role = record.userprofile.role
+        if role in ['Cloud Admin', 'Network Admin']:
+            element = '<span class = "label label-danger">%s</span>' % role
+        else:
+            element = '<span class = "label label-info">%s</span>' % role
+
+        return safestring.mark_safe(element)
 
 def render_imsi(record):
     element = "<input type = 'checkbox' class ='imsi_id' name='imsi[]' " \

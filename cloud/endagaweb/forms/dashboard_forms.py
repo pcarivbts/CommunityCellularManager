@@ -413,7 +413,9 @@ class UserSearchForm(forms.Form):
     """Crispy search form on /dashboard/subscribers."""
     query = forms.CharField(required=False, label="",
                             widget=forms.TextInput(
-                                attrs={'placeholder': 'Username or Email'}))
+                                attrs={'placeholder':
+                                           'abc@domain.com'}))
+
     def __init__(self, sender, *args, **kwargs):
         self.helper = FormHelper()
         self.helper.form_id = 'id-SearchForm'
