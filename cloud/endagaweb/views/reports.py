@@ -238,6 +238,8 @@ class BillingReportView(ProtectedView):
                 request.session['reports'] = report_list
                 request.session['filter'] = None
                 request.session['level'] = request.GET.get('level', 'network')
+                request.session['topup_percent'] = request.GET.get('topup_percent',
+                                                               100)
             # Reset filtering params.
             level = request.session['level']
             if request.session['level_id'] != None:

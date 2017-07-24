@@ -102,6 +102,8 @@ class StatsClientBase(object):
         interval = kwargs.pop('interval', 'months')
         aggregation = kwargs.pop('aggregation', 'count')
         report_view = kwargs.pop('report_view', 'list')
+        list =[]
+        imsi_list ={}
         # Turn the start and end epoch timestamps into datetimes.
         start = datetime.fromtimestamp(start_time_epoch, pytz.utc)
         if end_time_epoch != -1:
@@ -183,6 +185,15 @@ class StatsClientBase(object):
                 adjust = -0.00001
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=(aggregates.Sum('change') * adjust))
+            if report_view =='table_view':
+                for qs in queryset_stats.qs.filter(
+                    date__range=(str(start), str(end))):
+                    list.append(qs.subscriber.imsi)
+                my_dict = {i: list.count(i) for i in list}
+                imsi_list['imsi'] = my_dict.keys()
+                imsi_list['count'] = my_dict.values()
+
+                return my_dict
             # if percentage is set for top top-up
             percentage = kwargs['topup_percent']
             top_numbers = 1
@@ -216,16 +227,18 @@ class StatsClientBase(object):
                 queryset, 'date', aggregate=aggregates.Count('subscriber_id'))
         else:
             queryset_stats = qsstats.QuerySetStats(queryset, 'date')
+
         if param =='bts down'or param=='bts up':
             timeseries = queryset_stats.time_series(start, end, interval='minutes')
         else:
-            timeseries = queryset_stats.time_series(start, end,
-                                                    interval=interval)
 
+           timeseries = queryset_stats.time_series(start, end,
+                                                    interval=interval)
 
         # The timeseries results is a list of (datetime, value) pairs. We need
         # to convert the datetimes to timestamps with millisecond precision and
         # then zip the pairs back together.
+
         datetimes, values = zip(*timeseries)
         if report_view == 'summary':
             # Return sum count for pie-chart and table view
@@ -259,7 +272,6 @@ class StatsClientBase(object):
                 rounded_values.append(round(value, 2))
             else:
                 rounded_values.append(value)
-        #print(len( rounded_values))
         return zip(timestamps, rounded_values)
 
 

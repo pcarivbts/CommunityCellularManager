@@ -201,9 +201,21 @@ class StatsAPIView(views.APIView):
                 extras=extra_param,
                 topup_percent=params['topup-percent']
             )
+            if stat_type in TRANSFER_KINDS:
+                table_view = client.timeseries(
+                    stat_type,
+                    start_time_epoch=params['start-time-epoch'],
+                    end_time_epoch=params['end-time-epoch'],
+                    aggregation=params['aggregation'],
+                    report_view ="table_view"
+                )
+            else:
+                table_view ={}
+                #data['retailer_table_data'].append(table_view)
             data['results'].append({
                 "key": stat_type,
-                "values": results
+                "values": results,
+                "retailer_table_data":table_view
             })
 
         # Convert params.stat_types back to CSV and echo back the request.

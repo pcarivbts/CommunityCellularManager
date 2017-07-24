@@ -369,11 +369,13 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
   var changeAmount = [];
   var tableData = [];
 
-
   for (var index in data) {
     var newSeries = { 'key': data[index]['key'] };
+    var retailer = data[index]['retailer_table_data']
+
     var newValues = [];
-    if( typeof(data[index]['values']) === 'object'){
+
+if( typeof(data[index]['values']) === 'object'){
       for (var series_index in data[index]['values']) {
         var newValue = [
           // Shift out of the locale offset to 'convert' to UTC and then shift
@@ -395,19 +397,46 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
       newSeries['total'] = (sumAmount);
       }
       newSeries['values'] = newValues;
-    }else {
-      newSeries['total'] = data[index]['values'];
     }
 
-      if(domTargetId =='data-chart' || domTargetId =='add-money-chart' || domTargetId =='call-sms-chart' ||  domTargetId == 'topupSubscriber-chart' ){
-         if( newSeries['total'] !=undefined){
-         newSeries['total'] = newSeries['total'].toFixed(2);}
+    else {
+      newSeries['total'] = data[index]['values'];
+    }
+      // Get sum of the total charges
 
-         }else{
+
+       if(domTargetId =='data-chart' ||  domTargetId =='call-sms-chart' ||  domTargetId == 'topupSubscriber-chart' ){
+         if( newSeries['total'] !=undefined){
+         newSeries['total'] = newSeries['total'].toFixed(2);
+          tableData.push([newSeries['key'], newSeries['total']]);}
+
+         }
+         else if (domTargetId =='load-transfer-chart' || domTargetId =='add-money-chart'){
+
+            if(typeof(retailer!== 'undefined') && Object.keys(retailer).length >=1){
+                // console.log("iiiiiiiiiiiiiii",Object.keys(retailer).length)
+                if(Object.keys(retailer).length >=1){
+
+                    for (var series_index in data[index]['retailer_table_data']) {
+                        var elements = data[index]['retailer_table_data'][series_index];
+
+                        tableData.push([series_index, elements])
+
+                    }
+                    console.log(" ---- tableData = ", tableData);
+
+                }
+            }
+            else{
+                   tableData.push(['No data', 'No data'])
+                }
+        }
+         else{
          newSeries['total'] = newSeries['total']
+          tableData.push([newSeries['key'], newSeries['total']]);
          }
 
-    tableData.push([newSeries['key'], newSeries['total']]);
+
 
     shiftedData.push(newSeries);
     if(frontTooltip!="" && domTargetId =='topupSubscriber-chart'){
