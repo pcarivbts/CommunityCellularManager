@@ -415,20 +415,22 @@ class UserTable(tables.Table):
 
     class Meta:
         model = models.User
-        fields = ('id', 'username', 'email', 'is_active', 'last_login')
+        fields = ('id', 'username', 'email', 'role', 'is_active', 'last_login')
         attrs = {'class': 'table'}
         orderable = False
 
     id = tables.CheckBoxColumn(accessor="pk",
                                attrs={
                                    "th__input": {"onclick": "toggle(this)"}})
+    # Get user role from userprofile
+    role = tables.Column(accessor='userprofile.role', verbose_name='Role', orderable=True)
     username = tables.Column(verbose_name='Username', orderable=True)
     email = tables.Column(verbose_name='Email', orderable=True)
     is_active = tables.BooleanColumn(verbose_name='Status', orderable=True)
     last_login = tables.DateTimeColumn(verbose_name='Last Login', short=True,
                                        orderable=True)
 
-    def render_is_active(self,record):
+    def render_is_active(self, record):
         return render_is_active(record)
 
 

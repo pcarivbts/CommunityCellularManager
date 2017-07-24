@@ -993,29 +993,37 @@ class UserManagement(ProtectedView):
         user_profile = UserProfile.objects.get(user=request.user)
         network = user_profile.network
         user = User.objects.get(id=user_profile.user_id)
-        network_admin = True
         available_permissions = get_perms(request.user, network)
+        users_in_network = User.objects.filter(
+            userprofile__in=UserProfile.objects.filter(
+                network=network)).exclude(
+            userprofile__role='Cloud Admin')
+        if not user_profile.user.is_superuser:
+            users_in_network = users_in_network.exclude(
+                userprofile__role='Network Admin')
+        # Search for User query
+        query = request.GET.get('query', None)
+        if query:
+            query_users = (users_in_network.filter(username__icontains=query) |
+                           users_in_network.filter(email__icontains=query))
+        else:
+            query_users = users_in_network
+
+        # for create user form
         if not user.is_superuser:  # If Cloud Admin
             role = USER_ROLES[0:len(USER_ROLES) - 1]
-            network_admin = False
         else:  # If Network Admin
             role = USER_ROLES
         content = ContentType.objects.get(
-            app_label='endagaweb',model='network')
+            app_label='endagaweb', model='network')
         network_permissions = Permission.objects.filter(
             codename__in=available_permissions,
             content_type_id=content.id).exclude(
             codename='view_network')
-        # Users in current network
-        existing_users = User.objects.filter(
-            userprofile__in=UserProfile.objects.filter(network=network))
-        # Exclude Network Admins for Cloud admin view
-        if not network_admin:
-            existing_users = existing_users.exclude(is_superuser=True)
-        user_table = django_tables.UserTable(list(existing_users))
+
+        user_table = django_tables.UserTable(list(query_users))
         tables.RequestConfig(request, paginate={'per_page': 12}).configure(
             user_table)
-
         context = {
             'users': user_table,
             'network': network,
@@ -1024,6 +1032,9 @@ class UserManagement(ProtectedView):
                                              'view_network', klass=Network),
             'permissions': network_permissions,
             'roles': role,
+            'total_users': len(users_in_network),
+            'total_users_found': len(query_users),
+            'search': dform.UserSearchForm({'query': query}),
             }
         info_template = get_template('dashboard/user_management/add.html')
         html = info_template.render(context, request)
