@@ -414,7 +414,6 @@ class UserSearchForm(forms.Form):
     query = forms.CharField(required=False, label="",
                             widget=forms.TextInput(
                                 attrs={'placeholder': 'Username or Email'}))
-
     def __init__(self, sender, *args, **kwargs):
         self.helper = FormHelper()
         self.helper.form_id = 'id-SearchForm'

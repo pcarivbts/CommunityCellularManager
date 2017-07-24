@@ -1009,7 +1009,6 @@ class UserManagement(ProtectedView):
         else:
             query_users = users_in_network
 
-        # for create user form
         if not user.is_superuser:  # If Cloud Admin
             role = USER_ROLES[0:len(USER_ROLES) - 1]
         else:  # If Network Admin
