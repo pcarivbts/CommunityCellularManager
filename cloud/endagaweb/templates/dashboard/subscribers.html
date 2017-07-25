@@ -43,23 +43,250 @@ of patent rights can be found in the PATENTS file in the same directory.
     <div class="col-xs-12 col-md-8">
     {% if number_of_filtered_subscribers %}
     {% render_table subscriber_table %}
+        <div class='modal fade' id='deactivate-subscriber-modal'>
+            <div class='modal-dialog'>
+                <div class='modal-content'>
+                    <div class='modal-header'>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class='modal-title'>
+                            Confirmation
+                        </h4>
+                    </div>
+                    <div class='modal-body'>
+                        <p style="word-wrap: break-word">
+                            Are you sure you want to deactivate
+                            <strong id ="subscriber_imsi"></strong>?<br/>
+                            The subscriber will no longer have service,
+                            but can re-register with the same SIM card by texting 101.
+                        </p>
+                    </div>
+                    <div class='modal-footer'>
+                        <button type='button' class='btn btn-default' data-dismiss='modal'>Cancel</button>
+                        <button class='btn btn-primary' type='button' id='deactivate-subscriber-submit'>Deactivate Subscriber</button>
+                        <div id='subscriber-messages-container'></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class='modal fade' id='update-subscriber-modal'>
+            <div class='modal-dialog'>
+                <div class='modal-content'>
+                    <div class='modal-header'>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class='modal-title'>
+                            Confirmation
+                        </h4>
+                    </div>
+                    <div class='modal-body'>
+                        <p style="word-wrap: break-word">
+                            Are you sure you want to update role of
+                            <strong id ="update_imsi"></strong>?<br/>
+                        </p>
+                        <table class="table table">
+                            <tr>
+                                <label class="radio-inline"><input type="radio"
+                                                                   name="subscriberType"
+                                                                   id="subscriber"
+                                                                   value="Subscriber"><b>Subscriber</b>
+                                </label>
 
-    {% elif total_number_of_subscribers > 0 %}
-    <h4>No subscribers matched your search.</h4>
+                                <label class="radio-inline"><input type="radio"
+                                                                   name="subscriberType"
+                                                                   id="retailer"
+                                                                   value="Retailer"><b>Retailer</b></label>
 
-    {% else %}
-    <p>
-      There are currently no subscribers registered on this network.
-      Go find some users!
-    </p>
+                                <label class="radio-inline"><input type="radio"
+                                                                   name="subscriberType"
+                                                                   id="test_sim"
+                                                                   value="Test Sim"><b>Test
+                                    SIM</b></label>
+                            </tr>
+                        </table>
 
-    {% endif %}
+                    </div>
+                    <div class='modal-footer'>
+                        <button type='button' class='btn btn-default' data-dismiss='modal'>Cancel</button>
+                        <button class='btn btn-primary' type='button' id='update-subscriber-submit'>Update Subscriber</button>
+                        <div id='update-subscriber-messages-container'></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id ="actions" class="btn-group">
+            <button class="btn dropdown-toggle" data-toggle="dropdown">Action <span class="caret"></span></button>
+            <ul class="dropdown-menu">
+                <li><a href="#" id="action-1">Action</a></li>
+                <li><a data-toggle='modal' data-target='#deactivate-subscriber-modal'
+                       class='btn btn-default deactivate-subscriber-link'
+                       href='#'>Deactivate Subscriber</a></li>
+                <li><a data-toggle='modal' data-target='#update-subscriber-modal'
+                       class='btn btn-default update-subscriber-link'
+                       href='#'>Change Subscriber Role</a>
+            </ul>
+        </div>
+        {% elif total_number_of_subscribers > 0 %}
+        <h4>No subscribers matched your search.</h4>
+
+        {% else %}
+        <p>
+            There are currently no subscribers registered on this network.
+            Go find some users!
+        </p>
+
+        {% endif %}
     </div>
     {% else %}
     {% include 'dashboard/permission_denied.html' %}
     {% endif %}
 
+</div>
 </div> <!-- /.row (subscribers) -->
 
-
 {% endblock %}
+{% block js %}
+<script>
+        var messageClearTimeout;
+                $('.update-subscriber-link').click(function(event) {
+          event.preventDefault();
+      });
+
+        $('.deactivate-subscriber-link').click(function(event) {
+          event.preventDefault();
+      });
+        toggle();
+        function toggle(source) {
+          var imsi = $('.imsi_id:checked').length;
+          if(document.getElementById("subscriber-select-all").checked==true){
+              $(':checkbox').each(function() {
+                this.checked = true;
+            });
+          }
+          if(document.getElementById("subscriber-select-all").checked==false){
+            $(':checkbox').each(function() {
+                this.checked = false;
+            });
+            var imsi = $('.imsi_id:checked').length;
+        }
+        imsiSelected();
+    }
+    function imsiSelected(check){
+
+        var imsi = $('.imsi_id:checked').length;
+        var updateDiv = document.getElementById('actions');
+        if(imsi){
+            updateDiv.style.display = "block";
+        }
+        else{
+            updateDiv.style.display = "none";
+        }
+        var i=0;
+        var imsi_val=[];
+        var imsi_list = $('.imsi_id:checked');
+        $.each(imsi_list, function(key, val){
+            imsi_val[i++]=val.value;
+        });
+        $('#subscriber_imsi').html(imsi_val.join());
+        $('#update_imsi').html(imsi_val.join());
+
+    }
+    $('#deactivate-subscriber-submit').click(function(event) {
+      var i=0;
+      var imsi_val=[];
+      var imsi_list = $('.imsi_id:checked');
+      $.each(imsi_list, function(key, val){
+          imsi_val[i++]=val.value;
+      });
+      imsi_list_value = imsi_val.join()
+          // Show a 'working' message.
+          var message = 'Working..';
+          var html = "<div class='alert alert-success'>" + message + "</div>";
+          $('#subscriber-messages-container').html(html).show();
+          // Post to the endagaweb API.
+          $.ajax({
+            url: '/api/v2/subscribers/' + imsi_list_value,
+            type: 'DELETE',
+            beforeSend: function(xhr) {
+              xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+          },
+          success: function(response) {
+              // Show a success message after a small delay.
+              // Then, after some more time has passed, redirect back to /subscribers.
+              setTimeout(function() {
+                var message = 'Subscriber deactivated successfully.';
+                var html = "<div class='alert alert-success'>" + message + "</div>";
+                $('#subscriber-messages-container').html(html).show();
+            }, 1000);
+              clearTimeout(messageClearTimeout);
+              setTimeout(function() {
+                window.location.href = '/dashboard/subscribers';
+            }, 2000);
+          },
+          error: function(response) {
+              // Show an error message after a small delay.
+              setTimeout(function() {
+                var message = 'Error: ' + response.status;
+                var html = "<div class='alert alert-danger'>" + message + "</div>";
+                $('#subscriber-messages-container').html(html).show();
+            }, 800);
+          },
+      });
+      });
+    $('#update-subscriber-submit').click(function(){
+      if($('input[name="subscriberType"]:checked').length<=0){
+               var html = "<div class='alert alert-danger'> Please select category</div>";
+        $('#update-subscriber-messages-container').html(html).show().delay(3000).fadeOut();
+        return
+      }
+      category=document.querySelector('input[name="subscriberType"]:checked').value
+      var i=0;
+      var imsi_val=[];
+      var imsi_list = $('.imsi_id:checked');
+      $.each(imsi_list, function(key, val){
+        imsi_val[i++]=val.value;
+      });
+      var data = {
+        category: category,
+        imsi_val : imsi_val,
+
+      };
+         $.ajax({
+            url: '/dashboard/subscribers',
+            data: data,
+            type: 'POST',
+            beforeSend: function(xhr) {
+              xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+          },
+          success: function(response) {
+              setTimeout(function() {
+                 var message = 'Subscriber updated successfully.';
+                var html = "<div class='alert alert-success'>" + message+"</div>";
+                $('#update-subscriber-messages-container').html(html).show();
+            }, 1000);
+              clearTimeout(messageClearTimeout);
+              setTimeout(function() {
+                window.location.href = '/dashboard/subscribers';
+            }, 2000);
+          },
+          error: function(response) {
+              // Show an error message after a small delay.
+              setTimeout(function() {
+                var message = 'Error: ' + response;
+                var html = "<div class='alert alert-danger'>" + message + "</div>";
+                $('#update-subscriber-messages-container').html(html).show();
+            }, 800);
+          },
+      });
+    });
+
+    $('#deactivate-subscriber-modal').on('hidden.bs.modal', function() {
+        $('#subscriber-messages-container').html('');
+    });
+    $('#update-subscriber-modal').on('hidden.bs.modal', function() {
+        $('#updateddate-subscriber-messages-container').html('');
+    });
+    </script>
+    {% endblock %}

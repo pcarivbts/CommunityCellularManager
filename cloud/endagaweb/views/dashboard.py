@@ -51,7 +51,7 @@ from endagaweb import tasks
 from endagaweb.forms import dashboard_forms as dform
 from endagaweb.models import NetworkDenomination
 from endagaweb.models import (UserProfile, Subscriber, UsageEvent,
-                              Network, PendingCreditUpdate, Number)
+                              Network, PendingCreditUpdate, Number, BTS)
 from endagaweb.util.currency import cents2mc
 from endagaweb.views import django_tables
 
@@ -267,15 +267,16 @@ class SubscriberListView(ProtectedView):
             query_subscribers = all_subscribers
 
         # Setup the subscriber table.
-        subscriber_table = django_tables.SubscriberTable(list(query_subscribers))
+        subscriber_table = django_tables.SubscriberTable(
+            list(query_subscribers))
         tables.RequestConfig(request, paginate={'per_page': 15}).configure(
             subscriber_table)
 
         # Render the response with context.
         context = {
             'network': network,
-            'networks': get_objects_for_user(request.user,
-                                             'view_network', klass=Network),
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=Network),
             'currency': CURRENCIES[network.subscriber_currency],
             'user_profile': user_profile,
             'total_number_of_subscribers': len(all_subscribers),
@@ -286,6 +287,17 @@ class SubscriberListView(ProtectedView):
         template = get_template("dashboard/subscribers.html")
         html = template.render(context, request)
         return HttpResponse(html)
+
+    def post(self, request, *args, **kwargs):
+        subscriber_imsi_list = request.POST.getlist('imsi_val[]')
+        subscriber_role = request.POST.get('category')
+        try:
+            update_imsi = Subscriber.objects.filter(imsi__in=subscriber_imsi_list)
+            update_imsi.update(role=subscriber_role)
+            response_message = "Subscriber role updated successfully."
+        except Exception as e:
+            response_message = "Subscriber role update fail."
+        return HttpResponse(response_message)
 
 
 class SubscriberInfo(ProtectedView):
@@ -308,7 +320,7 @@ class SubscriberInfo(ProtectedView):
             'currency': CURRENCIES[network.subscriber_currency],
             'user_profile': user_profile,
             'subscriber': subscriber,
-            'valid_through': subscriber.valid_through
+            'valid_through': subscriber.valid_through,
         }
         try:
             context['created'] = subscriber.usageevent_set.order_by(
@@ -463,6 +475,7 @@ class SubscriberActivity(ProtectedView):
             'end_date': context_end_date,
             'all_services': all_services,
             'checked_services': checked_services,
+            'network': network
         }
 
         template = get_template('dashboard/subscriber_detail/activity.html')
@@ -472,7 +485,7 @@ class SubscriberActivity(ProtectedView):
 
 class SubscriberSendSMS(ProtectedView):
     """Send an SMS to a single subscriber."""
-    permission_required = 'view_subscriber'
+    permission_required = ['send_sms', 'view_subscriber']
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -494,7 +507,8 @@ class SubscriberSendSMS(ProtectedView):
             'user_profile': user_profile,
             'subscriber': subscriber,
             'send_sms_form': dform.SubscriberSendSMSForm(
-                initial=initial_form_data)
+                initial=initial_form_data),
+            'network': network
         }
         # Render template.
         template = get_template('dashboard/subscriber_detail/send_sms.html')
@@ -535,7 +549,7 @@ class SubscriberSendSMS(ProtectedView):
 
 class SubscriberAdjustCredit(ProtectedView):
     """Adjust credit for a single subscriber."""
-    permission_required = 'view_subscriber'
+    permission_required = ['adjust_credit','view_subscriber']
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -592,11 +606,9 @@ class SubscriberAdjustCredit(ProtectedView):
         error_text = 'Credit value must be between -10M and 10M.'
 
         try:
-
             currency = network.subscriber_currency
             amount = parse_credits(request.POST['amount'],
                                    CURRENCIES[currency]).amount_raw
-            currency_value = str(humanize_credits(network.max_balance, CURRENCIES[currency]))
             if abs(amount) > 2147483647:
                 error_text = 'Credit value must be between -10M and 10M.'
                 raise ValueError(error_text)
@@ -652,7 +664,7 @@ class SubscriberAdjustCredit(ProtectedView):
 
 class SubscriberEdit(ProtectedView):
     """Edit a single subscriber's info."""
-    permission_required = 'view_subscriber'
+    permission_required = 'edit_subscriber'
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -679,6 +691,7 @@ class SubscriberEdit(ProtectedView):
                 initial=initial_form_data),
             'network_version': (
                 subscriber.network.get_lowest_tower_version()),
+            'network': network
         }
         # Render template.
         template = get_template(
@@ -1375,3 +1388,97 @@ class SubscriberCategoryEdit(ProtectedView):
             return HttpResponse(message)
         else:
             return HttpResponseBadRequest()
+
+
+class BroadcastView(ProtectedView):
+    """Send an SMS to a single subscriber."""
+    permission_required = 'send_sms'
+
+    def post(self, request):
+        """Broadcast bulk SMS to network, tower or selected imsi.
+
+        This API will call tasks.async_post method to send request to
+        Client BTS system for broadcast SMS
+        """
+
+        sendto = request.POST.get('sendto', None)
+        network_id = request.POST.get('network_id', None)
+        tower_id = request.POST.get('tower_id', None)
+        imsi_str = request.POST.get('imsi', None)
+        message = request.POST.get('message', None)
+        response = {
+            'status': 'failed',
+            'messages': [],
+        }
+        if sendto in ['network', 'tower']:
+            if (sendto == 'tower' and not tower_id) or sendto == 'network':
+                # Lookup for BTS inbound_url.
+                bts_list = BTS.objects.filter(network=network_id)
+                level = 'network'
+                level_id = network_id
+            else:
+                # Lookup for BTS inbound_url.
+                bts_list = BTS.objects.filter(id=tower_id)
+                level = 'tower'
+                level_id = tower_id
+
+            for bts in bts_list:
+                # Fire off an async task request to send the SMS.
+                params = {
+                    'to': '*',
+                    'sender': '0000',
+                    'text': message,
+                    'msgid': str(uuid.uuid4()),
+                    'level_id': level_id,
+                    'level': level
+                }
+                url = bts.inbound_url + "/endaga_sms"
+                tasks.async_post.delay(url, params)
+        elif sendto == 'imsi':
+            imsi_list = imsi_str.split(',')
+            invalid_imsi = []
+            subscribers = []
+            for imsi in imsi_list:
+                try:
+                    sub = Subscriber.objects.get(imsi=imsi)
+                    subscribers.append(sub)
+                except Subscriber.DoesNotExist:
+                    invalid_imsi.append(imsi)
+            if not imsi_str:
+                message = "Enter Subscriber IMSI number."
+                response['messages'].append(message)
+                return HttpResponse(json.dumps(response),
+                                    content_type="application/json")
+            if len(invalid_imsi) > 0:
+                message = "Invalid %s in IMSI numbers." % (','.join(
+                    invalid_imsi))
+                response['messages'].append(message)
+                return HttpResponse(json.dumps(response),
+                                    content_type="application/json")
+            for subscriber in subscribers:
+                try:
+                    # We send sms to the subscriber's first number.
+                    num = subscriber.number_set.all()[0]
+                except:
+                    num = None
+                if num:
+                    # Fire off an async task request to send the SMS.
+                    params = {
+                        'to': num.number,
+                        'sender': '0000',
+                        'text': message,
+                        'msgid': str(uuid.uuid4()),
+                        'level_id': 123,
+                        'level': 89
+                    }
+                    url = subscriber.bts.inbound_url + "/endaga_sms"
+                    tasks.async_post.delay(url, params)
+        else:
+            response['messages'].append('Invalid request data.')
+            return HttpResponse(json.dumps(response),
+                                content_type="application/json")
+        message = "Broadcast SMS sent successfully"
+        response['status'] = 'ok'
+        response['messages'].append(message)
+        return HttpResponse(json.dumps(response),
+                            content_type="application/json")

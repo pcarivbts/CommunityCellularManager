@@ -48,6 +48,10 @@ of patent rights can be found in the PATENTS file in the same directory.
         {% if active_tab == 'security' %} #
         #{% else %}{% url 'network_balance_limit' %}
         {% endif %}">Security</a>
+
+    <li role="presentation">
+      <a href="javascript:void(0);" data-toggle='modal' data-target='#broadcast-modal'>SMS Broadcast</a>
     </li>
   </ul>
 </div>
+{% include "dashboard/subscriber_detail/broadcast.html" with target='network' %}

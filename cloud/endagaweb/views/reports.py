@@ -309,7 +309,7 @@ class BillingReportView(ProtectedView):
 class ReportGraphDownload(ProtectedView):
     """downoad csv on basis of reports"""
 
-    permission_required = 'download_graph'
+    permission_required = ['download_graph', 'view_graph']
 
     def get(self, request):
         user_profile = UserProfile.objects.get(user=request.user)

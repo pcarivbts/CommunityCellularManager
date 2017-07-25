@@ -101,6 +101,13 @@ def render_balance(record):
     return humanize_credits(record.balance,
                             CURRENCIES[record.network.subscriber_currency])
 
+def render_imsi(record):
+    element = "<input type = 'checkbox' class ='imsi_id' name='imsi[]' " \
+          "value='{0}'  id ='imsi_id_{0}' " \
+          "onchange = 'imsiSelected(this)' / > ".format(record.imsi)
+
+    return safestring.mark_safe(element)
+
 
 # Changing Checkbox to Column Name
 class CheckBoxColumnWithName(tables.CheckBoxColumn):
@@ -134,16 +141,26 @@ class SubscriberTable(tables.Table):
 
     class Meta:
         model = models.Subscriber
-        fields = ('name_and_imsi_link', 'numbers', 'balance', 'status',
-            'last_active')
+        fields = ('imsi','name_and_imsi_link', 'numbers', 'balance', 'status',
+            'last_active','role')
         attrs = {'class': 'table'}
 
+    imsi = tables.CheckBoxColumn(accessor="imsi", attrs={"th__input"
+                                                         :{"id"
+                                                           :"subscriber-select-all",
+                                                           "onclick": "toggle(this)",
+                                                           }},
+                                      orderable=False)
     name_and_imsi_link = tables.Column(
         empty_values=(), verbose_name='Name / IMSI', order_by=('name', 'imsi'))
     status = tables.Column(empty_values=(), order_by=('last_camped'))
     numbers = tables.Column(orderable=False, verbose_name='Number(s)')
     balance = tables.Column(verbose_name='Balance')
     last_active = tables.Column(verbose_name='Last Active')
+    role = tables.Column(empty_values=(), order_by='role')
+
+    def render_imsi(self, record):
+        return render_imsi(record)
 
     def render_name_and_imsi_link(self, record):
         return render_name_and_imsi_link(record)
