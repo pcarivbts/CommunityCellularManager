@@ -44,7 +44,7 @@ from endagaweb.models import UsageEvent
 from endagaweb.models import SystemEvent
 from endagaweb.models import TimeseriesStat
 from endagaweb.ic_providers.nexmo import NexmoProvider
-from endagaweb.settings.prod import TEMPLATES_PATH
+from endagaweb.settings.prod import TEMPLATES_PATH, USE_I18N, LANGUAGES, LOCALE_PATHS
 
 
 @app.task(bind=True)
@@ -147,7 +147,17 @@ def async_post(self, url, data, retry_delay=60*10, max_retries=432):
     """
     print "attempting to send POST request to endpoint '%s'" % url
     try:
-        r = requests.post(url, data=data,
+        translation_files = []
+        for lang in LANGUAGES:
+            po_path = LOCALE_PATHS[0]+'/'+lang[0]+'/LC_MESSAGES/django.po'
+            file = ('locale', ('cloud.po', open(po_path, 'rb'), 'text/plain'))
+            translation_files.append(file)
+
+        if USE_I18N and translation_files:
+            r = requests.post(url, data=data, files=translation_files,
+                              timeout=settings.ENDAGA['BTS_REQUEST_TIMEOUT_SECS'])
+        else:
+            r = requests.post(url, data=data,
                           timeout=settings.ENDAGA['BTS_REQUEST_TIMEOUT_SECS'])
         if r.status_code >= 200 and r.status_code < 300:
             print "async_post SUCCESS. url: '%s' (%d). Response was: %s" % (
