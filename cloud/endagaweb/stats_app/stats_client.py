@@ -102,8 +102,8 @@ class StatsClientBase(object):
         interval = kwargs.pop('interval', 'months')
         aggregation = kwargs.pop('aggregation', 'count')
         report_view = kwargs.pop('report_view', 'list')
-        list =[]
-        imsi_list ={}
+        imsi_dic = {}
+        imsi_list = []
         # Turn the start and end epoch timestamps into datetimes.
         start = datetime.fromtimestamp(start_time_epoch, pytz.utc)
         if end_time_epoch != -1:
@@ -188,10 +188,10 @@ class StatsClientBase(object):
             if report_view =='table_view':
                 for qs in queryset_stats.qs.filter(
                     date__range=(str(start), str(end))):
-                    list.append(qs.subscriber.imsi)
-                my_dict = {i: list.count(i) for i in list}
-                imsi_list['imsi'] = my_dict.keys()
-                imsi_list['count'] = my_dict.values()
+                    imsi_list.append(qs.subscriber.imsi)
+                my_dict = {i: imsi_list.count(i) for i in imsi_list}
+                imsi_dic['imsi'] = my_dict.keys()
+                imsi_dic['count'] = my_dict.values()
 
                 return my_dict
             # if percentage is set for top top-up

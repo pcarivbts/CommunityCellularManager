@@ -423,7 +423,7 @@ if( typeof(data[index]['values']) === 'object'){
                         tableData.push([series_index, elements])
 
                     }
-                    console.log(" ---- tableData = ", tableData);
+                    console.log("sks ---- tableData = ", tableData);
 
                 }
             }
@@ -446,12 +446,21 @@ if( typeof(data[index]['values']) === 'object'){
           { title: "Amount in ("+ frontTooltip +")" }
       ]
     }
-    else if (frontTooltip!="" &&   domTargetId =='add-money-chart' || domTargetId =='call-sms-chart'  ){
+    else if (frontTooltip!="" &&    domTargetId =='call-sms-chart'  ){
    // console.log("dcdcdcddddddddddddd ",tableData)
 
      tablesColumnValueName = [
           { title: "Type" },
           { title: "Amount in ("+ frontTooltip +")" }
+      ]
+
+    }
+       else if (frontTooltip!="" &&   domTargetId =='add-money-chart' || domTargetId =='load-transfer-chart'  ){
+   // console.log("dcdcdcddddddddddddd ",tableData)
+
+     tablesColumnValueName = [
+          { title: "IMSI" },
+          { title: "Number of count"}
       ]
 
     }
