@@ -62,10 +62,10 @@ of patent rights can be found in the PATENTS file in the same directory.
             </div>
             {% endif %}
             {% for message in messages %}
-            <!--div class="message alert alert-{{ message.tags }}">
+            <div class="message alert alert-{{ message.tags }}">
                 <a href="#" class="close" data-dismiss="alert">&times;</a>
                 {{ message }}
-            </div -->
+            </div>
             {% endfor %}
             <form action="/dashboard/network/denominations" method="POST" name="notification_form" id="notification_form">
             <div class="table-container">
