@@ -37,94 +37,90 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endblock %}
 
 {% block content %}
-    {% include "dashboard/network_detail/header.html" with network=network %}
+    {% include "dashboard/network_detail/header.html" with network=network active_tab='network-denominations' %}
     {% get_obj_perms request.user for network as 'user_permission' %}
 
     <div class='row'>
         {% include "dashboard/network_detail/nav.html" with active_tab='network-denominations' %}
-        {% if 'edit_network' in user_permission %}
-        <div class='content col-xs-12 col-sm-10 col-md-6'>
+        <div class='content col-xs-12 col-sm-10 col-md-10'>
+            {% if invalid_ranges and user_profile.user.is_staff %}
+            <div class="alert alert-danger alert-dismissable">
+                <a href="#" class="close" data-dismiss="alert" aria-label="close">×</a>
+                <p>
+                    <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+                    <strong>Error!</strong> There is a gap in denomination brackets. Add/edit denominations to fill the below gaps. Changes will be lost until you confirm the final submit.
+                </p>
+                <p>Gap are {% for range in invalid_ranges %}<span class="badge badge-danger">{{ range.start }} - {{ range.end }}</span> {% endfor %}</p>
+            </div>
+            {% elif sync_status and user_profile.user.is_staff %}
+            <div class="alert alert-warning alert-dismissable">
+                <h4>
+                    <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+                    <strong>Warning!</strong> Changes are not saved yet. Please confirm to  submit changes.
+                    <a data-target='#apply-changes-modal' data-toggle='modal' href="javascript:void(0);" class="btn btn-primary pull-right">Submit Changes</a>
+                </h4>
+            </div>
+            {% endif %}
             {% for message in messages %}
-            <div class="message alert alert-{{ message.tags }}">
+            <!--div class="message alert alert-{{ message.tags }}">
                 <a href="#" class="close" data-dismiss="alert">&times;</a>
                 {{ message }}
-            </div>
+            </div -->
             {% endfor %}
+            <form action="/dashboard/network/denominations" method="POST" name="notification_form" id="notification_form">
             <div class="table-container">
                 {% if denomination %}
                 {% render_table denominations_table %}
+                {% if user_profile.user.is_staff %}
+                <div class="dropdown actions">
+                    <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Action(s)
+                        <span class="caret"></span></button>
+                    <ul class="dropdown-menu">
+                        <li id="action_delete">
+                            <a data-target='#delete-denom-modal' data-toggle='modal' href="javascript:void(0);">Delete</a>
+                        </li>
+                        <li id="action_edit">
+                            <a data-target="#save-event-modal" data-toggle='modal' onclick="editDenomination()" href="javascript:void(0);">Edit</a>
+                        </li>
+                    </ul>
+                </div>
+                {% endif %}
                 {% else %}
                     <p>There are currently no denominations associated with this network.</p>
                 {% endif %}
+                <p class="help-block">"Denomination" facilitates admin to create various top-up brackets along with limited validity period
+                    which can be achieved using “Add Denomination” Button. "Add denomination" button is used to create various denomination brackets and their validity period for Recharges.
+                    For error free creation of denomination brackets, Created denomination bracket must be continuous in terms of Amount.
+                    ( Ex:- Start Amount for 1st denomination is 0.01 & End Amount is 10 , for 2nd Denomination Start Amount must start from 10.01)</p>
             </div>
+            </form>
         </div>
-        {% if user_profile.user.is_staff %}
-        <div class='content col-xs-12 col-sm-10 col-md-4'>
-            <div class="panel panel-default">
-                <div class="panel-heading">Create Denomination</div>
-                <div class="panel-body">
-                    <div class="row-fluid">
-                        <form action="/dashboard/network/denominations" id="network_form" name="network_form" method="POST"
-                              data-toggle="validator" class="form-horizontal">{% csrf_token %}
-                            <div class="form-group row">
-                                <div class="col-md-12">
-                                    <label for="start_amount" id="ariaLable" class="col-3 col-form-label">
-                                        Start Amount <span class="aseriskField">*</span>
-                                    </label>
-                                    <div class="input-group col-xs-8">
-                                        <span class="has-tip tip-top" data-tooltip aria-haspopup="true" title="Start range for rate plan.">
-                                        <input  class="form-control number" type="text" id="start_amount" name="start_amount"
-                                               placeholder="Enter start amount" maxlength="10" required/>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div class="form-group row">
-                                <div class="col-md-12">
-                                    <label for="end_amount" id="ariaLable" class="col-3 col-form-label">
-                                        End Amount <span class="aseriskField">*</span>
-                                    </label>
-                                    <div class="input-group col-xs-8">
-                                        <span class="has-tip tip-top" data-tooltip aria-haspopup="true" title="End range for rate plan.">
-                                        <input class="form-control number" type="text" id="end_amount" name="end_amount"
-                                               placeholder="Enter end amount" maxlength="10" required/>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+    </div>
 
-                            <div class="form-group row">
-                                <div class="col-md-12">
-                                    <label for="start_amount" id="ariaLable" class="col-3 col-form-label">
-                                        Validity (days)<span class="aseriskField">*</span>
-                                    </label>
-                                    <div class="input-group col-xs-8">
-                                        <span class="has-tip tip-top" data-tooltip aria-haspopup="true" title="Validity for rate plan.">
-                                        <input class="form-control" type="text" id="validity_days" name="validity_days"
-                                               placeholder="Enter validity as number of days" required/>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="form-group row">
-                                <div class="col-md-12">
-                                    <div class="input-group col-xs-8">
-                                        <input type="hidden" id="dnm_id" name="dnm_id" value="0" />
-                                        <input type="submit" id="submit" class="btn btn-primary pull-right" value="Create"/>
-                                        <input type="button" id="cancel" class="btn btn-primary pull-right" value="Cancel" style="display: none;"/>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
+    <div class='modal fade' id='apply-changes-modal'>
+        <div class='modal-dialog'>
+            <div class='modal-content'>
+                <div class='modal-header'>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class='modal-title'>
+                        Confirmation
+                    </h4>
+                </div>
+                <div class='modal-body'>
+                    <h4>
+                        Are you sure you want to apply all the changes to denominations? </span>
+                    </h4>
+                </div>
+                <div class='modal-footer'>
+                    <button type='button' class='btn btn-default' data-dismiss="modal">Cancel</button>
+                    <button class='btn btn-primary' type='button' id='sync-confirm'>Confirm</button>
                 </div>
             </div>
         </div>
-        {% endif %}
-
-    </div>
+    </div><!-- /.apply-chnages-modal -->
 
     <div class='modal fade' id='delete-denom-modal'>
         <div class='modal-dialog'>
@@ -139,20 +135,78 @@ of patent rights can be found in the PATENTS file in the same directory.
                 </div>
                 <div class='modal-body'>
                     <h4>
-                        Are you sure you want to delete "<span id="denom_text"></span>"?
+                        Are you sure you want to delete all the selected denominations? <span id="denom_text"></span>
                     </h4>
                 </div>
                 <div class='modal-footer'>
-                    <button type='button' class='btn btn-default' data-dismiss='modal'>Cancel</button>
+                    <button type='button' class='btn btn-default' data-dismiss="modal">Cancel</button>
                     <button class='btn btn-primary' type='button' id='delete-confirm'>Confirm</button>
                     <div id='user-messages-container'></div>
                 </div>
             </div>
         </div>
     </div><!-- /.delete-user-modal -->
-    {% else %}
-    {% include 'dashboard/permission_denied.html' %}
-    {% endif %}
+    <div class='modal fade' id='save-event-modal'>
+        <div class='modal-dialog'>
+            <div class='modal-content'>
+                <div class='modal-header'>
+                    <button type="button" class="close" data-dismiss="modal"
+                            aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class='modal-title popup-heading'>
+                        Create Denomination
+                    </h4>
+                </div>
+                <form action="/dashboard/network/denominations" id="network_form" name="network_form" method="POST"
+                          data-toggle="validator" class="form-horizontal">{% csrf_token %}
+                    <div class='modal-body'>
+                        <div class="form-group row">
+                            <div class="col-md-12">
+                                <label for="start_amount" class="col-3 col-form-label">
+                                    Start Amount <span class="aseriskField">*</span>
+                                </label>
+                                <div class="input-group col-xs-8">
+                                    <input class="form-control number" type="text" id="start_amount" name="start_amount" autocomplete="off"
+                                           placeholder="Enter start amount" maxlength="10" required/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-12">
+                                <label for="end_amount" class="col-3 col-form-label">
+                                    End Amount <span class="aseriskField">*</span>
+                                </label>
+                                <div class="input-group col-xs-8">
+                                    <input class="form-control number" type="text" id="end_amount" name="end_amount" autocomplete="off"
+                                           placeholder="Enter end amount" maxlength="10" required/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-12">
+                                <label for="validity_days" class="col-3 col-form-label">
+                                    Validity (days)<span class="aseriskField">*</span>
+                                </label>
+                                <div class="input-group col-xs-8">
+                                    <input type="hidden" id="next_start_amount" value="{{ next_start_amount }}">
+                                    <input class="form-control" type="text" id="validity_days" name="validity_days" autocomplete="off"
+                                           placeholder="Enter validity as number of days" required/>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class='modal-footer'>
+                        <input type="hidden" id="dnm_id" name="dnm_id" value="0" />
+                        <input type="submit" id="submit" class="btn btn-primary pull-right" value="Create"/>
+                        <button type='button' id="cancel" class='btn btn-default' data-dismiss="modal">Cancel</button>
+                        <div id='user-messages-container'></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
 {% endblock %}
 {% block js %}
@@ -161,6 +215,20 @@ of patent rights can be found in the PATENTS file in the same directory.
             src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.10.0/jquery.validate.min.js"></script>
     <script type="text/javascript">
         $(document).ready(function () {
+
+            $('.actions').hide();
+            $('input:checkbox').change(function() {
+                var num_records = $('form input[name=id]:checked').length;
+                if(num_records==1) {
+                    $('.actions').show();
+                    $('#action_edit').show();
+                } else if(num_records > 1) {
+                    $('.actions').show();
+                    $('#action_edit').hide();
+                } else {
+                    $('.actions').hide();
+                }
+            });
             $('.number').keypress(function (event) {
                 var $this = $(this);
                 if ((event.which != 46 || $this.val().indexOf('.') != -1) &&
@@ -235,20 +303,29 @@ of patent rights can be found in the PATENTS file in the same directory.
                     }
                 }
             });
-            $('#cancel').click(function () {
-                $('#dnm_id').val(0);
-                $('#start_amount').val('');
-                $('#end_amount').val('');
-                $('#validity_days').val('');
-                $('.panel-heading').html("Create Denomination");
-                $('#submit').val("Create");
-                $('#cancel').hide();
-                $('table tbody tr').removeClass('highlight');
-            });
-            $('table tbody tr').on('click', function(event) {
-                $(this).addClass('highlight').siblings().removeClass('highlight');
-            });
         });
+        function toggle(source) {
+            checkboxes = document.getElementsByName('id');
+            for(var i in checkboxes) {
+                checkboxes[i].checked = source.checked;
+            }
+        }
+        function editDenomination() {
+            var denom_id = $('form input[name=id]:checked').val()
+            doAction('edit', denom_id);
+          }
+        function resetForm() {
+            //$('#id_pk').val(0);
+            $('#dnm_id').val(0);
+            if($('#next_start_amount').val()) {
+                $('#start_amount').val($('#next_start_amount').val());
+                //$('#start_amount').val($('#next_start_amount').val()).attr({'readonly': 'readonly'});
+            }
+            $('#end_amount').val('');
+            $('#validity_days').val('');
+            $('.popup-heading').html("Create Denomination");
+            $('#submit').val("Create");
+        }
 
         function doAction(action, id) {
             $("#dnm_id").val(id);
@@ -264,40 +341,13 @@ of patent rights can be found in the PATENTS file in the same directory.
                         $('#start_amount').val(response.data.start_amount);
                         $('#end_amount').val(response.data.end_amount);
                         $('#validity_days').val(response.data.validity_days);
-                        $('.panel-heading').html("Edit Denomination");
+                        $('.popup-heading').html("Edit Denomination");
                         $('#submit').val("Update");
                         $('#cancel').show();
                     } else {
                         var denom_text = response.data.start_amount+"-"+response.data.end_amount+" ("+response.data.validity_days+" days)";
                         $("#denom_text").html(denom_text);
                     }
-                }
-            });
-        }
-        $('#delete-confirm').click(function () {
-            // Show a 'working' message.
-            var message = 'Working..';
-            var html = "<div class='alert alert-success'>" + message + "</div>";
-            $('#user-messages-container').html(html).show();
-            // Post to the endagaweb API.
-            $.ajax({
-                url: '/dashboard/network/denominations?id=' + $("#dnm_id").val(),
-                type: 'DELETE',
-                beforeSend: function (xhr) {
-                    xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
-                },
-                success: function (response) {
-                    // Show a success message after a small delay.
-                    // Then, after some more time has passed, redirect back to /subscribers.
-                    setTimeout(function () {
-                        var message = 'Done!, redirecting..';
-                        var html = "<div class='alert alert-success'>" + message + "</div>";
-                        $('#user-messages-container').html(html).show();
-                    }, 1000);
-                    setTimeout(function () {
-                        $('#delete-user-modal').modal('hide');
-                        window.location.href = '/dashboard/network/denominations';
-                    }, 2000);
                 },
                 error: function (response) {
                     // Show an error message after a small delay.
@@ -308,79 +358,54 @@ of patent rights can be found in the PATENTS file in the same directory.
                     }, 800);
                 },
             });
-
+        }
+        $('#delete-confirm').click(function () {
+            var ids = [];
+            $.each($('form input[name=id]:checked'), function(key, element){
+                ids.push($(element).val());
+            });
+            // Post to the endagaweb API.
+            $.ajax({
+                url: '/dashboard/network/denominations?'+$.param({'ids': ids}),
+                type: 'DELETE',
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                },
+                success: function (response) {
+                    $('#delete-user-modal').modal('hide');
+                    window.location.href = '/dashboard/network/denominations';
+                },
+                error: function (response) {
+                    // Show an error message after a small delay.
+                    setTimeout(function () {
+                        var message = 'Error: ' + response.status;
+                        var html = "<div class='alert alert-danger'>" + message + "</div>";
+                        $('#user-messages-container').html(html).show();
+                    }, 800);
+                },
+            });
+        });
+        $('#sync-confirm').click(function () {
+            // Post to the endagaweb API.
+            $.ajax({
+                url: '/dashboard/network/denominations?sync=1',
+                type: 'POST',
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                },
+                success: function (response) {
+                    window.location.href = '/dashboard/network/denominations';
+                },
+                error: function (response) {
+                    // Show an error message after a small delay.
+                    setTimeout(function () {
+                        var message = 'Error: ' + response.status;
+                        var html = "<div class='alert alert-danger'>" + message + "</div>";
+                        $('#user-messages-container').html(html).show();
+                    }, 800);
+                },
+            });
         });
     </script>
-<script type="text/javascript">
 
-$(document).ready(function() {
-
-  $('input[type=radio][name="send_to"]').change(function() {
-    if (this.value == 'network') {
-        $('#network_row').show();
-        $('#tower_row').hide();
-        $('#imsi_row').hide();
-    } else if (this.value == 'tower') {
-        $('#network_row').hide();
-        $('#tower_row').show();
-        $('#imsi_row').hide();
-    } else if (this.value == 'imsi') {
-        $('#network_row').hide();
-        $('#tower_row').hide();
-        $('#imsi_row').show();
-    } else {
-        $('#network_row').show();
-        $('#tower_row').show();
-    }
-  });
-  $('#broadcast-modal').on('shown.bs.modal', function() {
-    $('#broadcast-form')[0].reset();
-    $('#network_row').show();
-    $('#tower_row').hide();
-    $('#imsi_row').hide();
-  });
-
-});
-  function broadcastSms() {
-    var data = {
-      sendto: $('input[type=radio][name="send_to"]:checked').val(),
-      network_id: $('#network_id').val(),
-      tower_id: $('#bts_id').val(),
-      imsi: $('#imsi').val(),
-      message: $('#message').val(),
-      csrfmiddlewaretoken: '{{ csrf_token }}',
-    };
-    $.post('/dashboard/broadcast', data, function(response) {
-      if (response['status'] == 'ok') {
-        // Show that it was successful and then reload the page.
-        // Clear out any old messages and show the div again.
-        $('#messages-container').html();
-        $('#messages-container').css('opacity', 1);
-        var html = '';
-        response['messages'].map(function(message) {
-          html += '<div class="alert alert-success">' + message + '</div>';
-        });
-        $('#messages-container').html(html).show();
-        setTimeout(function() {
-          location.reload();
-        }, 800);
-      } else {
-        // Show the messages that were sent back.
-        // Clear out any old messages and show the div again.
-        $('#messages-container').html();
-        $('#messages-container').css('opacity', 1);
-        var html = '';
-        response['messages'].map(function(message) {
-          html += '<div class="alert alert-danger">' + message + '</div>';
-        });
-        $('#messages-container').html(html).show();
-        setTimeout(function() {
-          $('#messages-container').fadeTo(500, 0);
-          $('#messages-container').hide();
-        }, 4000);
-      }
-    });
-    return false;
-  }
-</script>
 {% endblock %}

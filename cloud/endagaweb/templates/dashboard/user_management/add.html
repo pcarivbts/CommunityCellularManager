@@ -135,7 +135,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             {% if 'user_management' in user_permission %}
             <div class="col-sm-8">
                 {% if total_users_found == 0 %}
-                <h4>No subscribers matched your search.</h4>
+                <h4>No user found on {{ network.name }}!</h4>
                 {% else %}
                 {% render_table users %}
                 {% endif %}

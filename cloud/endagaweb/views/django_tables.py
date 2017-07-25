@@ -364,13 +364,14 @@ class DenominationTable(tables.Table):
 
     class Meta:
         model = models.NetworkDenomination
-        fields = ('start_amount', 'end_amount', 'validity_days')
+        fields = ('id', 'start_amount', 'end_amount', 'validity_days')
         attrs = {'class': 'table table-hover'}
 
+    id = tables.CheckBoxColumn(
+        accessor="pk", attrs={"th__input": {"onclick": "toggle(this)"}})
     start_amount = tables.Column(empty_values=(), verbose_name='Start Amount')
     end_amount = tables.Column(empty_values=(), verbose_name='End Amount')
     validity_days = tables.Column(empty_values=(), verbose_name='Validity(Days)')
-    action = tables.Column(empty_values=(), verbose_name='Action', orderable=False)
 
     def render_start_amount(self, record):
         return humanize_credits(record.start_amount,

@@ -13,6 +13,11 @@ of patent rights can be found in the PATENTS file in the same directory.
           {% if network.name %}
             <span id='name'>"{{ network.name }}"</span>
           {% endif %}
+            {% if user_profile.user.is_staff %}
+          {% if active_tab == 'network-denominations' %}
+            <a class="btn btn-primary pull-right" href="javascript:void(0);" onclick="resetForm()" data-target="#save-event-modal" data-toggle='modal'>Add Denomination</a>
+          {% endif %}
+            {% endif %}
         </h3>
     </div>
 </div>
