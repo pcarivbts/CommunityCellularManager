@@ -79,6 +79,8 @@ PERMISSIONS = (
 
                 ('view_network', 'View Network'),  # default permission
                 ('edit_network', 'Edit Network'),
+                ('add_denomination', 'Add Denomination'),
+                ('view_denomination', 'View Denomination'),
 
                 ('adjust_credit', 'Adjust Credit'),
 
@@ -574,11 +576,6 @@ class Subscriber(models.Model):
 
     class Meta:
         default_permissions = ()
-        permissions = (
-            ('view_subscriber', 'View subscriber list'),
-            ('change_subscriber', 'Edit subscriber'),
-            ('deactive_subscriber', 'Deactive subscriber'),
-        )
 
     @classmethod
     def update_balance(cls, imsi, other_bal):
@@ -1610,6 +1607,7 @@ class NetworkDenomination(models.Model):
 
     class Meta:
         ordering = ('start_amount',)
+        default_permissions = ()
 
 
 class ConfigurationKey(models.Model):

@@ -1011,11 +1011,12 @@ class UserManagement(ProtectedView):
         # Get all users except Cloud Admin
         users_in_network = get_users_with_perms(
             network, attach_perms=False, with_superusers=False).exclude(
-            Q(is_superuser=True)|Q(email=''))
+            Q(is_superuser=True) | Q(email='') | Q(
+                userprofile__role='Cloud Admin'))
 
         if not user_profile.user.is_superuser:
             users_in_network = users_in_network.exclude(
-                userprofile__role='Network Admin')
+                userprofile__role__in=['Network Admin', 'Cloud Admin'])
         # Search for User query
         query = request.GET.get('query', None)
         if query:
