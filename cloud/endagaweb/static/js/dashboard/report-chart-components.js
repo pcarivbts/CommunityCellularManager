@@ -202,14 +202,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
     } else {
       newYAxisFormatter = '';
     }
-    if(this.props.chartID == 'call-chart' | this.props.chartID =='sms-chart'){
-    newYAxisFormatter = 'd';
-    tablesColumnValueName =[
-          { title: "Type" },
-          { title: "Count" }
-      ]
-    }
-   else if(this.props.chartID == 'data-chart'){
+ if(this.props.chartID == 'data-chart'){
         newYAxisFormatter = '.2f';
         tablesColumnValueName = [
           { title: "Type" },
@@ -217,6 +210,16 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       ]
 
     }
+   else if (this.props.chartID == 'call-chart' | this.props.chartID =='sms-chart'){
+
+  newYAxisFormatter = '.2f';
+    tablesColumnValueName =[
+          { title: "Type" },
+          { title: "Count" }
+      ]
+    }
+
+
   else if (this.props.chartID == 'topupSubscriber-chart'){
         newYAxisFormatter = '.2f';
         tablesColumnValueName = [
@@ -405,7 +408,7 @@ if( typeof(data[index]['values']) === 'object'){
       // Get sum of the total charges
 
 
-       if(domTargetId =='data-chart' ||  domTargetId =='call-sms-chart' ||  domTargetId == 'topupSubscriber-chart' ){
+       if(domTargetId =='data-chart' ||  domTargetId =='call-sms-chart' || domTargetId =='sms-chart'|| domTargetId =='call-chart' ||  domTargetId == 'topupSubscriber-chart' ){
          if( newSeries['total'] !=undefined){
          newSeries['total'] = newSeries['total'].toFixed(2);
           tableData.push([newSeries['key'], newSeries['total']]);}
@@ -446,7 +449,7 @@ if( typeof(data[index]['values']) === 'object'){
           { title: "Amount in ("+ frontTooltip +")" }
       ]
     }
-    else if (frontTooltip!="" &&    domTargetId =='call-sms-chart'  ){
+    else if (frontTooltip!="" &&    domTargetId =='call-sms-chart' || domTargetId =='call-sms-chart' || domTargetId =='sms-chart'  ){
    // console.log("dcdcdcddddddddddddd ",tableData)
 
      tablesColumnValueName = [
