@@ -48,9 +48,9 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <a href="#" class="close" data-dismiss="alert" aria-label="close">×</a>
                 <p>
                     <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
-                    <strong>Error!</strong> There is a gap in denomination brackets. Add/edit denominations to fill the below gaps. Changes will be lost until you confirm the final submit.
+                    <strong>Error!</strong> There is a missing range in denomination brackets. Add/edit denominations to fill the below missing ranges. Changes will be lost until you confirm the final submit.
                 </p>
-                <p>Gap are {% for range in invalid_ranges %}<span class="badge badge-danger">{{ range.start }} - {{ range.end }}</span> {% endfor %}</p>
+                <p>Missing range are {% for range in invalid_ranges %}<span class="badge badge-danger">{{ range.start }} - {{ range.end }}</span> {% endfor %}</p>
             </div>
             {% elif sync_status and user_profile.user.is_staff %}
             <div class="alert alert-warning alert-dismissable">
