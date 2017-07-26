@@ -1081,6 +1081,8 @@ class UserManagement(ProtectedView):
                 else:
                     user.is_staff = user.is_superuser = False
                 user.email = email
+                # Set random password as send mail fails if no password is set
+                user.set_password(uuid.uuid4())
                 user.save()
                 # creates Token that BTSs on the network use to authenticate
                 Token.objects.create(user=user)
