@@ -91,7 +91,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
     },
 
     // This handler takes the text of the view mode buttons
-    // and ouputs figures out the corresponding number of seconds.
     handleViewClick: function(text) {
         // Update only if the startTime has actually changed.
         if (this.state.activeView != text) {
@@ -101,11 +100,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
                 isLoading: true,
                 activeView: text,
             });
-            var interval = this.props.defaultButtonText;
-            setTimeout(function(){
-                //this.handleButtonClick(interval);
-                this.forceUpdate()
-            }.bind(this), 1000);
         }
     },
 
@@ -635,6 +629,7 @@ var TimeSeriesChartElement = React.createClass({
         this.props.activeView = nextProps.activeView;
         var nextData = JSON.stringify(nextProps.data);
         var prevData = JSON.stringify(this.props.data);
+        this.forceUpdate();
         if (nextData !== prevData) {
             updateChart(
                 '#' + this.props.chartID,
@@ -652,7 +647,23 @@ var TimeSeriesChartElement = React.createClass({
         }
         return false;
     },
-
+    componentDidUpdate(prevProps, prevState) {
+        var nextProps = prevProps;
+        // Update if we toggled a load
+        updateChart(
+            '#' + this.props.chartID,
+            nextProps.data['results'],
+            nextProps.xAxisFormatter,
+            nextProps.yAxisFormatter,
+            nextProps.yAxisLabel,
+            this.props.timezoneOffset,
+            this.props.tooltipUnits,
+            this.props.frontTooltip,
+            this.props.chartType,
+            this.props.chartID,
+            nextProps.tablesColumnValueName
+        );
+    },
     render: function() {
         var inlineStyles = {
             height: this.props.chartHeight
@@ -915,6 +926,7 @@ var Table = React.createClass({
 
         var nextData = JSON.stringify(nextProps.data);
         var prevData = JSON.stringify(this.props.data);
+        this.forceUpdate();
         if (nextData !== prevData) {
             updateChart(
                 '#' + this.props.chartID,
@@ -931,6 +943,23 @@ var Table = React.createClass({
             );
         }
         return false;
+    },
+    componentDidUpdate(prevProps, prevState) {
+        var nextProps = prevProps;
+        // Update if we toggled a load
+        updateChart(
+            '#' + this.props.chartID,
+            nextProps.data['results'],
+            nextProps.xAxisFormatter,
+            nextProps.yAxisFormatter,
+            nextProps.yAxisLabel,
+            this.props.timezoneOffset,
+            this.props.tooltipUnits,
+            this.props.frontTooltip,
+            this.props.chartType,
+            this.props.chartID,
+            nextProps.tablesColumnValueName
+        );
     },
 
     render: function() {
