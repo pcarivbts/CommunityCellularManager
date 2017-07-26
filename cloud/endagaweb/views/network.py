@@ -472,7 +472,7 @@ class NetworkSelectView(ProtectedView):
         return http.HttpResponseRedirect(request.META.get('HTTP_REFERER', '/dashboard'))
 
 
-def sync_denomination(self, network_id, status):
+def sync_denomination(network_id, status):
     """ Rebase denomination table remove pending changes. """
     if status == 'apply':
         with transaction.atomic():
@@ -914,7 +914,7 @@ class NetworkNotificationsEdit(ProtectedView):
                         # Create new notification
                         notification = models.Notification.objects.create(
                             network=network)
-                        alert_message = 'Notification added successfully!'
+                        alert_message = 'Notification does not exists!'
                     notification.type = type
                     notification.message = message
                     notification.event = event
@@ -929,7 +929,7 @@ class NetworkNotificationsEdit(ProtectedView):
                     str(type).title())
                 messages.error(request, alert_message,
                                extra_tags="alert alert-danger")
-                return redirect(urlresolvers.reverse('network-notifications'))
+            return redirect(urlresolvers.reverse('network-notifications'))
         else:
             # Delete the notifications
             records = models.Notification.objects.filter(

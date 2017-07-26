@@ -53,7 +53,6 @@ of patent rights can be found in the PATENTS file in the same directory.
             {{ message }}
         </div>
         {% endfor %}
-        {% if 'edit_notification' in user_permission %}
         <form action="/dashboard/network/notification/manage" method="POST"
               name="notification_form" id="notification_form">
             <div class="table-container">
@@ -80,9 +79,6 @@ of patent rights can be found in the PATENTS file in the same directory.
             <p>No notifications in the current network </p>
             {% endif %}
         </form>
-        {% else %}
-        {% include 'dashboard/permission_denied.html' %}
-        {% endif %}
     </div>
 
 </div>
