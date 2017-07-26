@@ -121,6 +121,10 @@ urlpatterns = [
     url(r'^dashboard/subscribers$',
         endagaweb.views.dashboard.SubscriberListView.as_view(),
         name='subscribers-list'),
+    url(r'^dashboard/subscribers/role$',
+        endagaweb.views.dashboard.SubscriberUpdateRole.as_view(),
+        name='subscribers-update-role'),
+
     url(r'^dashboard/subscribers/(?P<imsi>[^/]+)$',
         endagaweb.views.dashboard.SubscriberInfo.as_view(),
         name='subscriber-info'),

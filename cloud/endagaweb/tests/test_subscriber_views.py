@@ -23,6 +23,7 @@ class SubscriberBaseTest(test.TestCase):
         cls.user = models.User(username="abe", email="a@b.com")
         cls.password = 'test123'
         cls.user.set_password(cls.password)
+        cls.user.is_superuser= True
         cls.user.save()
         cls.user_profile = models.UserProfile.objects.get(user=cls.user)
 
@@ -93,7 +94,7 @@ class SubscriberInfoTest(SubscriberBaseTest):
             'category': 'Retailer',
             'imsi_val[] ': 'IMSI000123'
         }
-        url = '/dashboard/subscribers'
+        url = '/dashboard/subscribers/role'
         response = self.client.post(
             url, data)
         self.assertEqual(200, response.status_code)
@@ -105,7 +106,7 @@ class SubscriberInfoTest(SubscriberBaseTest):
             'category': 'Test Sim',
             'imsi_val[] ': 'IMSI000123'
         }
-        url = '/dashboard/subscribers'
+        url = '/dashboard/subscribers/role'
         response = self.client.post(
             url, data)
         self.assertEqual(200, response.status_code)
@@ -119,7 +120,7 @@ class SubscriberInfoTest(SubscriberBaseTest):
             'imsi_val[] ':imsi_list
         }
 
-        url = '/dashboard/subscribers'
+        url = '/dashboard/subscribers/role'
         response = self.client.post(
             url, data)
         self.assertEqual(200, response.status_code)

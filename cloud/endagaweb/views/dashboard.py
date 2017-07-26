@@ -288,6 +288,12 @@ class SubscriberListView(ProtectedView):
         html = template.render(context, request)
         return HttpResponse(html)
 
+
+class SubscriberUpdateRole(ProtectedView):
+    """Updates Subscriber Role ( Subscriber, Retailer, Test)
+    """
+    permission_required = ['edit_subscriber','view_subscriber']
+
     def post(self, request, *args, **kwargs):
         subscriber_imsi_list = request.POST.getlist('imsi_val[]')
         subscriber_role = request.POST.get('category')
