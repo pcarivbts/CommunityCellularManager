@@ -18,6 +18,7 @@ import os
 import paramiko
 import zipfile
 import pytz
+import subprocess
 try:
     # we only import zlib here to check that it is available
     # (why would it not be?), so we have to disable the 'unused' warning
@@ -47,6 +48,8 @@ from endagaweb.models import NetworkDenomination
 from endagaweb.models import TimeseriesStat, UserProfile
 from endagaweb.ic_providers.nexmo import NexmoProvider
 from ccm.common import crdt
+from endagaweb.settings.prod import TEMPLATES_PATH
+
 
 @app.task(bind=True)
 def usageevents_to_sftp(self):
@@ -542,7 +545,7 @@ def subscriber_validity_state(self):
 @app.task(bind=True)
 def validity_expiry_sms(self, days=7):
     """Sends SMS to the number whose validity is:
-     about to get expire, 
+     about to get expire,
      if expired (i.e 1st expired), or
      if the number is in grace period and is about to recycle.
 
@@ -625,3 +628,24 @@ def block_user(self):
         user_profile.user.is_active = False
         print '%s user is Blocked!' % user_profile.user.username
         user_profile.user.save()
+
+@app.task(bind=True)
+def translate(self, message, retry_delay=60*10, max_retries=432):
+    """Tries to write notification message for translation.
+
+    The default retry is every 10 min for 3 days.
+    """
+    print "writing network notification message for translation '%s'"
+    try:
+        translation_file = "/dashboard/network_detail/translate.html"
+        handle = open(TEMPLATES_PATH + translation_file, 'a+')
+        handle.write('{% trans "' + message + '" %}\r\n')
+        handle.close()
+        subprocess.Popen(
+            ['python', 'manage.py', 'makemessages', '-l', 'en', '-l', 'fil'])
+        subprocess.Popen(['python', 'manage.py', 'compilemessages'])
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+        raise self.retry(countdown=retry_delay, max_retries=max_retries)
+    except Exception as exception:
+        raise self.retry(countdown=retry_delay, max_retries=max_retries)
+        print "Translation ERROR. Exception:- %s" % (exception)

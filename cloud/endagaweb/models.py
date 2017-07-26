@@ -71,18 +71,21 @@ PERMISSIONS = (
                 ('delete_bts', 'Delete Tower'),
 
                 ('view_subscriber', 'View Subscriber'),
-                ('edit_subscriber', 'Edit Subscriber'),
-                ('delete_subscriber', 'Delete Subscriber'),
+                ('edit_subscriber', 'Change Subscriber'),
 
                 ('view_usage', 'View Usage'),
                 ('download_usage', 'Download Usage Report'),
 
                 ('view_network', 'View Network'),  # default permission
                 ('edit_network', 'Edit Network'),
-                ('add_denomination', 'Add Denomination'),
+
                 ('view_denomination', 'View Denomination'),
+                ('change_denomination', 'Manage Denomination'),
 
                 ('adjust_credit', 'Adjust Credit'),
+
+                ('view_notification', 'View Notification'),
+                ('edit_notification', 'Manage Notification'),
 
                 ('send_bulk_sms', 'Bulk SMS'),
                 ('send_sms', 'Broadcast SMS'),
@@ -1927,3 +1930,17 @@ class SubscriberInvalidEvents(models.Model):
     count = models.PositiveIntegerField()
     event_time = models.DateTimeField(auto_now_add=True)
     negative_transactions = ArrayField(models.TextField(), null=True)
+
+
+class Notification(models.Model):
+    notification_type = (
+            ('automatic', 'Automatic'),
+            ('mapped', 'Mapped')
+        )
+    network = models.ForeignKey('Network', on_delete=models.CASCADE)
+    event = models.CharField(max_length=100, null=True, unique=True)
+    number = models.CharField(max_length=3, null=True, default=None,
+                              unique=True)
+    message = models.TextField(max_length=160, null=True)
+    type = models.CharField(max_length=10, choices=notification_type,
+                            default='automatic')

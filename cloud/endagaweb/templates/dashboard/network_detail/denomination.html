@@ -43,6 +43,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     <div class='row'>
         {% include "dashboard/network_detail/nav.html" with active_tab='network-denominations' %}
         <div class='content col-xs-12 col-sm-10 col-md-10'>
+            {% if 'view_denomination' in user_permission %}
             {% if invalid_ranges and user_profile.user.is_staff %}
             <div class="alert alert-danger alert-dismissable">
                 <a href="#" class="close" data-dismiss="alert" aria-label="close">×</a>
@@ -67,7 +68,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 {{ message }}
             </div>
             {% endfor %}
-            <form action="/dashboard/network/denominations" method="POST" name="notification_form" id="notification_form">
+            <form action="/dashboard/network/denominations/manage" method="POST" name="notification_form" id="notification_form">
             <div class="table-container">
                 {% if denomination %}
                 {% render_table denominations_table %}
@@ -95,7 +96,9 @@ of patent rights can be found in the PATENTS file in the same directory.
             </div>
             </form>
         </div>
-
+        {% else %}
+        {% include 'dashboard/permission_denied.html' %}
+        {% endif %}
     </div>
 
     <div class='modal fade' id='apply-changes-modal'>
@@ -158,7 +161,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                         Create Denomination
                     </h4>
                 </div>
-                <form action="/dashboard/network/denominations" id="network_form" name="network_form" method="POST"
+                <form action="/dashboard/network/denominations/manage" id="network_form" name="network_form" method="POST"
                           data-toggle="validator" class="form-horizontal">{% csrf_token %}
                     <div class='modal-body'>
                         <div class="form-group row">
@@ -367,7 +370,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             });
             // Post to the endagaweb API.
             $.ajax({
-                url: '/dashboard/network/denominations?'+$.param({'ids': ids}),
+                url: '/dashboard/network/denominations/manage?'+$.param({'ids': ids}),
                 type: 'DELETE',
                 beforeSend: function (xhr) {
                     xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
@@ -389,7 +392,7 @@ of patent rights can be found in the PATENTS file in the same directory.
         $('#sync-confirm').click(function () {
             // Post to the endagaweb API.
             $.ajax({
-                url: '/dashboard/network/denominations?sync=1',
+                url: '/dashboard/network/denominations/manage?sync=1',
                 type: 'POST',
                 beforeSend: function (xhr) {
                     xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
