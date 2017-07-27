@@ -101,12 +101,41 @@ of patent rights can be found in the PATENTS file in the same directory.
 
     .slider.round:before {
       border-radius: 50%;
-}
+    }
+    .loader {
+      border: 16px solid lightgreen;
+      border-radius: 50%;
+      border-top: 16px solid white;
+      width: 60px;
+      height: 60px;
+      -webkit-animation: spin 2s linear infinite;
+      animation: spin 2s linear infinite;
+      position: fixed;
+      top: 80%;
+      left: 50%;
+      -webkit-transform: translate(-50%, -50%);
+      transform: translate(-50%, -50%);
+    }
+
+    @-webkit-keyframes spin {
+      0% { -webkit-transform: rotate(0deg); }
+      100% { -webkit-transform: rotate(360deg); }
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loader-text {
+        position: fixed;
+        top: 90%;
+        left: 49%;
+      }
 </style>
 {% endblock %}
 {% block headerclass %}
 
-<body id="add_user">
+<div id="add_user">
 <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
 <header class="navbar navbar-inverse normal" role="banner">
     {% endblock %}
@@ -122,8 +151,13 @@ of patent rights can be found in the PATENTS file in the same directory.
                     <small>(add user)</small>
                 </a>
                 </h3>
+                <div id="loading" hidden="hidden">
+                    <div class="loader"></div>
+                    <h4 class="loader-text">Please Wait...</h4>
+                </div>
             </div>
         </div>
+
         {% get_obj_perms request.user for network as 'user_permission' %}
         <div class="container col-sm-12">
             {% for message in messages %}
@@ -205,6 +239,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                                  <span class="title">Add </span> User ({{ network.name }})
 
                              </h4>
+
                          </div>
                             <div class='modal-body'>
                                 <span class="msg exists text-justify">
@@ -240,6 +275,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                                                 <label for="email" id="ariaLable" class="col-6 col-form-label">
                                                     Email
                                                     <span class="aseriskField">*</span></label>
+
                                                 <div class="input-group-addon">
                                                     <i class="glyphicon glyphicon-envelope"></i>
                                                 </div>
@@ -320,7 +356,6 @@ of patent rights can be found in the PATENTS file in the same directory.
         </div>
     </div>
 </header>
-
 <div class='modal fade' id='delete-event-modal'>
     <div class='modal-dialog'>
         <div class='modal-content'>
@@ -578,6 +613,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 var action_url = "/dashboard/user/management/update"
             }
             $.ajax({
+
                 url: action_url,
                 type: 'POST',
                 beforeSend: function(xhr) {
@@ -591,6 +627,8 @@ of patent rights can be found in the PATENTS file in the same directory.
             }).done(function(response) {
                 window.location.href = '/dashboard/user/management';
             });
+            $('#add-user-modal').hide();
+            $("#loading").show();
         }
         return false;
     }

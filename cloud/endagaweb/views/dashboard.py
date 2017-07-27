@@ -1045,7 +1045,7 @@ class UserManagement(ProtectedView):
             'user_profile': user_profile,
             'networks': get_objects_for_user(request.user,
                                              'view_network', klass=Network),
-            'permissions': network_permissions,
+            'permissions': sorted(network_permissions,reverse=True),
             'roles': role,
             'total_users': len(users_in_network),
             'total_users_found': len(query_users),

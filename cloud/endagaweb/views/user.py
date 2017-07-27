@@ -337,17 +337,19 @@ def role_default_permissions(request):
 
         business_analyst = ['view_graph', 'view_report', 'view_bts',
                             'view_usage', 'view_subscriber',
-                            'view_network']
+                            'view_network', 'view_notification',
+                            'view_denomination', 'view_activity']
 
         loader = ['view_graph', 'view_report', 'view_bts', 'view_subscriber',
                   'view_network', 'edit_subscriber', 'change_network',
-                  'add_subscriber', 'send_bulk_sms', 'send_sms', 'add_credit',
-                  'download_graph', 'view_usage']
+                  'add_subscriber', 'send_sms', 'add_credit',
+                  'view_usage', 'view_notification', 'view_denomination',
+                  'view_activity']
 
         partner = ['view_graph', 'view_report', 'view_bts', 'view_subscriber',
-                   'view_network', 'edit_subscriber', 'edit_network',
-                   'add_subscriber', 'send_sms', 'send_bulk_sms',
-                   'download_graph', 'view_usage']
+                   'view_network', 'edit_subscriber', 'add_subscriber',
+                   'send_sms', 'view_usage', 'view_notification',
+                   'view_denomination', 'view_activity']
 
         content_type = ContentType.objects.filter(
             app_label='endagaweb', model='network').values_list(
