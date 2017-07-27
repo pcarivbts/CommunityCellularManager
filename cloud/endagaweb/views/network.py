@@ -754,7 +754,7 @@ class NetworkNotifications(ProtectedView):
                     str(type).title())
                 messages.error(request, alert_message,
                                extra_tags="alert alert-danger")
-                return redirect(urlresolvers.reverse('network-notifications'))
+            return redirect(urlresolvers.reverse('network-notifications'))
         else:
             # Delete the notifications
             records = models.Notification.objects.filter(

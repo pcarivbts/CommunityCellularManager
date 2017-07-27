@@ -20,7 +20,7 @@ from syslog import LOG_LOCAL0
 
 import dj_database_url
 
-from django.utils.translation import ugettext, ugettext_lazy as translate
+from django.utils.translation import ugettext_lazy as translate
 
 # inherit base Django settings (more general than the endagaweb app)
 from settings import *  # noqa: F403

@@ -460,12 +460,11 @@ def translate(self, message, retry_delay=60*10, max_retries=432):
     """
     print "writing network notification message for translation '%s'"
     try:
-        translation_file = "/dashboard/network_detail/translate.html"
-        handle = open(TEMPLATES_PATH + translation_file, 'a+')
+        handle = open(TEMPLATES_PATH + "/translate.html", 'a+')
         handle.write('{% trans "' + message + '" %}\r\n')
         handle.close()
         subprocess.Popen(
-            ['python', 'manage.py', 'makemessages', '-l', 'en', '-l', 'fil'])
+            ['python', 'manage.py', 'makemessages', '-a'])
         subprocess.Popen(['python', 'manage.py', 'compilemessages'])
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
         raise self.retry(countdown=retry_delay, max_retries=max_retries)
