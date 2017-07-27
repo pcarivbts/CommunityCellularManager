@@ -142,6 +142,7 @@ class StatsClientBase(object):
             pass
         if kwargs.has_key('query'):
             filters = filters & kwargs.pop('query')
+            #print("ggggg",filters)
         if report_view == 'value':
             filters = filters & Q(date__lte=end) & Q(date__gte=start)
             result = models.UsageEvent.objects.filter(filters).values_list(
@@ -153,6 +154,7 @@ class StatsClientBase(object):
         # else:
         #     queryset = objects.filter(filters)
         queryset = objects.filter(filters)
+        #print('iiiiiiiiiiiiiiiiiii',queryset)
         # Use qsstats to aggregate the queryset data on an interval.
         if aggregation in ['duration', 'duration_minute']:
             queryset_stats = qsstats.QuerySetStats(
@@ -203,6 +205,7 @@ class StatsClientBase(object):
                 # Create subscribers dict
                 for query in queryset:
                     numbers[query.to_number] = 0
+                    #print("yyyyyyyyyyyyyyyyyyya ",query.change )
                 for query in queryset_stats.qs:
                     numbers[query.to_number] += (query.change * -1)
                     top_numbers = int(len(numbers) * percentage)
@@ -221,7 +224,7 @@ class StatsClientBase(object):
                     # Sum of change
                     queryset_stats = qsstats.QuerySetStats(
                         queryset, 'date', aggregate=(
-                            aggregates.Sum('change') * -0.00001))
+                            aggregates.Sum('change')))
         elif aggregation == 'loader':
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=aggregates.Count('subscriber_id'))
@@ -242,7 +245,6 @@ class StatsClientBase(object):
         datetimes, values = zip(*timeseries)
         if report_view == 'summary':
             # Return sum count for pie-chart and table view
-            #print("oooooooooooooooooooooo",aggregation)
             if aggregation == 'transaction_sum':
                 # When kind is change
                 return sum(values) * 0.000001
@@ -268,6 +270,8 @@ class StatsClientBase(object):
                     rounded_values.append(1)
                 if value==0:
                     rounded_values.append(0)
+            elif value <=0:
+                rounded_values.append(value * -0.00001)
             elif round(value) != round(value, 2):
                 rounded_values.append(round(value, 2))
             else:
@@ -536,8 +540,10 @@ class TopUpStatsClient(StatsClientBase):
         try:
             raw_amount = [(float(denom) * -1) for denom in
                           kwargs['extras'].split('-')]
+            #print("iiiiiiiiiiiiiiiaaaaaaaaaaaaaaaaaa ",raw_amount)
             kwargs['query'] = Q(change__gte=raw_amount[1]) & Q(
                 change__lte=raw_amount[0]) & Q(subscriber__role='retailer')
+            #print("ooooooooooooooooooooooooooooo ",kwargs['query']  )
             return self.aggregate_timeseries(kind, **kwargs)
         except ValueError:
             # If no denominations available in this network

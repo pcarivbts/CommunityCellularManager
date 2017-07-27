@@ -191,6 +191,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
         } else {
             newYAxisFormatter = '';
         }
+        console.log("ggggg",this.props.chartID)
         if (this.props.chartID == 'data-chart') {
             newYAxisFormatter = '.2f';
             tablesColumnValueName = [{
@@ -200,8 +201,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
             }]
 
         } else if (this.props.chartID == 'call-chart' | this.props.chartID == 'sms-chart') {
-
-            newYAxisFormatter = '.2f';
+           console.log("iiiiiiiiiiiiiiiiiii")
             tablesColumnValueName = [{
                 title: "Type"
             }, {
@@ -392,12 +392,19 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
         // Get sum of the total charges
 
 
-        if (domTargetId == 'data-chart' || domTargetId == 'call-sms-chart' || domTargetId == 'sms-chart' || domTargetId == 'call-chart' || domTargetId == 'topupSubscriber-chart') {
+        if ( domTargetId == 'call-sms-chart' || domTargetId == 'sms-chart' || domTargetId == 'call-chart' ) {
             if (newSeries['total'] != undefined) {
+                newSeries['total'] = newSeries['total']
+                tableData.push([newSeries['key'], newSeries['total']]);
+            }}
+            else if (domTargetId == 'data-chart' || domTargetId == 'topupSubscriber-chart' || domTargetId == 'call-billing-chart' || domTargetId == 'sms-billing-chart' || domTargetId == 'call-sms-billing-chart'){
+
+              if (newSeries['total'] != undefined) {
                 newSeries['total'] = newSeries['total'].toFixed(2);
                 tableData.push([newSeries['key'], newSeries['total']]);
             }
-        } else if (domTargetId == 'load-transfer-chart' || domTargetId == 'add-money-chart') {
+            }
+            else if (domTargetId == 'load-transfer-chart' || domTargetId == 'add-money-chart') {
             if (typeof(retailer !== 'undefined') && Object.keys(retailer).length >= 1) {
                 if (Object.keys(retailer).length >= 1) {
                     for (var series_index in data[index]['retailer_table_data']) {
@@ -408,9 +415,9 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
             } else {
                 tableData.push(['No data', 'No data'])
             }
-        } else {
-            newSeries['total'] = newSeries['total']
-            tableData.push([newSeries['key'], newSeries['total']]);
+        }   else {
+                newSeries['total'] = newSeries['total']
+                tableData.push([newSeries['key'], newSeries['total']]);
         }
 
         shiftedData.push(newSeries);
@@ -420,17 +427,18 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
             }, {
                 title: "Amount in (" + frontTooltip + ")"
             }]
-        } else if (frontTooltip != "" && domTargetId == 'call-sms-chart' || domTargetId == 'call-chart' || domTargetId == 'sms-chart') {
+        } else if (domTargetId == 'call-billing-chart' || domTargetId == 'sms-billing-chart' || domTargetId == 'call-sms-billing-chart') {
             tablesColumnValueName = [{
                 title: "Type"
             }, {
                 title: "Amount in (" + frontTooltip + ")"
             }]
-        } else if (frontTooltip != "" && domTargetId == 'add-money-chart' || domTargetId == 'load-transfer-chart') {
+         }
+           else if (frontTooltip != "" && domTargetId == 'add-money-chart' || domTargetId == 'load-transfer-chart') {
             tablesColumnValueName = [{
                 title: "IMSI"
             }, {
-                title: "Number of count"
+                title: "Count"
             }]
         } else {
             tablesColumnValueName = tablesColumnValueName
