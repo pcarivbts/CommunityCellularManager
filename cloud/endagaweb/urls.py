@@ -183,6 +183,9 @@ urlpatterns = [
     url(r'^dashboard/network/denominations$',
         endagaweb.views.network.NetworkDenomination.as_view(),
         name='network-denominations'),
+    url(r'^dashboard/network/denominations/manage$',
+        endagaweb.views.network.NetworkDenominationEdit.as_view(),
+        name='network-denominations-manage'),
     url(r'^dashboard/network/inactive-subscribers$',
         endagaweb.views.network.NetworkInactiveSubscribers.as_view(),
         name='network-inactive-subscribers'),
@@ -195,6 +198,12 @@ urlpatterns = [
     url(r'^dashboard/network/balance-limit',
         endagaweb.views.network.NetworkBalanceLimit.as_view(),
         name='network_balance_limit'),
+    url(r'^dashboard/network/notification$',
+        endagaweb.views.network.NetworkNotifications.as_view(),
+        name='network-notifications'),
+    url(r'^dashboard/network/notification/manage$',
+        endagaweb.views.network.NetworkNotificationsEdit.as_view(),
+        name='network-notifications-manage'),
     # The activity table.
     url(r'^dashboard/activity',
         endagaweb.views.dashboard.ActivityView.as_view(),
@@ -269,6 +278,11 @@ if 'django.contrib.admin' in settings.INSTALLED_APPS:
     urlpatterns += [
         url(r'^django-admin/', include(admin.site.urls)),
     ]
+    # Only use rosetta when django-admin is used for security.
+    if 'rosetta' in settings.INSTALLED_APPS:
+        urlpatterns += [
+            url(r'^rosetta/', include('rosetta.urls')),
+        ]
 
 
 # We only install the loginas app in the staff version of the site and we hide

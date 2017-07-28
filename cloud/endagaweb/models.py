@@ -63,32 +63,40 @@ OUTBOUND_ACTIVITIES = (
 INVALID_EVENTS = ('error_call', 'error_sms')
 
 PERMISSIONS = (
+                # User Management
                 ('user_management', 'User Management'),
 
+                # Towers
                 ('view_bts', 'View Tower'),
-                ('add_bts', 'Add Tower'),
-                ('edit_bts', 'Edit Tower'),
-                ('delete_bts', 'Delete Tower'),
+                ('edit_bts', 'Manage Tower'),
 
+                # Subscriber
+                ('adjust_credit', 'Adjust Credit(Subscriber)'),
                 ('view_subscriber', 'View Subscriber'),
-                ('edit_subscriber', 'Edit Subscriber'),
-                ('delete_subscriber', 'Delete Subscriber'),
+                ('edit_subscriber', 'Manage Subscriber'),
 
-                ('view_usage', 'View Usage'),
-                ('download_usage', 'Download Usage Report'),
+                # Network
+                ('view_network', 'View Network'),
+                ('edit_network', 'Manage Network'),
+                ('view_notification', 'View Notification(Network)'),
+                ('edit_notification', 'Manage Notification(Network)'),
+                ('view_denomination', 'View Denomination(Network)'),
+                ('edit_denomination', 'Manage Denomination(Network)'),
 
-                ('view_network', 'View Network'),  # default permission
-                ('edit_network', 'Edit Network'),
-                ('add_denomination', 'Add Denomination'),
-                ('view_denomination', 'View Denomination'),
-
-                ('adjust_credit', 'Adjust Credit'),
-
-                ('send_bulk_sms', 'Bulk SMS'),
+                # In Tower/Network/Subscriber
                 ('send_sms', 'Broadcast SMS'),
 
+                # Graphs
                 ('view_graph', 'View Graph'),
-                ('download_graph', 'Download Graphical Report'),
+
+                # Reports
+                ('view_report', 'View Report'),
+                ('download_graph', 'Download Report'),
+
+                # Activity
+                ('view_activity', 'View Activity'),
+                ('download_activity', 'Download Activity(Report)'),
+
             )
 
 
@@ -1927,3 +1935,17 @@ class SubscriberInvalidEvents(models.Model):
     count = models.PositiveIntegerField()
     event_time = models.DateTimeField(auto_now_add=True)
     negative_transactions = ArrayField(models.TextField(), null=True)
+
+
+class Notification(models.Model):
+    notification_type = (
+            ('automatic', 'Automatic'),
+            ('mapped', 'Mapped')
+        )
+    network = models.ForeignKey('Network', on_delete=models.CASCADE)
+    event = models.CharField(max_length=100, null=True, unique=True)
+    number = models.CharField(max_length=3, null=True, default=None,
+                              unique=True)
+    message = models.TextField(max_length=160, null=True)
+    type = models.CharField(max_length=10, choices=notification_type,
+                            default='automatic')

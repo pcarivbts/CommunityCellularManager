@@ -116,18 +116,15 @@ of patent rights can be found in the PATENTS file in the same directory.
                 </div>
             </div>
         </div>
-        <div id ="actions" class="btn-group">
-            <button class="btn dropdown-toggle" data-toggle="dropdown">Action <span class="caret"></span></button>
-            <ul class="dropdown-menu">
-                <li><a href="#" id="action-1">Action</a></li>
-                <li><a data-toggle='modal' data-target='#deactivate-subscriber-modal'
-                       class='btn btn-default deactivate-subscriber-link'
-                       href='#'>Deactivate Subscriber</a></li>
-                <li><a data-toggle='modal' data-target='#update-subscriber-modal'
-                       class='btn btn-default update-subscriber-link'
-                       href='#'>Change Subscriber Role</a>
-            </ul>
-        </div>
+        <div class="dropdown actions">
+            <button id ="actions" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" > Action(s)
+                <span class="caret"></span></button>
+                <ul class="dropdown-menu">
+                    <li><a data-toggle='modal' data-target='#deactivate-subscriber-modal' href='#'><i class="fa fa-ban" aria-hidden="true"></i> Deactivate Subscriber</a></li>
+                    <li><a data-toggle='modal' data-target='#update-subscriber-modal' href='#'><i class="fa fa-pencil-square-o" aria-hidden="true"></i> Change Subscriber Role</a></li>
+                </ul>
+              </div>
+            </div>
         {% elif total_number_of_subscribers > 0 %}
         <h4>No subscribers matched your search.</h4>
 

@@ -1051,7 +1051,7 @@ class UserManagement(ProtectedView):
             'user_profile': user_profile,
             'networks': get_objects_for_user(request.user,
                                              'view_network', klass=Network),
-            'permissions': network_permissions,
+            'permissions': sorted(network_permissions,reverse=True),
             'roles': role,
             'total_users': len(users_in_network),
             'total_users_found': len(query_users),
@@ -1087,6 +1087,8 @@ class UserManagement(ProtectedView):
                 else:
                     user.is_staff = user.is_superuser = False
                 user.email = email
+                # Set random password as send mail fails if no password is set
+                user.set_password(uuid.uuid4())
                 user.save()
                 # creates Token that BTSs on the network use to authenticate
                 Token.objects.create(user=user)

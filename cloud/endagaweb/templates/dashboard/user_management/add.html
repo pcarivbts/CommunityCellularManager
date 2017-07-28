@@ -101,12 +101,41 @@ of patent rights can be found in the PATENTS file in the same directory.
 
     .slider.round:before {
       border-radius: 50%;
-}
+    }
+    .loader {
+      border: 16px solid lightgreen;
+      border-radius: 50%;
+      border-top: 16px solid white;
+      width: 60px;
+      height: 60px;
+      -webkit-animation: spin 2s linear infinite;
+      animation: spin 2s linear infinite;
+      position: fixed;
+      top: 80%;
+      left: 50%;
+      -webkit-transform: translate(-50%, -50%);
+      transform: translate(-50%, -50%);
+    }
+
+    @-webkit-keyframes spin {
+      0% { -webkit-transform: rotate(0deg); }
+      100% { -webkit-transform: rotate(360deg); }
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loader-text {
+        position: fixed;
+        top: 90%;
+        left: 49%;
+      }
 </style>
 {% endblock %}
 {% block headerclass %}
 
-<body id="add_user">
+<div id="add_user">
 <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
 <header class="navbar navbar-inverse normal" role="banner">
     {% endblock %}
@@ -122,8 +151,13 @@ of patent rights can be found in the PATENTS file in the same directory.
                     <small>(add user)</small>
                 </a>
                 </h3>
+                <div id="loading" hidden="hidden">
+                    <div class="loader"></div>
+                    <h4 class="loader-text">Please Wait...</h4>
+                </div>
             </div>
         </div>
+
         {% get_obj_perms request.user for network as 'user_permission' %}
         <div class="container col-sm-12">
             {% for message in messages %}
@@ -151,15 +185,13 @@ of patent rights can be found in the PATENTS file in the same directory.
                                 href="javascript: void();" onclick="editUser()">
                                 <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
                                 Edit
-                                &nbsp;&nbsp;
                             </a>
                         </li>
                         <li id="action_block">
                             <a data-target='#block-event-modal'
                                data-toggle='modal' href="javascript:void(0);">
                                 <i class="fa fa-ban" aria-hidden="true"></i>
-                                Change Status <b>(Blocking)</b>
-                                &nbsp;&nbsp;
+                                Toggle Status
                             </a>
                         </li>
                         <li id="action_delete">
@@ -167,7 +199,6 @@ of patent rights can be found in the PATENTS file in the same directory.
                                data-toggle='modal' href="javascript:void(0);">
                                 <i class="fa fa-trash-o" aria-hidden="true"></i>
                                 Delete
-                                &nbsp;&nbsp;
                             </a>
                         </li>
                     </ul>
@@ -176,8 +207,6 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="col-xs-12 col-md-4 pull-right">
                 {% if total_users %}
                 <p>Search Users by email:</p>
-
-
                 {% crispy search %}
                 <p>
                     {% if total_users == 1 %}
@@ -210,22 +239,26 @@ of patent rights can be found in the PATENTS file in the same directory.
                                  <span class="title">Add </span> User ({{ network.name }})
 
                              </h4>
+
                          </div>
                             <div class='modal-body'>
-                                <span class="msg exists">
+                                <span class="msg exists text-justify">
                                         <h4>User Exists!</h4>
                                 </span>
                                 <div class='form-group'>
-                                    <div class="form-group row" data-toggle="tooltip" title="Select the user role" required>
+                                    <div class="form-group row" data-toggle="tooltip" title="Select the user role (same on all networks) " required>
                                         <div class="col-sm-12">
                                             <div class="input-group col-sm-8">
                                                 <label for="role" id="role-ariaLable" class="col-6 col-form-label">
                                                     Role
                                                     <span class="aseriskField">*</span>
+
                                                 </label>
+
                                                 <div class="input-group-addon">
                                                     <i class="glyphicon glyphicon-user"></i>
                                                 </div>
+
                                                 <select name="role" id="role" class="form-control" onchange="changeRole(this)" required>
                                                     <option value="">-Select role-</option>
                                                     {% for values in roles %}
@@ -242,6 +275,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                                                 <label for="email" id="ariaLable" class="col-6 col-form-label">
                                                     Email
                                                     <span class="aseriskField">*</span></label>
+
                                                 <div class="input-group-addon">
                                                     <i class="glyphicon glyphicon-envelope"></i>
                                                 </div>
@@ -308,7 +342,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                             </div>
                             <div class='modal-footer'>
                                 <button type='button' class='btn btn-default' onclick="destroyContent()" data-dismiss='modal'>Cancel</button>
-                                <button class='btn btn-primary' type='submit' id='submit'>Add User</button>
+                                <button class='btn btn-primary' type='submit' id='submit'>Add</button>
                                 <div id='messages-container'></div>
                             </div>
 
@@ -322,7 +356,6 @@ of patent rights can be found in the PATENTS file in the same directory.
         </div>
     </div>
 </header>
-
 <div class='modal fade' id='delete-event-modal'>
     <div class='modal-dialog'>
         <div class='modal-content'>
@@ -332,7 +365,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                     <span aria-hidden="true">&times;</span>
                 </button>
                 <h4 class='modal-title'>
-                    Confirmation
+                    <b>Confirmation</b>
                 </h4>
             </div>
             <div class='modal-body'>
@@ -361,12 +394,12 @@ of patent rights can be found in the PATENTS file in the same directory.
                     <span aria-hidden="true">&times;</span>
                 </button>
                 <h4 class='modal-title'>
-                    Confirmation
+                   <b>Confirmation</b>
                 </h4>
             </div>
             <div class='modal-body'>
                 <h4>
-                    Are you sure you want to change Status ?
+                    Are you sure you want to change status ?
                 </h4>
             </div>
             <div class='modal-footer'>
@@ -518,14 +551,22 @@ of patent rights can be found in the PATENTS file in the same directory.
                             $('#valid_email').val(1);
                             $('#email').parent().parent().addClass('has-success');
                             $('#email').addClass('form-control-success');
+                            $('#submit').removeAttr('disabled');
+                            $('#role').removeAttr('disabled');
+                            $('#permissions_left').removeAttr('disabled');
+                            $('#lstview_rightAll').removeAttr('disabled');
                         } else {
                             $('#valid_email').val(2);
+                            $('#submit').attr('disabled','disabled');
+                            $('#role').attr('disabled','disabled');
+                            $('#permissions_left').attr('disabled','disabled');
+                            $('#lstview_rightAll').attr('disabled','disabled');
                             $('#email').parent().parent().addClass('has-warning');
                             $('#email').addClass('form-control-warning');
                             $('.exists').show();
                         }
                     });
-                }, 2000);
+                }, 200);
 
         } else {
             $('.msg').hide();
@@ -572,6 +613,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 var action_url = "/dashboard/user/management/update"
             }
             $.ajax({
+
                 url: action_url,
                 type: 'POST',
                 beforeSend: function(xhr) {
@@ -585,6 +627,8 @@ of patent rights can be found in the PATENTS file in the same directory.
             }).done(function(response) {
                 window.location.href = '/dashboard/user/management';
             });
+            $('#add-user-modal').hide();
+            $("#loading").show();
         }
         return false;
     }
@@ -596,6 +640,10 @@ of patent rights can be found in the PATENTS file in the same directory.
                 $('#role').val(response.user_role);
                 $('#email').attr({'disabled':'disabled'});
                 $('#permissions_left').html('');
+                $('#submit').removeAttr('disabled');
+                $('#role').removeAttr('disabled');
+                $('#permissions_left').removeAttr('disabled');
+                $('#lstview_rightAll').removeAttr('disabled');
                 $.each(response.permissions, function(key, val) {
                     $('#permissions_left').append($('<option>', {
                         value: val[0],

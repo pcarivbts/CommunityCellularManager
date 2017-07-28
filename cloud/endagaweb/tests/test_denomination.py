@@ -69,30 +69,30 @@ class DenominationUITest(TestBase):
 
     def test_add_denominaton(self):
         self.logout()
-        response = self.client.get('/dashboard/network/denominations')
+        response = self.client.get('/dashboard/network/denominations/manage')
         # Anonymous User can not see this page so returning  permission denied.
         self.assertEqual(302, response.status_code)
 
     def test_add_denominaton_auth(self):
         self.login()
-        response = self.client.get('/dashboard/network/denominations')
+        response = self.client.get('/dashboard/network/denominations/manage')
         self.assertEqual(200, response.status_code)
 
     def test_delete_denominaton(self):
         self.logout()
-        response = self.client.delete('/dashboard/network/denominations')
+        response = self.client.delete('/dashboard/network/denominations/manage')
         # Anonymous User can not see this page so returning  permission denied.
         self.assertEqual(302, response.status_code)
 
     def test_delete_denominaton_auth(self):
         self.login()
-        response = self.client.delete('/dashboard/network/denominations')
+        response = self.client.delete('/dashboard/network/denominations/manage')
         self.assertEqual(200, response.status_code)
 
     def test_post_add_denominaton(self):
         self.logout()
         data = {}
-        response = self.client.post('/dashboard/network/denominations', data)
+        response = self.client.post('/dashboard/network/denominations/manage', data)
         # Anonymous User can not see this page so returning  permission denied.
         self.assertEqual(302, response.status_code)
 

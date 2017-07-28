@@ -491,3 +491,25 @@ class SubscriberManagementTable(tables.Table):
 
     def render_imsi(self, record):
         return render_imsi(record)
+
+
+class NotificationTable(tables.Table):
+    """Notification table """
+
+    class Meta:
+        model = models.Notification
+        fields = ('id','type', 'event', 'number', 'message')
+        attrs = {'class': 'table'}
+
+    id = tables.CheckBoxColumn(accessor="pk",
+                attrs={"th__input":{"onclick": "toggle(this)"}})
+    type = tables.Column(verbose_name='Type')
+    event = tables.Column(verbose_name='Event')
+    number = tables.Column(verbose_name='Number')
+    message = tables.Column(verbose_name='Message', orderable=False)
+
+    def render_message(self, record):
+        message = record.message
+        if len(record.message) > 60:
+            message = message[:60]+'...(truncated)'
+        return message
