@@ -749,7 +749,7 @@ class NetworkDenominationEdit(ProtectedView):
 
 class NetworkBalanceLimit(ProtectedView):
     """Edit basic network info (to add credit to Network)."""
-    permission_required = ['edit_network','view_network']
+    permission_required = ['edit_network', 'view_network']
 
     def get(self, request):
         """Handles GET requests."""
@@ -828,7 +828,7 @@ class NetworkBalanceLimit(ProtectedView):
 class NetworkNotifications(ProtectedView):
     """Manage event notifications for network. """
 
-    permission_required = ['view_notification', 'edit_notification']
+    permission_required = 'view_notification'
 
     def get(self, request):
         """Handles GET requests.

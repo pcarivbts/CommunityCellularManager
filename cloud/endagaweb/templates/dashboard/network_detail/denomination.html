@@ -42,8 +42,9 @@ of patent rights can be found in the PATENTS file in the same directory.
 
     <div class='row'>
         {% include "dashboard/network_detail/nav.html" with active_tab='network-denominations' %}
+        {% if 'view_denomination' in user_permission %}
         <div class='content col-xs-12 col-sm-10 col-md-10'>
-            {% if 'view_denomination' in user_permission %}
+
             {% if invalid_ranges and user_profile.user.is_staff %}
             <div class="alert alert-danger alert-dismissable">
                 <a href="#" class="close" data-dismiss="alert" aria-label="close">×</a>
