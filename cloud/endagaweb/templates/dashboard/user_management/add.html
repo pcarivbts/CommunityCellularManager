@@ -242,9 +242,6 @@ of patent rights can be found in the PATENTS file in the same directory.
 
                          </div>
                             <div class='modal-body'>
-                                <span class="msg exists text-justify">
-                                        <h4>User Exists!</h4>
-                                </span>
                                 <div class='form-group'>
                                     <div class="form-group row" data-toggle="tooltip" title="Select the user role (same on all networks) " required>
                                         <div class="col-sm-12">
@@ -286,15 +283,25 @@ of patent rights can be found in the PATENTS file in the same directory.
                                             <div class="input-group col-sm-4" style="float:right; cursor: pointer; cursor: hand;" title="click to edit user">
                                                 <span class="msg exists">
                                                     &nbsp;&nbsp;
-                                                        <span onclick="editUser()" class="glyphicon glyphicon-edit"></span>
+                                                    <i onclick="editUser()" class="fa fa-pencil-square-o" aria-hidden="true">
+                                                        <p>User Exists<br>(click to edit)</p>
+                                                    </i>
+                                                </span>
+                                                <span class="msg success">
+                                                    &nbsp;&nbsp;
+                                                    <i class="fa fa-check" fa fa-pencil-square-o title="Valid Email">
+                                                        <p>Correct</p>
+                                                    </i>
+                                                </span>
+                                                <span class="msg error">
+                                                    &nbsp;&nbsp;
+                                                    <i class="fa fa-times" aria-hidden="true" title="Invalid Email">
+                                                        <p>Incorrect</p>
+                                                    </i>
                                                 </span>
                                             </div>
-                                            <span class="msg success"></span>
                                         </div>
                                     </div><!--Email Ends-->
-                                    <span class="msg error">
-                                        Invalid email address
-                                    </span>
                                     <div>
                                         <label><h4>Permissions</h4></label>
                                         <hr style="height: 10px; margin:0 auto;line-height:2px;">
@@ -529,13 +536,14 @@ of patent rights can be found in the PATENTS file in the same directory.
             $('#email').removeClass('form-control-warning');
             var email = $(this).val();
             var _changeInterval = null;
-            var re = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}/igm;
-            if (re.test(email)) {
+            var validate = /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/;
+            if (validate.test(email)) {
 
                 $('.msg').hide();
                 $('.success').show();
                 $('.exists').hide();
                 $('#email').parent().parent().removeClass('has-success');
+                $('#email').parent().parent().removeClass('has-error');
                 $('#email').parent().parent().removeClass('has-warning');
 
                 // Check if email exists...
@@ -552,26 +560,28 @@ of patent rights can be found in the PATENTS file in the same directory.
                             $('#email').parent().parent().addClass('has-success');
                             $('#email').addClass('form-control-success');
                             $('#submit').removeAttr('disabled');
+                            $('.success').show();
                             $('#role').removeAttr('disabled');
                             $('#permissions_left').removeAttr('disabled');
                             $('#lstview_rightAll').removeAttr('disabled');
                         } else {
-                            $('#valid_email').val(2);
-                            $('#submit').attr('disabled','disabled');
-                            $('#role').attr('disabled','disabled');
-                            $('#permissions_left').attr('disabled','disabled');
-                            $('#lstview_rightAll').attr('disabled','disabled');
                             $('#email').parent().parent().addClass('has-warning');
-                            $('#email').addClass('form-control-warning');
+                            $('#valid_email').val(2);
+                            $('.success').hide();
+                            $('#submit').attr('disabled','disabled');
                             $('.exists').show();
                         }
                     });
                 }, 200);
 
         } else {
+            $('.success').hide();
             $('.msg').hide();
             $('.error').show();
             $('.exists').hide();
+            $('#email').parent().parent().removeClass('has-success');
+            $('#email').parent().parent().removeClass('has-warning');
+            $('#email').parent().parent().addClass('has-error');
         }
 
         });
@@ -658,7 +668,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                         text: val[1]
                     }));
                 });
-                $('.exists').hide(); //email
+                $('.exists').hide();
                 $('#valid_email').val(2);
                 $('#email').val(response.email)
                 $('.title').html('Update');

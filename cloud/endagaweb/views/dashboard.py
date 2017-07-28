@@ -727,7 +727,7 @@ class SubscriberEdit(ProtectedView):
 
 class ActivityView(ProtectedView):
     """View activity on the network."""
-    permission_required = 'view_usage'
+    permission_required = 'view_activity'
     datepicker_time_format = '%Y-%m-%d at %I:%M%p'
 
     def get(self, request, *args, **kwargs):
