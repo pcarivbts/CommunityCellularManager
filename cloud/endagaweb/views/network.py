@@ -543,14 +543,14 @@ class NetworkDenomination(ProtectedView):
         denom_delta = 1000
         for denomination in denom:
             if denomination.start_amount > (max_denominations+denom_delta):
-                start_range = humanize_credits((max_denominations+denom_delta),
-                                               CURRENCIES[currency]).amount
-                end_range = humanize_credits((denomination.start_amount-denom_delta),
-                                             CURRENCIES[currency]).amount
+                start_range = humanize_credits((max_denominations),
+                                               CURRENCIES[currency]).money_str()
+                end_range = humanize_credits((denomination.start_amount),
+                                             CURRENCIES[currency]).money_str()
                 invalid_ranges.append({"start": start_range,
                                        "end": end_range})
             max_denominations = denomination.end_amount
-        next_start_amount = humanize_credits(max_denominations+denom_delta,
+        next_start_amount = humanize_credits(max_denominations,
                                              CURRENCIES[currency]).amount
 
         # Configure the table of denominations. Do not show any pagination
@@ -627,7 +627,7 @@ class NetworkDenominationEdit(ProtectedView):
                     request, message,
                     extra_tags='alert alert-danger')
                 return redirect(urlresolvers.reverse('network-denominations'))
-            elif start_amount <= 0 or end_amount <= 0:
+            elif start_amount < 0 or end_amount <= 0:
                 messages.error(request,
                                'Enter value >0 for start/end amount.',
                                extra_tags='alert alert-danger')
@@ -652,8 +652,8 @@ class NetworkDenominationEdit(ProtectedView):
                         # Check for existing denomination range exist.
                         denom_exists = \
                           models.NetworkDenomination.objects.filter(
-                              end_amount__gte=start_amount,
-                              start_amount__lte=end_amount,
+                              end_amount__gte=start_amount+1,
+                              start_amount__lte=end_amount-1,
                               network=user_profile.network,
                               status__in=['done', 'pending']).exclude(
                                   id=dnm_id).count()
@@ -687,8 +687,8 @@ class NetworkDenominationEdit(ProtectedView):
                 else:
                     # Check for existing denomination range exist.
                     denom_exists = models.NetworkDenomination.objects.filter(
-                        end_amount__gte=start_amount,
-                        start_amount__lte=end_amount,
+                        end_amount__gte=start_amount+1,
+                        start_amount__lte=end_amount-1,
                         network=user_profile.network,
                         status__in=['done', 'pending']).count()
                     if denom_exists:

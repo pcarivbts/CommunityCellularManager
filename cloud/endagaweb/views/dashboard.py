@@ -623,12 +623,12 @@ class SubscriberAdjustCredit(ProtectedView):
                 raise ValueError(error_text)
             try:
                 # Check for existing denomination range exist.
-                denom_exists = NetworkDenomination.objects.get(
+                denom_exists = NetworkDenomination.objects.filter(
                     start_amount__lte=amount,
-                    end_amount__gte=amount,
-                    network=network)
+                    end_amount__gt=amount,
+                    network=network).exists()
                 # Update user validity for recharge denomination amount
-                if denom_exists.validity_days > 0:
+                if denom_exists:
                     try:
                         # Validation suceeded, create a PCU and start the
                         # update credit task.
@@ -642,6 +642,9 @@ class SubscriberAdjustCredit(ProtectedView):
                     except Number.DoesNotExist:
                         error_text = 'Subscriber has no number assigned.'
                         raise ValueError(error_text)
+                else:
+                    error_text = 'Credit value must be in denomination range.'
+                    raise ValueError(error_text)
             except NetworkDenomination.DoesNotExist:
                 error_text = 'Credit value must be in denomination range.'
                 raise ValueError(error_text)

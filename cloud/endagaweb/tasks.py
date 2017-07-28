@@ -219,10 +219,12 @@ def update_credit(self, imsi, update_id):
         if request.status_code >= 200 and request.status_code < 300:
             with transaction.atomic():
                 # Check for existing denomination range exist.
-                denom = NetworkDenomination.objects.get(
+                denom = NetworkDenomination.objects.filter(
                     start_amount__lte=update.amount,
-                    end_amount__gte=update.amount,
-                    network=update.subscriber.network)
+                    end_amount__gt=update.amount,
+                    network=update.subscriber.network).order_by('-end_amount')
+                if len(denom):
+                    denom = denom[0]
                 expiry_date = datetime.datetime.now(pytz.UTC) + \
                               datetime.timedelta(days=denom.validity_days)
                 if update.subscriber.valid_through:
