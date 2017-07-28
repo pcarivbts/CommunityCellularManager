@@ -173,6 +173,7 @@ class SubscriberReportView(BaseReport):
 class HealthReportView(BaseReport):
     """View System health reports."""
 
+
     def __init__(self, **kwargs):
         template = "dashboard/report/health.html"
         url_namespace = "health-report"
@@ -188,7 +189,7 @@ class HealthReportView(BaseReport):
 
 
 class BillingReportView(ProtectedView):
-    permission_required = 'view_graph'
+    permission_required = 'view_report'
 
     def __init__(self, **kwargs):
         super(BillingReportView, self).__init__(**kwargs)
@@ -309,7 +310,7 @@ class BillingReportView(ProtectedView):
 class ReportGraphDownload(ProtectedView):
     """downoad csv on basis of reports"""
 
-    permission_required = ['download_graph', 'view_graph']
+    permission_required = ['downloads_graph']
 
     def get(self, request):
         user_profile = UserProfile.objects.get(user=request.user)
