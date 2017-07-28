@@ -119,31 +119,42 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
       'report-type':this.props.title,
 
     };
-    $.get('/report/downloadcsv', queryParams, function(data,response) {
-
-     var todayTime = new Date(); var month = (todayTime .getMonth() + 1); var day = (todayTime .getDate()); var year = (todayTime .getFullYear());
-     var convertdate =  year+ "-" +  month + "-" +day;
-       this.setState({
-        isLoading: false,
-        data: data,
-        title:this.props.title
-   });
-     var filename = this.state.title
-     var csvData = new Blob([data], {type: 'text/csv;charset=utf-8;'});
-     var csvURL =  null;
-      if (navigator.msSaveBlob) {
-      csvURL = navigator.msSaveBlob(csvData, filename+"-"+convertdate+'.csv');
-      } else {
-      csvURL = window.URL.createObjectURL(csvData);
-     }
-     var tempLink = document.createElement('a');
-     document.body.appendChild(tempLink);
-     tempLink.href = csvURL;
-     tempLink.setAttribute('download', filename+"-"+convertdate+'.csv');
-     tempLink.target="_self"
-     tempLink.click();
-   }.bind(this));
-   },
+    $.ajax({
+        url: '/report/downloadcsv',
+        data: queryParams,
+        success: function(data,response) {
+            var todayTime = new Date(); var month = (todayTime .getMonth() + 1); var day = (todayTime .getDate()); var year = (todayTime .getFullYear());
+            var convertdate =  year+ "-" +  month + "-" +day;
+            this.setState({
+                isLoading: false,
+                data: data,
+                title:this.props.title
+            });
+            var filename = this.state.title
+            var csvData = new Blob([data], {type: 'text/csv;charset=utf-8;'});
+            var csvURL =  null;
+            if (navigator.msSaveBlob) {
+                csvURL = navigator.msSaveBlob(csvData, filename+"-"+convertdate+'.csv');
+            } else {
+                csvURL = window.URL.createObjectURL(csvData);
+            }
+            var tempLink = document.createElement('a');
+            document.body.appendChild(tempLink);
+            tempLink.href = csvURL;
+            tempLink.setAttribute('download', filename+"-"+convertdate+'.csv');
+            tempLink.target="_self"
+            tempLink.click();
+        },
+        error(response){
+            // If no download permission for graph
+            // response.status is 403
+            BootstrapDialog.show({
+            title: '403! Permission Denied',
+            message: 'Permission Denied to download graph. Please, contact your administrator.'
+            });
+        }
+    });
+  },
 
   // Datepicker handlers, one each for changing the start and end times.
   startTimeChange: function(newTime) {
