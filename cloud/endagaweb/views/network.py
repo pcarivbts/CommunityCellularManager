@@ -539,10 +539,9 @@ class NetworkDenomination(ProtectedView):
                                      content_type="application/json")
 
         invalid_ranges = []
-        max_denominations = 0
-        denom_delta = 1000
+        max_denominations = 100000
         for denomination in denom:
-            if denomination.start_amount > (max_denominations+denom_delta):
+            if denomination.start_amount > (max_denominations):
                 start_range = humanize_credits((max_denominations),
                                                CURRENCIES[currency]).money_str()
                 end_range = humanize_credits((denomination.start_amount),
@@ -627,9 +626,9 @@ class NetworkDenominationEdit(ProtectedView):
                     request, message,
                     extra_tags='alert alert-danger')
                 return redirect(urlresolvers.reverse('network-denominations'))
-            elif start_amount < 0 or end_amount <= 0:
+            elif start_amount < 1 or end_amount <= 1:
                 messages.error(request,
-                               'Enter value >0 for start/end amount.',
+                               'Enter value >1 for start/end amount.',
                                extra_tags='alert alert-danger')
                 return redirect(urlresolvers.reverse('network-denominations'))
             elif validity_days <= 0:
@@ -799,7 +798,6 @@ class NetworkBalanceLimit(ProtectedView):
                                                                CURRENCIES[
                                                                    currency]).amount_raw
                             network.max_balance = max_network_amount
-                            print("stored valued ", network.max_balance)
                             success.append(
                                 'Network maximum balance limit updated.')
                         if max_failure_transaction:

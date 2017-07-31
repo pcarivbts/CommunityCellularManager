@@ -93,7 +93,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 <p class="help-block">"Denomination" facilitates admin to create various top-up brackets along with limited validity period
                     which can be achieved using “Add Denomination” Button. "Add denomination" button is used to create various denomination brackets and their validity period for Recharges.
                     For error free creation of denomination brackets, Created denomination bracket must be continuous in terms of Amount.
-                    ( Ex:- Start Amount for 1st denomination is 0.01 & End Amount is 10 , for 2nd Denomination Start Amount must start from 10.01)</p>
+                    ( Ex:- Start Amount for 1st denomination is 1 & End Amount is 10 , for 2nd Denomination Start Amount must start from 11)</p>
             </div>
             </form>
         </div>
@@ -237,7 +237,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             $('.number').keydown(function (e) {
                 // Allow: backspace, delete, tab, escape and enter
                 //if ($.inArray(e.keyCode, [46, 8, 9, 27, 13, 110]) !== -1 ||
-                if ($.inArray(e.keyCode, [46, 8, 9, 27, 13, 110, 127]) !== -1 ||
+                if ($.inArray(e.keyCode, [46, 8, 9, 27, 13]) !== -1 ||
                     // Allow: Ctrl+A, Command+A
                     (e.keyCode === 65 && (e.ctrlKey === true || e.metaKey === true)) ||
                     // Allow: home, end, left, right, down, up
