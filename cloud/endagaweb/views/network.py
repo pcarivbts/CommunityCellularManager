@@ -628,7 +628,7 @@ class NetworkDenominationEdit(ProtectedView):
                 return redirect(urlresolvers.reverse('network-denominations'))
             elif start_amount < 1 or end_amount <= 1:
                 messages.error(request,
-                               'Enter value >1 for start/end amount.',
+                               'Enter value >= 1 for start amount.',
                                extra_tags='alert alert-danger')
                 return redirect(urlresolvers.reverse('network-denominations'))
             elif validity_days <= 0:
