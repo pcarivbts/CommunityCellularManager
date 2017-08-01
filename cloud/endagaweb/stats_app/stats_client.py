@@ -184,9 +184,10 @@ class StatsClientBase(object):
             elif param == 'add_money':
                 adjust = 0.00001
             else:
-                adjust = -0.00001
+                adjust = 1
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=(aggregates.Sum('change') * adjust))
+
             if report_view =='table_view':
                 for qs in queryset_stats.qs.filter(
                     date__range=(str(start), str(end))):

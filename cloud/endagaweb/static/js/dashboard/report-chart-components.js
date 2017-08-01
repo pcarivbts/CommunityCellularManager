@@ -221,7 +221,10 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
                 title: "Count"
             }]
 
-        } else {
+        } else if (this.props.chartID == 'load-transfer-chart') {
+            newYAxisFormatter = '.2f';
+        }
+        else {
             tablesColumnValueName = [{
                 title: "Type"
             }, {
