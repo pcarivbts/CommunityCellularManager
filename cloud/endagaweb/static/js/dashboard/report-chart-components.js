@@ -191,7 +191,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
         } else {
             newYAxisFormatter = '';
         }
-        console.log("ggggg",this.props.chartID)
         if (this.props.chartID == 'data-chart') {
             newYAxisFormatter = '.2f';
             tablesColumnValueName = [{
@@ -201,7 +200,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
             }]
 
         } else if (this.props.chartID == 'call-chart' | this.props.chartID == 'sms-chart') {
-           console.log("iiiiiiiiiiiiiiiiiii")
             tablesColumnValueName = [{
                 title: "Type"
             }, {
@@ -520,7 +518,12 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                     return d[0]
                 })
                 .y(function(d) {
-                    return d[1]
+                if (d[1] > 0){
+                    return 1
+                } else {
+                    return 0
+                }
+
                 })
                 .color(d3.scale.category10().range())
                 .interpolate('monotone')
@@ -531,23 +534,41 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                 });
             // Fixes x-axis time alignment.
             chart.xScale(d3.time.scale.utc());
-            chart.yAxis
+            // For Health Graph
+            if(domTarget == '#call-chart') {
+                chart.yAxis
+                .axisLabel(yAxisLabel)
+                .axisLabelDistance(25)
+//                .tickFormat(d3.format(yAxisFormatter));
+                 .tickFormat(function(d) {
+                    if (d == 1){
+                        return "UP";
+                    } else if (d > 0) {
+                        return ;
+                    } else {
+                        return "DOWN";
+                        }
+                    });
+            } else {
+                chart.yAxis
                 .axisLabel(yAxisLabel)
                 .axisLabelDistance(25)
                 .tickFormat(d3.format(yAxisFormatter));
+            }
+
             // Fixes the axis-labels being rendered out of the SVG element.
             chart.margin({
                 right: 80
             });
             chart.tooltipContent(function(key, x, y) {
                 if (key == 'bts_health_status') {
-                    var bts_status;
+                    var status;
                     if (y == 1) {
-                        bts_status = "BTS_UP"
+                        status = "UP"
                     } else {
-                        bts_status = "BTS_DOWN"
+                        status = "DOWN"
                     }
-                    return '<p>' + frontTooltip + bts_status + tooltipUnits + ' ' + '</p>' + '<p>' + x + '</p>';
+                    return '<p>' + frontTooltip + status + tooltipUnits + ' ' + '</p>' + '<p>' + x + '</p>';
                 }
                 return '<p>' + frontTooltip + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
             });

@@ -30,11 +30,12 @@ SMS_KINDS = [
 SUBSCRIBER_KINDS = ['Provisioned', 'deactivate_number']
 ZERO_BALANCE_SUBSCRIBER = ['zero_balance_subscriber']
 INACTIVE_SUBSCRIBER = ['expired', 'first_expired', 'blocked']
-HEALTH_STATUS = ['bts_health_status']
+BTS_STATUS = ['bts_health_status']
 TRANSFER_KINDS = ['transfer', 'add_money']
 WATERFALL_KINDS = ['loader', 'reload_rate', 'reload_amount',
                    'reload_transaction', 'average_load', 'average_frequency']
 DENOMINATION_KINDS = ['start_amount', 'end_amount']
+BTS_KINDS = ['bts up', 'bts down']
 USAGE_EVENT_KINDS = CALL_KINDS + SMS_KINDS + ['gprs'] + SUBSCRIBER_KINDS + \
                     TRANSFER_KINDS + WATERFALL_KINDS
 TIMESERIES_STAT_KEYS = [
@@ -102,7 +103,7 @@ class StatsClientBase(object):
         interval = kwargs.pop('interval', 'months')
         aggregation = kwargs.pop('aggregation', 'count')
         report_view = kwargs.pop('report_view', 'list')
-        imsi_dic = {}
+        imsi_dict = {}
         imsi_list = []
         # Turn the start and end epoch timestamps into datetimes.
         start = datetime.fromtimestamp(start_time_epoch, pytz.utc)
@@ -112,7 +113,6 @@ class StatsClientBase(object):
             end = datetime.fromtimestamp(time.time(), pytz.utc)
         # Build the queryset -- first determine if we're dealing with
         # UsageEvents or TimeseriesStats.
-        filters = None
         if param in USAGE_EVENT_KINDS:
             objects = models.UsageEvent.objects
             filters = Q(kind=param)
@@ -126,7 +126,7 @@ class StatsClientBase(object):
         elif param in TIMESERIES_STAT_KEYS:
             objects = models.TimeseriesStat.objects
             filters = Q(key=param)
-        elif param.startswith("bts"):
+        elif param in BTS_KINDS:
             objects = models.SystemEvent.objects
             filters = Q(type=param)
         else:
@@ -136,25 +136,19 @@ class StatsClientBase(object):
         # Filter by infrastructure level.
         if self.level == 'tower':
             filters = filters & Q(bts__id=self.level_id)
-        elif self.level == 'network' and param not in HEALTH_STATUS:
+        elif self.level == 'network' and param not in BTS_KINDS:
             filters = filters & Q(network__id=self.level_id)
         elif self.level == 'global':
             pass
         if kwargs.has_key('query'):
             filters = filters & kwargs.pop('query')
-            #print("ggggg",filters)
         if report_view == 'value':
             filters = filters & Q(date__lte=end) & Q(date__gte=start)
             result = models.UsageEvent.objects.filter(filters).values_list(
                 'subscriber_id', flat=True).distinct()
             return list(result)
-        # Create the queryset itself.
-        # if param in HEALTH_STATUS:
-        #     queryset = objects
-        # else:
-        #     queryset = objects.filter(filters)
         queryset = objects.filter(filters)
-        #print('iiiiiiiiiiiiiiiiiii',queryset)
+
         # Use qsstats to aggregate the queryset data on an interval.
         if aggregation in ['duration', 'duration_minute']:
             queryset_stats = qsstats.QuerySetStats(
@@ -187,15 +181,15 @@ class StatsClientBase(object):
                 adjust = -0.00001
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=(aggregates.Sum('change') * adjust))
-            if report_view =='table_view':
+            if report_view == 'table_view':
                 for qs in queryset_stats.qs.filter(
-                    date__range=(str(start), str(end))):
+                        date__range=(str(start), str(end))):
                     imsi_list.append(qs.subscriber.imsi)
-                my_dict = {i: imsi_list.count(i) for i in imsi_list}
-                imsi_dic['imsi'] = my_dict.keys()
-                imsi_dic['count'] = my_dict.values()
+                uniq_imsi = {i: imsi_list.count(i) for i in imsi_list}
+                imsi_dict['imsi'] = uniq_imsi.keys()
+                imsi_dict['count'] = uniq_imsi.values()
+                return uniq_imsi
 
-                return my_dict
             # if percentage is set for top top-up
             percentage = kwargs['topup_percent']
             top_numbers = 1
@@ -205,7 +199,6 @@ class StatsClientBase(object):
                 # Create subscribers dict
                 for query in queryset:
                     numbers[query.to_number] = 0
-                    #print("yyyyyyyyyyyyyyyyyyya ",query.change )
                 for query in queryset_stats.qs:
                     numbers[query.to_number] += (query.change * -1)
                     top_numbers = int(len(numbers) * percentage)
@@ -230,19 +223,16 @@ class StatsClientBase(object):
                 queryset, 'date', aggregate=aggregates.Count('subscriber_id'))
         else:
             queryset_stats = qsstats.QuerySetStats(queryset, 'date')
-
-        if param =='bts down'or param=='bts up':
-            timeseries = queryset_stats.time_series(start, end, interval='minutes')
-        else:
-
-           timeseries = queryset_stats.time_series(start, end,
-                                                    interval=interval)
-
+        timeseries = queryset_stats.time_series(start, end,
+                                                interval=interval)
+        if param in BTS_KINDS:
+            timeseries = queryset_stats.time_series(start, end,
+                                                    interval='minutes')
         # The timeseries results is a list of (datetime, value) pairs. We need
         # to convert the datetimes to timestamps with millisecond precision and
         # then zip the pairs back together.
-
         datetimes, values = zip(*timeseries)
+
         if report_view == 'summary':
             # Return sum count for pie-chart and table view
             if aggregation == 'transaction_sum':
@@ -259,25 +249,22 @@ class StatsClientBase(object):
         ]
         # Round the stats values when necessary.
         rounded_values = []
-        for value in values:
-            if param=='bts down':
-                if value==1:
-                    rounded_values.append(-1)
+        if param in BTS_KINDS:
+            for value in values:
+                if param == 'bts down':
+                    val = -1 if value == 1 else 0
+                elif param == 'bts up':
+                    val = 1 if value == 1 else 0
+                rounded_values.append(val)
+        else:
+            for value in values:
+                if value <= 0:
+                    rounded_values.append(value * -0.00001)
+                elif round(value) != round(value, 2):
+                    rounded_values.append(round(value, 2))
                 else:
-                    rounded_values.append(0)
-            elif param == 'bts up':
-                if value ==1:
-                    rounded_values.append(1)
-                if value==0:
-                    rounded_values.append(0)
-            elif value <=0:
-                rounded_values.append(value * -0.00001)
-            elif round(value) != round(value, 2):
-                rounded_values.append(round(value, 2))
-            else:
-                rounded_values.append(value)
+                    rounded_values.append(value)
         return zip(timestamps, rounded_values)
-
 
     def __init__(self, level, level_id=None):
         """A generic stats client.
@@ -540,10 +527,8 @@ class TopUpStatsClient(StatsClientBase):
         try:
             raw_amount = [(float(denom) * -1) for denom in
                           kwargs['extras'].split('-')]
-            #print("iiiiiiiiiiiiiiiaaaaaaaaaaaaaaaaaa ",raw_amount)
             kwargs['query'] = Q(change__gte=raw_amount[1]) & Q(
                 change__lte=raw_amount[0]) & Q(subscriber__role='retailer')
-            #print("ooooooooooooooooooooooooooooo ",kwargs['query']  )
             return self.aggregate_timeseries(kind, **kwargs)
         except ValueError:
             # If no denominations available in this network
@@ -557,46 +542,23 @@ class BTSStatsClient(StatsClientBase):
         super(BTSStatsClient, self).__init__(*args, **kwargs)
 
     def timeseries(self, kind=None, **kwargs):
-        results = []
-        if kind == None or kind == 'bts_health_status':
-            # Make calls to aggregate_timeseries and aggregate the results.
-            all_call_kinds = ['bts down', 'bts up']
-            for call_kind in all_call_kinds:
-                usage = self.aggregate_timeseries(call_kind, **kwargs)
-                values = [u[1] for u in usage]
-                #print("values:",values)
-                results.append(values)
-            # The dates are all the same in each of the loops above, so we'll
-            # just grab the last one.
-            dates = [u[0] for u in usage]
-            # The results var is now a list of lists where each sub-list is a
-            # category of call and each element is the number of calls sent for
-            # each date mat So we want to sum each
-            # 'column' into one valueching that category. .
-
-            totals = [sum(v) for v in zip(*results)]
-            #print("totals",totals)
-            last_val = None
-            health_value=[]
-            timeseries_values = []
-            #print("last_val init ====== ", last_val)
-            for value in totals:
-                if last_val is None:
-                    last_val = value
-                if value == 0:
-                    value = last_val
-                elif value > 0:
-                    last_val = 1
-                    value = 1
-                elif value < 0:
-                    last_val = 0
-                    value = last_val
-                #print("value",value)
-                #print ("last_val",last_val)
-                timeseries_values.append(last_val)
-            return zip(dates, timeseries_values) #totals
-        else:
-            return self.aggregate_timeseries(kind, **kwargs)
+        results, usage, bts_values = ([] for i in range(3))
+        for call_kind in BTS_KINDS:
+            usage = self.aggregate_timeseries(call_kind, **kwargs)
+            values = [u[1] for u in usage]
+            results.append(values)
+        dates = [u[0] for u in usage]
+        bts_status = [sum(v) for v in zip(*results)]
+        last_val = None
+        for value in bts_status:
+            if last_val is None:
+                last_val = value
+            if value > 0:
+                last_val = 1
+            elif value < 0:
+                last_val = 0
+            bts_values.append(last_val)
+        return zip(dates, bts_values)
 
 
 class WaterfallStatsClient(StatsClientBase):
