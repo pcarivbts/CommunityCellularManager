@@ -353,8 +353,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
     // d3's conversion into the user's computer's timezone.  Note that for my laptop
     // in PST, the locale offset is positive (7hrs) while the UserProfile offset
     // is negative (-7hrs).
-
-    var localeOffset = new Date().getTimezoneOffset() * 60 * 1000;
+    var localeOffset = 60 * (new Date()).getTimezoneOffset();
     var shiftedData = [];
     var changeAmount = [];
     var tableData = [];
@@ -372,9 +371,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                 var newValue = [
                     // Shift out of the locale offset to 'convert' to UTC and then shift
                     // back into the operator's tz by adding the tz offset from the server.
-
-                     moment(data[index]['values'][series_index][0]).format("M/D/YYYY H:mm"),
-
+                    moment(data[index]['values'][series_index][0] ) + 1e3 * localeOffset + 1e3 * timezoneOffset,
                     data[index]['values'][series_index][1]
                 ];
                 newValues.push(newValue);
