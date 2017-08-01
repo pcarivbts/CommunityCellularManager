@@ -820,49 +820,10 @@ var DownloadButton = React.createClass({
     componentDidMount: function() {
         var domTargetId = this.props.chartID;
         var btn = document.getElementById(this.id);
-        var svg = document.getElementById(domTargetId);
-        var canvas = document.querySelector('canvas');
+        var filename = this.props.reporttype+".png";
 
         btn.addEventListener('click', function () {
-            var width = $("#"+domTargetId).width();
-            var height = $("#"+domTargetId).height();
-            var canvas = document.getElementById('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            var ctx = canvas.getContext('2d');
-
-            ctx.fillStyle = "#FFF";
-            ctx.fillRect(0, 0, width, height);
-
-            var data = (new XMLSerializer()).serializeToString(svg);
-            var DOMURL = window.URL || window.webkitURL;
-
-            var img = new Image();
-            var svgBlob = new Blob([data], {type: 'image/svg+xml;charset=utf-8'});
-            var url = DOMURL.createObjectURL(svgBlob);
-
-            img.onload = function() {
-                ctx.drawImage(img, 0, 0);
-                DOMURL.revokeObjectURL(url);
-
-                var imgURI = canvas
-                    .toDataURL('image/png')
-                    .replace('image/png', 'image/octet-stream');
-
-                var evt = new MouseEvent('click', {
-                    view: window,
-                    bubbles: false,
-                    cancelable: true
-                });
-
-                var a = document.createElement('a');
-                a.setAttribute('download', 'report.png');
-                a.setAttribute('href', imgURI);
-                a.setAttribute('target', '_blank');
-                a.dispatchEvent(evt);
-            };
-            img.src = url;
-            //img.setAttribute("src", "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(data))) );
+            saveSvgAsPng(document.getElementById(domTargetId), filename, {backgroundColor:"#FFF"});
         });
     },
     render: function() {
