@@ -191,7 +191,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
         } else {
             newYAxisFormatter = '';
         }
-        console.log("ggggg",this.props.chartID)
         if (this.props.chartID == 'data-chart') {
             newYAxisFormatter = '.2f';
             tablesColumnValueName = [{
@@ -201,7 +200,6 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
             }]
 
         } else if (this.props.chartID == 'call-chart' | this.props.chartID == 'sms-chart') {
-           console.log("iiiiiiiiiiiiiiiiiii")
             tablesColumnValueName = [{
                 title: "Type"
             }, {
@@ -352,10 +350,12 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
     // d3's conversion into the user's computer's timezone.  Note that for my laptop
     // in PST, the locale offset is positive (7hrs) while the UserProfile offset
     // is negative (-7hrs).
-    var localeOffset = 60 * (new Date()).getTimezoneOffset();
+
+    var localeOffset = new Date().getTimezoneOffset() * 60 * 1000;
     var shiftedData = [];
     var changeAmount = [];
     var tableData = [];
+
 
     for (var index in data) {
         var newSeries = {
@@ -364,13 +364,14 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
         var retailer = data[index]['retailer_table_data']
 
         var newValues = [];
-
         if (typeof(data[index]['values']) === 'object') {
             for (var series_index in data[index]['values']) {
                 var newValue = [
                     // Shift out of the locale offset to 'convert' to UTC and then shift
                     // back into the operator's tz by adding the tz offset from the server.
-                    data[index]['values'][series_index][0] + 1e3 * localeOffset + 1e3 * timezoneOffset,
+
+                     moment(data[index]['values'][series_index][0]).format("M/D/YYYY H:mm"),
+
                     data[index]['values'][series_index][1]
                 ];
                 newValues.push(newValue);

@@ -20,7 +20,7 @@ from django.db.models import Q
 from django.db.models import aggregates
 from endagaweb import models
 from decimal import *
-
+from pytz import timezone
 CALL_KINDS = [
     'local_call', 'local_recv_call', 'outside_call', 'incoming_call',
     'free_call', 'error_call']
@@ -105,7 +105,7 @@ class StatsClientBase(object):
         imsi_dic = {}
         imsi_list = []
         # Turn the start and end epoch timestamps into datetimes.
-        start = datetime.fromtimestamp(start_time_epoch, pytz.utc)
+        start = datetime.fromtimestamp(start_time_epoch , pytz.utc)
         if end_time_epoch != -1:
             end = datetime.fromtimestamp(end_time_epoch, pytz.utc)
         else:
@@ -234,7 +234,6 @@ class StatsClientBase(object):
         if param =='bts down'or param=='bts up':
             timeseries = queryset_stats.time_series(start, end, interval='minutes')
         else:
-
            timeseries = queryset_stats.time_series(start, end,
                                                     interval=interval)
 
