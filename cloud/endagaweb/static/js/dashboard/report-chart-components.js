@@ -552,6 +552,11 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                 }
                 return '<p>' + frontTooltip + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
             });
+
+            d3.selectAll(".nv-axis path").style({ 'fill':'none', 'stroke': '#000' });
+            d3.selectAll(".nv-chart path").style({ 'fill':'none'});
+            d3.selectAll(".nv-line").style({ 'fill':'none'});
+
             d3.select(domTarget)
                 .datum(shiftedData)
                 .transition().duration(350)
