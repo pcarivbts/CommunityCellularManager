@@ -20,7 +20,7 @@ from django.db.models import Q
 from django.db.models import aggregates
 from endagaweb import models
 from decimal import *
-
+from pytz import timezone
 CALL_KINDS = [
     'local_call', 'local_recv_call', 'outside_call', 'incoming_call',
     'free_call', 'error_call']
@@ -106,7 +106,7 @@ class StatsClientBase(object):
         imsi_dict = {}
         imsi_list = []
         # Turn the start and end epoch timestamps into datetimes.
-        start = datetime.fromtimestamp(start_time_epoch, pytz.utc)
+        start = datetime.fromtimestamp(start_time_epoch , pytz.utc)
         if end_time_epoch != -1:
             end = datetime.fromtimestamp(end_time_epoch, pytz.utc)
         else:
@@ -178,7 +178,7 @@ class StatsClientBase(object):
             elif param == 'add_money':
                 adjust = 0.00001
             else:
-                adjust = -0.00001
+                adjust = 1
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=(aggregates.Sum('change') * adjust))
             if report_view == 'table_view':
@@ -225,9 +225,12 @@ class StatsClientBase(object):
             queryset_stats = qsstats.QuerySetStats(queryset, 'date')
         timeseries = queryset_stats.time_series(start, end,
                                                 interval=interval)
-        if param in BTS_KINDS:
-            timeseries = queryset_stats.time_series(start, end,
-                                                    interval='minutes')
+        if param =='bts down'or param=='bts up':
+            timeseries = queryset_stats.time_series(start, end, interval='minutes')
+        else:
+           timeseries = queryset_stats.time_series(start, end,
+                                                    interval=interval)
+
         # The timeseries results is a list of (datetime, value) pairs. We need
         # to convert the datetimes to timestamps with millisecond precision and
         # then zip the pairs back together.

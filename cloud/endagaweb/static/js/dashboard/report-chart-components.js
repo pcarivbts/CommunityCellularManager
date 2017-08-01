@@ -221,7 +221,10 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
                 title: "Count"
             }]
 
-        } else {
+        } else if (this.props.chartID == 'load-transfer-chart') {
+            newYAxisFormatter = '.2f';
+        }
+        else {
             tablesColumnValueName = [{
                 title: "Type"
             }, {
@@ -355,6 +358,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
     var changeAmount = [];
     var tableData = [];
 
+
     for (var index in data) {
         var newSeries = {
             'key': data[index]['key']
@@ -362,13 +366,12 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
         var retailer = data[index]['retailer_table_data']
 
         var newValues = [];
-
         if (typeof(data[index]['values']) === 'object') {
             for (var series_index in data[index]['values']) {
                 var newValue = [
                     // Shift out of the locale offset to 'convert' to UTC and then shift
                     // back into the operator's tz by adding the tz offset from the server.
-                    data[index]['values'][series_index][0] + 1e3 * localeOffset + 1e3 * timezoneOffset,
+                    moment(data[index]['values'][series_index][0] ) + 1e3 * localeOffset + 1e3 * timezoneOffset,
                     data[index]['values'][series_index][1]
                 ];
                 newValues.push(newValue);
@@ -572,6 +575,11 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                 }
                 return '<p>' + frontTooltip + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
             });
+
+            d3.selectAll(".nv-axis path").style({ 'fill':'none', 'stroke': '#000' });
+            d3.selectAll(".nv-chart path").style({ 'fill':'none'});
+            d3.selectAll(".nv-line").style({ 'fill':'none'});
+
             d3.select(domTarget)
                 .datum(shiftedData)
                 .transition().duration(350)
@@ -840,49 +848,10 @@ var DownloadButton = React.createClass({
     componentDidMount: function() {
         var domTargetId = this.props.chartID;
         var btn = document.getElementById(this.id);
-        var svg = document.getElementById(domTargetId);
-        var canvas = document.querySelector('canvas');
+        var filename = this.props.reporttype+".png";
 
         btn.addEventListener('click', function () {
-            var width = $("#"+domTargetId).width();
-            var height = $("#"+domTargetId).height();
-            var canvas = document.getElementById('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            var ctx = canvas.getContext('2d');
-
-            ctx.fillStyle = "#FFF";
-            ctx.fillRect(0, 0, width, height);
-
-            var data = (new XMLSerializer()).serializeToString(svg);
-            var DOMURL = window.URL || window.webkitURL;
-
-            var img = new Image();
-            var svgBlob = new Blob([data], {type: 'image/svg+xml;charset=utf-8'});
-            var url = DOMURL.createObjectURL(svgBlob);
-
-            img.onload = function() {
-                ctx.drawImage(img, 0, 0);
-                DOMURL.revokeObjectURL(url);
-
-                var imgURI = canvas
-                    .toDataURL('image/png')
-                    .replace('image/png', 'image/octet-stream');
-
-                var evt = new MouseEvent('click', {
-                    view: window,
-                    bubbles: false,
-                    cancelable: true
-                });
-
-                var a = document.createElement('a');
-                a.setAttribute('download', 'report.png');
-                a.setAttribute('href', imgURI);
-                a.setAttribute('target', '_blank');
-                a.dispatchEvent(evt);
-            };
-            img.src = url;
-            //img.setAttribute("src", "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(data))) );
+            saveSvgAsPng(document.getElementById(domTargetId), filename, {backgroundColor:"#FFF"});
         });
     },
     render: function() {
