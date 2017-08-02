@@ -106,7 +106,6 @@ of patent rights can be found in the PATENTS file in the same directory.
                                     SIM</b></label>
                             </tr>
                         </table>
-
                     </div>
                     <div class='modal-footer'>
                         <button type='button' class='btn btn-default' data-dismiss='modal'>Cancel</button>
@@ -116,35 +115,43 @@ of patent rights can be found in the PATENTS file in the same directory.
                 </div>
             </div>
         </div>
+        {% if 'edit_subscriber' in user_permission %}
         <div class="dropdown actions">
-            <button id ="actions" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" > Action(s)
-                <span class="caret"></span></button>
-                <ul class="dropdown-menu">
-                    <li><a data-toggle='modal' data-target='#deactivate-subscriber-modal' href='#'><i class="fa fa-ban" aria-hidden="true"></i> Deactivate Subscriber</a></li>
-                    <li><a data-toggle='modal' data-target='#update-subscriber-modal' href='#'><i class="fa fa-pencil-square-o" aria-hidden="true"></i> Change Subscriber Role</a></li>
-                </ul>
-              </div>
-            </div>
-        {% elif total_number_of_subscribers > 0 %}
-        <h4>No subscribers matched your search.</h4>
-
-        {% else %}
-        <p>
-            There are currently no subscribers registered on this network.
-            Go find some users!
-        </p>
-
+            <button id ="actions" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" > Action(s)<span class="caret"></span></button>
+            <ul class="dropdown-menu">
+                <li><a data-toggle='modal' data-target='#deactivate-subscriber-modal' href='#'><i class="fa fa-ban" aria-hidden="true"></i> Deactivate Subscriber</a></li>
+                <li><a data-toggle='modal' data-target='#update-subscriber-modal' href='#'><i class="fa fa-pencil-square-o" aria-hidden="true"></i> Change Subscriber Role</a></li>
+            </ul>
+        </div>
         {% endif %}
     </div>
-    {% else %}
-    {% include 'dashboard/permission_denied.html' %}
-    {% endif %}
+    {% elif total_number_of_subscribers > 0 %}
+    <h4>No subscribers matched your search.</h4>
 
+    {% else %}
+    <p>
+        There are currently no subscribers registered on this network.
+        Go find some users!
+    </p>
+
+    {% endif %}
 </div>
-</div> <!-- /.row (subscribers) -->
+{% else %}
+    {% include 'dashboard/permission_denied.html' %}
+{% endif %}
 
 {% endblock %}
+
 {% block js %}
+{% get_obj_perms request.user for network as 'user_permission' %}
+{% if not "edit_subscriber" in user_permission %}
+<script>
+    $('.table').find("th").eq(0).hide();
+    $('table tbody tr').each(function() {
+        $(this).find("td").eq(0).hide();
+    });
+</script>
+{% endif %}
 <script>
         var messageClearTimeout;
                 $('.update-subscriber-link').click(function(event) {
@@ -173,12 +180,10 @@ of patent rights can be found in the PATENTS file in the same directory.
     function imsiSelected(check){
 
         var imsi = $('.imsi_id:checked').length;
-        var updateDiv = document.getElementById('actions');
         if(imsi){
-            updateDiv.style.display = "block";
-        }
-        else{
-            updateDiv.style.display = "none";
+            $('#actions').show();
+        } else{
+            $('#actions').hide();
         }
         var i=0;
         var imsi_val=[];

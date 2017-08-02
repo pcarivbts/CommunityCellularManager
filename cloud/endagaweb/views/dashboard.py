@@ -699,8 +699,7 @@ class SubscriberEdit(ProtectedView):
             'subscriber_info_form': dform.SubscriberInfoForm(
                 initial=initial_form_data),
             'network_version': (
-                subscriber.network.get_lowest_tower_version()),
-            'network': network
+                subscriber.network.get_lowest_tower_version())
         }
         # Render template.
         template = get_template(
