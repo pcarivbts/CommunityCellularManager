@@ -22,8 +22,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     {% include "dashboard/report/header.html" with header='Health' %}
 
 <div class='row'>
-  {% include "dashboard/report/nav.html" with active_tab='health_reports' %}
-  <div class='content col-xs-12 col-sm-10 col-md-10'>
+  <!--{% include "dashboard/report/nav.html" with active_tab='health_reports' %}-->
+  <div class='content col-xs-12'>
     {% include "dashboard/report/health-filter-action.html" with action_url='/dashboard/reports/health' %}
     {% if network_has_activity %}
     <div class="row">
@@ -55,6 +55,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
 <script src="/static/js/dashboard/saveSvgAsPng.js"></script>
 <script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
+
 <script type="text/jsx">
   var currentTimeEpoch = {{ current_time_epoch }};
   var timezoneOffset = {{ timezone_offset }};
@@ -62,11 +63,13 @@ of patent rights can be found in the PATENTS file in the same directory.
     <TimeseriesChartWithButtonsAndDatePickers
       title='BTS Status'
       chartID='call-chart'
-      statTypes='bts_health_status'
+      statTypes='health_state'
       level='tower'
       levelID='{{ level_id }}'
+      defaultButtonText='day'
       aggregation='bts_status'
-      yAxisLabel='numbers'
+      buttons={['day','week']}
+      yAxisLabel='STATE'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       tooltipUnits=''
