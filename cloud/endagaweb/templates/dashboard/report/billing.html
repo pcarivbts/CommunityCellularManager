@@ -52,7 +52,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             {% if 'Loader' in reports %}
             <div class="row">
               <div id="loader">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Loader" id="waterfall_loader" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Loader" info="This report shows count of subscribers who did  top-up in assessing month. So, total count of such subscribers will get updated against their provisioned month." id="waterfall_loader" %}
               </div>
             </div>
             {% endif %}
@@ -60,7 +60,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="reload_rate">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Rate" id="waterfall_reload_rate" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Rate" info='This report shows average number of time top-up done by all the subscribers  in assessing month against the number of subscriber provisioned in that particular month' id="waterfall_reload_rate" %}
               </div>
             </div>
             {% endif %}
@@ -68,7 +68,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="reload_amount">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Amount" id="waterfall_reload_amount" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Amount" info="This report shows total top-up done by all the subscribers through retailer in assessing month. so, sum of top-up amount done by all the subscriber will get updated against their provisioned month" id="waterfall_reload_amount" %}
               </div>
             </div>
             {% endif %}
@@ -76,7 +76,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="reload_transaction">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Transaction" id="waterfall_reload_transaction" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Transaction" info="This report shows number of transaction done by all the subscribers in assessing month. So, number of transaction done by all the subscribers will get updated against their provisioned month" id="waterfall_reload_transaction"  %}
               </div>
             </div>
             {% endif %}
@@ -84,7 +84,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="average_load">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Average Load" id="waterfall_average_load" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Average Load" info="This report shows average top-up done by each subscriber in assessing month. So, average amount per subscriber will get updated against their provisioned month" id="waterfall_average_load" %}
               </div>
             </div>
             {% endif %}
@@ -92,7 +92,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="row">&nbsp;</div>
             <div class="row">
               <div id="average_frequency">
-                {% include "dashboard/report/waterfall.html" with title="Waterfall - Average Frequency" id="waterfall_average_frequency" %}
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Average Frequency" info="This report shows average number of time top-up done by each subscriber in assessing month. So, average frequency per subscriber will get updated against their provisioned month" id="waterfall_average_frequency" %}
               </div>
             </div>
             {% endif %}
@@ -146,8 +146,11 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
 <script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.7.0/moment.min.js" type="text/javascript"></script>
+<script src="/static/js/dashboard/saveSvgAsPng.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jqgrid/4.6.0/js/jquery.jqGrid.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jqgrid/4.6.0/js/i18n/grid.locale-en.js"></script>
+
 <script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
 <script type="text/jsx">
   var currentTimeEpoch = {{ current_time_epoch }};
@@ -156,7 +159,7 @@ of patent rights can be found in the PATENTS file in the same directory.
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Call Billing Report'
-      chartID='call-chart'
+      chartID='call-billing-chart'
       statTypes='local_call,outside_call'
       level='{{ level }}'
       levelID='{{ level_id }}'
@@ -168,6 +171,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       tooltipUnits='s of'
       reportView='summary'
       frontTooltip='{{ value_type }}'
+      info='This report shows total billing amount  charged to all the subscribers for all kind of outbound Calls ( Local & Outside).'
     />,
     document.getElementById('call-usage-chart')
   );
@@ -176,7 +180,7 @@ of patent rights can be found in the PATENTS file in the same directory.
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='SMS Billing Report'
-      chartID='sms-chart'
+      chartID='sms-billing-chart'
       statTypes='local_sms,outside_sms'
       level='{{ level }}'
       levelID='{{ level_id }}'
@@ -188,6 +192,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       tooltipUnits='s of'
       reportView='summary'
       frontTooltip='{{ value_type }}'
+      info='This report shows total billing amount  charged to all the subscribers for all types of outbound ( Local & Outside) SMS’s.'
     />,
     document.getElementById('sms-usage-chart')
   );
@@ -196,7 +201,7 @@ of patent rights can be found in the PATENTS file in the same directory.
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Call and SMS Billing Report'
-      chartID='call-sms-chart'
+      chartID='call-sms-billing-chart'
       statTypes='local_call,outside_call,local_sms,outside_sms'
       level='{{ level }}'
       levelID='{{ level_id }}'
@@ -208,6 +213,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       tooltipUnits='s of'
       reportView='summary'
       frontTooltip='{{ value_type }}'
+      info='This report shows total billing amount  charged to all the subscribers for all kind of outbound Calls & SMS’s ( Local & Outside).'
     />,
     document.getElementById('call-sms-usage-chart')
   );
@@ -227,6 +233,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       chartType='bar-chart'
       tooltipUnits=' of '
       frontTooltip='{{ value_type }}'
+      info='This report shows total top-up done by all the retailers to the subscribers  in a given time window.'
     />,
     document.getElementById('load-transfer-usage-chart')
   );
@@ -246,6 +253,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       chartType='bar-chart'
       tooltipUnits=' added'
       frontTooltip=' {{ value_type }} '
+      info='This report shows total amount transferred to retailers by business analyst using add credit function in endagaweb for selected time window.'
     />,
     document.getElementById('add-money-usage-chart')
   );
@@ -264,6 +272,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       timezoneOffset={timezoneOffset}
       tooltipUnits=' subscriber'
       chartType='line-chart'
+      info='This report shows the count of provisioned subscribers for selected time window.'
     />,
     document.getElementById('billing-waterfall-summary-chart')
   );
@@ -279,7 +288,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     levelID='{{ level_id }}'
     aggregation='transcation_count'
     yAxisLabel='Count'
-    buttons={['month','year']}
+    buttons={['day','week','month','year']}
     defaultButtonText='month'
     currentTimeEpoch={currentTimeEpoch}
     timezoneOffset={timezoneOffset}
@@ -289,6 +298,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     topupPercent='{{ topup_percent }}'
     extras='{{ extra_param }}'
     dynamicStat='true'
+    info='This report shows number of  top-ups done by subscribers through retailer for selected time window in defined denomination brackets.'
   />,
   document.getElementById('top-up-chart')
   );
@@ -303,7 +313,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     levelID='{{ level_id }}'
     aggregation='transaction_sum'
     yAxisLabel='Amount'
-    buttons={['month','year']}
+    buttons={['day','week','month','year']}
     defaultButtonText='month'
     currentTimeEpoch={currentTimeEpoch}
     timezoneOffset={timezoneOffset}
@@ -313,16 +323,19 @@ of patent rights can be found in the PATENTS file in the same directory.
     dynamicStat='true'
     topupPercent='{{ topup_percent }}'
     frontTooltip='{{ value_type }}'
+    info='This report shows sum of top-ups done by subscribers through retailer for selected time window in defined denomination brackets.'
   />,
   document.getElementById('top-up-subscriber-chart')
 );
 {% endif %}
+
 </script>
 <script type="text/javascript">
 function setloading() {
   var $btn = $('#submit').button().button('loading');
 }
 function renderTable(reportId, tableId) {
+
   var secondsMap = {
     'month': 30 * 24 * 60 * 60,
     'year': 365 * 24 * 60 * 60,
@@ -470,6 +483,7 @@ $(document).ready(function() {
   //renderNonLoder();
 
 });
+
 </script>
 
 {% endif %}

@@ -61,6 +61,26 @@ class ReportUITest(test.TestCase):
         """Log the client out."""
         self.client.get('/logout')
 
+    def test_get_call_report_sans_auth(self):
+        self.logout()
+        response = self.client.get('/dashboard/reports/calls')
+        self.assertEqual(302, response.status_code)
+
+    def test_get_call_report_with_auth(self):
+        self.login()
+        response = self.client.get('/dashboard/reports/calls')
+        self.assertEqual(200, response.status_code)
+
+    def test_get_subscriber_report_sans_auth(self):
+        self.logout()
+        response = self.client.get('/dashboard/reports/subscriber')
+        self.assertEqual(302, response.status_code)
+
+    def test_get_subscriber_report_with_auth(self):
+        self.login()
+        response = self.client.get('/dashboard/reports/subscriber')
+        self.assertEqual(200, response.status_code)
+
     def test_get_billing_report_sans_auth(self):
         try:
             self.logout()
@@ -77,3 +97,18 @@ class ReportUITest(test.TestCase):
         except:
             self.assertIsNone(None, response.status_code)
 
+    def test_get_health_report_sans_auth(self):
+        try:
+            self.logout()
+            response = self.client.get('/dashboard/reports/health')
+            self.assertEqual(302, response.status_code)
+        except:
+            self.assertIsNone(None, response.status_code)
+
+    def test_get_health_report_with_auth(self):
+        try:
+            self.login()
+            response = self.client.get('/dashboard/reports/health')
+            self.assertEqual(200, response.status_code)
+        except:
+            self.assertIsNone(None, response.status_code)

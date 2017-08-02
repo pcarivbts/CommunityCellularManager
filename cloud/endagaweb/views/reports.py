@@ -26,6 +26,7 @@ reports_dict= {
     'Top Up': ['Amount Based', 'Count Based'],
     'Call and SMS': ['SMS Billing', 'Call and SMS Billing', 'Call Billing'],
     'Retailer': ['Retailer Recharge', 'Retailer Load Transfer'],
+    #'Non Loader': ['Total Base', 'Cumulative'],
     'Waterfall': ['Activation', 'Loader', 'Reload Rate', 'Reload Amount',
                   'Reload Transaction', 'Average Load', 'Average Frequency']
 }
@@ -75,7 +76,7 @@ class BaseReport(ProtectedView):
                 request.session['level'] = "network"
                 request.session['level_id'] = network.id
             request.session['reports'] = request.POST.getlist('reports', None)
-            filter = request.POST.get('filter', None)
+            filter = request.session['filter']
             request.session['filter'] = filter
 
             # We always just do a redirect to GET. We include page reference
@@ -84,37 +85,43 @@ class BaseReport(ProtectedView):
                 urlresolvers.reverse(self.url_namespace) + '?filter='+filter)
 
         elif request.method == "GET":
-
             if 'filter' in request.GET and 'filter' in request.session:
                 filter = request.GET.get('filter', 1)
                 if filter != request.session['filter']:
                     request.session['reports'] = self.reports[filter]
+                    request.session['level_id'] = None
+                    request.session['level'] = None
                 request.session['filter'] = filter
             else:
+                request.session['level_id'] = request.GET.get('level_id')
                 request.session['reports'] = report_list
                 request.session['filter'] = None
+                request.session['level'] =request.GET.get('level','network')
             # Reset filtering params.
-            request.session['level'] = 'network'
-            if self.url_namespace == 'subscriber-report':
-                request.session['level'] = 'network'
-            request.session['level_id'] = network.id
-
+            #request.session['level'] = 'network'
+            request.session['level_id'] =  request.session['level_id']
         else:
             return HttpResponseBadRequest()
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
             datetime.datetime.now()).total_seconds()
         level = request.session['level']
-        level_id = int(request.session['level_id'])
+        if request.session['level_id'] !=None:
+            level_id = int(request.session['level_id'])
+        else:
+            level_id = network.id
+            level ='network'
+        if request.session['level']!=None:
+            request.session['level'] = request.session['level']
+        else:
+            request.session['level'] = request.GET.get('level','network')
         reports = request.session['reports']
         filter = request.session['filter']
-
         towers = models.BTS.objects.filter(network=user_profile.network).\
             order_by('id').values('nickname', 'uuid', 'id')
         network_has_activity = UsageEvent.objects.filter(
             network=network).exists()
-
+        #print("check level ",level)
         context = {
-            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network',
                                              klass=Network),
             'towers': towers,
@@ -173,7 +180,6 @@ class SubscriberReportView(BaseReport):
 class HealthReportView(BaseReport):
     """View System health reports."""
 
-
     def __init__(self, **kwargs):
         template = "dashboard/report/health.html"
         url_namespace = "health-report"
@@ -217,7 +223,7 @@ class BillingReportView(ProtectedView):
                 request.session['level'] = "network"
                 request.session['level_id'] = network.id
             request.session['reports'] = request.POST.getlist('reports', None)
-            filter = request.POST.get('filter', None)
+            filter = request.session['filter']
             request.session['filter'] = filter
             return redirect(
                 urlresolvers.reverse(self.url_namespace) + '?filter='+filter)
@@ -227,15 +233,24 @@ class BillingReportView(ProtectedView):
                 if filter != request.session['filter']:
                     request.session['reports'] = self.reports[filter]
                 request.session['filter'] = filter
+                if(request.session['topup_percent'])!=None:
+                    request.session['topup_percent'] = request.session['topup_percent']
+                else:
+                    request.session['topup_percent'] =request.GET.get('topup_percent',100)
             else:
+                request.session['level_id'] = request.GET.get('level_id')
                 request.session['reports'] = report_list
                 request.session['filter'] = None
+                request.session['level'] = request.GET.get('level', 'network')
+                request.session['topup_percent'] = request.GET.get('topup_percent',
+                                                               100)
             # Reset filtering params.
-            request.session['level'] = 'network'
-            if self.url_namespace == 'subscriber-report':
-                request.session['level'] = 'network'
-            request.session['level_id'] = network.id
-            request.session['topup_percent'] = 100
+            level = request.session['level']
+            if request.session['level_id'] != None:
+                level_id = int(request.session['level_id'])
+            else:
+                level_id = network.id
+            #request.session['topup_percent'] = 100
 
 
         else:
@@ -249,23 +264,19 @@ class BillingReportView(ProtectedView):
             network_id=network.id)
 
         for denom in denomination:
-            start_amount = humanize_credits(
-                denom.start_amount, currency=CURRENCIES[network.currency])
-            end_amount = humanize_credits(
-                denom.end_amount, currency=CURRENCIES[network.currency])
-            denom_list.append((
-                start_amount.amount_raw, end_amount.amount_raw))
+            start_amount = humanize_credits(denom.start_amount, currency=CURRENCIES[network.currency])
+            end_amount = humanize_credits(denom.end_amount, currency=CURRENCIES[network.currency])
+            denom_list.append(
+                (start_amount.amount_raw, end_amount.amount_raw))
         formatted_denomnation = []
         for denom in denom_list:
             # Now format to set them as stat-types
             formatted_denomnation.append(
                 str(humanize_credits(
-                    denom[0],
-                    CURRENCIES[network.subscriber_currency])).replace(',', '')
+                    denom[0], CURRENCIES[network.subscriber_currency])).replace(',', '')
                 + ' - ' +
                 str(humanize_credits(
-                    denom[1],
-                    CURRENCIES[network.subscriber_currency])).replace(',', ''))
+                    denom[1], CURRENCIES[network.subscriber_currency])).replace(',', ''))
             denom_list2.append(
                 str(denom[0])
                 + '-' +
@@ -274,7 +285,10 @@ class BillingReportView(ProtectedView):
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
             datetime.datetime.now()).total_seconds()
         level = request.session['level']
-        level_id = int(request.session['level_id'])
+        if request.session['level_id'] != None:
+            level_id = int(request.session['level_id'])
+        else:
+            level_id = network.id
         filter = request.session['filter']
         reports = request.session['reports']
         topup_percent = float(request.session['topup_percent'])
@@ -532,3 +546,4 @@ class ReportGraphDownload(ProtectedView):
         if level == 'tower':
             bts_events = bts_events.filter(bts__id=level_id)
         return bts_events
+

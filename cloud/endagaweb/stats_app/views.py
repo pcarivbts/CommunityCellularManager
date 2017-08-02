@@ -14,32 +14,43 @@ from rest_framework import renderers
 from rest_framework import response
 from rest_framework import status
 from rest_framework import views
+import pytz
+from rest_framework.authtoken.models import Token
+import stripe
+from guardian.shortcuts import get_objects_for_user
 
+from ccm.common.currency import parse_credits, humanize_credits, \
+    CURRENCIES, Money
 from endagaweb.stats_app import stats_client
 
-
+from endagaweb.models import (UserProfile, Ledger, Subscriber, UsageEvent,
+                              Network, PendingCreditUpdate, Number)
 # Set the stat types that we can query for.  Note that some of these kinds are
 # 'faux kinds' in that the stats client aggregates the true UsageEvent kinds
 # for these other categories: sms, call, uploaded_data, downloaded_data,
 # total_data.
 SMS_KINDS = stats_client.SMS_KINDS + ['sms']
-CALL_KINDS = stats_client.CALL_KINDS + ['call']
+CALL_KINDS = stats_client.CALL_KINDS + ['call'] #, 'oustside_call']
 GPRS_KINDS = ['total_data', 'uploaded_data', 'downloaded_data']
 TIMESERIES_STAT_KEYS = stats_client.TIMESERIES_STAT_KEYS
-WATERFALL_KINDS = ['loader', 'reload_rate', 'reload_amount',
-                   'reload_transaction', 'average_frequency']
-DENOMINATION_KINDS = stats_client.DENOMINATION_KINDS
 SUBSCRIBER_KINDS = stats_client.SUBSCRIBER_KINDS + \
                    stats_client.ZERO_BALANCE_SUBSCRIBER + \
                    stats_client.INACTIVE_SUBSCRIBER
+HEALTH_STATUS = stats_client.HEALTH_STATUS
+WATERFALL_KINDS = ['loader', 'reload_rate', 'reload_amount',
+                   'reload_transaction', 'average_load', 'average_frequency']
+NON_LOADER_KINDS = ['non_loader_base', 'cumulative_base']
+DENOMINATION_KINDS = stats_client.DENOMINATION_KINDS
 # Set valid intervals.
 INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
 TRANSFER_KINDS = stats_client.TRANSFER_KINDS
 VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + \
-              SUBSCRIBER_KINDS + TRANSFER_KINDS + DENOMINATION_KINDS + WATERFALL_KINDS
+              TRANSFER_KINDS + SUBSCRIBER_KINDS + WATERFALL_KINDS + \
+              HEALTH_STATUS + DENOMINATION_KINDS + NON_LOADER_KINDS
 # Set valid aggregation types.
 AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
-                'average_value', 'transaction_sum', 'transcation_count']
+                'average_value', 'transaction_sum', 'transcation_count',
+                'duration_minute']
 REPORT_VIEWS = ['summary', 'list']
 
 # Any requested start time earlier than this date will be set to this date.
@@ -156,12 +167,16 @@ class StatsAPIView(views.APIView):
                 client_type = stats_client.GPRSStatsClient
             elif stat_type in TIMESERIES_STAT_KEYS:
                 client_type = stats_client.TimeseriesStatsClient
-            elif stat_type in WATERFALL_KINDS:
-                client_type = stats_client.WaterfallStatsClient
-            elif stat_type in TRANSFER_KINDS:
-                client_type = stats_client.TransferStatsClient
             elif stat_type in SUBSCRIBER_KINDS:
                 client_type = stats_client.SubscriberStatsClient
+            elif stat_type in TRANSFER_KINDS:
+                client_type = stats_client.TransferStatsClient
+            elif stat_type in HEALTH_STATUS:
+                client_type = stats_client.BTSStatsClient
+            elif stat_type in WATERFALL_KINDS:
+                client_type = stats_client.WaterfallStatsClient
+            elif stat_type in NON_LOADER_KINDS:
+                client_type = stats_client.NonLoaderStatsClient
             else:
                 client_type = stats_client.TopUpStatsClient
             # Instantiate the client at an infrastructure level.
@@ -186,9 +201,21 @@ class StatsAPIView(views.APIView):
                 extras=extra_param,
                 topup_percent=params['topup-percent']
             )
+            if stat_type in TRANSFER_KINDS:
+                table_view = client.timeseries(
+                    stat_type,
+                    start_time_epoch=params['start-time-epoch'],
+                    end_time_epoch=params['end-time-epoch'],
+                    aggregation=params['aggregation'],
+                    report_view ="table_view"
+                )
+            else:
+                table_view ={}
+                #data['retailer_table_data'].append(table_view)
             data['results'].append({
                 "key": stat_type,
-                "values": results
+                "values": results,
+                "retailer_table_data":table_view
             })
 
         # Convert params.stat_types back to CSV and echo back the request.

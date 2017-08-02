@@ -1,0 +1,81 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+{% load apptags %}
+
+{% block title %}
+{% tmpl_const "SITENAME" %} | towers
+{% endblock %}
+
+{% block pagestyle %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
+{% endblock %}
+
+{% block content %}
+    {% include "dashboard/report/header.html" with header='Health' %}
+
+<div class='row'>
+  {% include "dashboard/report/nav.html" with active_tab='health_reports' %}
+  <div class='content col-xs-12 col-sm-10 col-md-10'>
+    {% include "dashboard/report/health-filter-action.html" with action_url='/dashboard/reports/health' %}
+    {% if network_has_activity %}
+    <div class="row">
+      <div id='health-chart'></div>
+    </div>
+       {% include 'dashboard/timezone-notice.html' %}
+    {% else %}
+    <p>There is no network activity to display.</p>
+    {% endif %}
+  </div> <!-- /.col-md-4 -->
+</div>
+
+{% endblock %}
+{% block js %}
+<script>
+  $(function() {
+    setTimeout(function() {
+      $('.timezone-notice').fadeIn(500);
+    }, 800);
+  });
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/react.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/JSXTransformer.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.1.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.7.0/moment.min.js" type="text/javascript"></script>
+<script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+<script src="/static/js/dashboard/saveSvgAsPng.js"></script>
+<script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
+<script type="text/jsx">
+  var currentTimeEpoch = {{ current_time_epoch }};
+  var timezoneOffset = {{ timezone_offset }};
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='BTS Status'
+      chartID='call-chart'
+      statTypes='bts_health_status'
+      level='tower'
+      levelID='{{ level_id }}'
+      aggregation='bts_status'
+      yAxisLabel='numbers'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      tooltipUnits=''
+      chartType='line-chart'
+      info='This report shows BTS health status in terms of BTS uptime and downtime for each BTS for selected time window.'
+    />,
+    document.getElementById('health-chart')
+  );
+</script>
+
+
+{% endblock %}
