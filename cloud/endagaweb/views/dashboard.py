@@ -247,6 +247,7 @@ class SubscriberListView(ProtectedView):
     def get(self, request, *args, **kwargs):
         user_profile = UserProfile.objects.get(user=request.user)
         network = user_profile.network
+        currency = CURRENCIES[network.subscriber_currency]
         all_subscribers = Subscriber.objects.filter(network=network)
 
         query = request.GET.get('query', None)
@@ -272,6 +273,40 @@ class SubscriberListView(ProtectedView):
         tables.RequestConfig(request, paginate={'per_page': 15}).configure(
             subscriber_table)
 
+        # If a CSV has been requested, return that here.
+        if request.method == "GET" and request.GET.get('csv', False):
+            headers = [
+                'IMSI',
+                'Name',
+                'Number(s)',
+                'Balance',
+                'Status',
+                'Last Active',
+                'Role'
+            ]
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = ('attachment;filename='
+                                               '"etage-subscribers-%s.csv"') \
+                                              % (
+                                              datetime.datetime.now().date(),)
+            writer = csv.writer(response)
+            writer.writerow(headers)
+            # Forcibly limit to 7000 items.
+            timezone = pytz.timezone(user_profile.timezone)
+            for subscriber in all_subscribers[:7000]:
+                status = 'camped' if subscriber.is_camped else 'not camped'
+                writer.writerow([
+                    subscriber.imsi,
+                    subscriber.name,
+                    subscriber.numbers(),
+                    humanize_credits(subscriber.balance,
+                                     currency=currency).amount_str(),
+                    status,
+                    subscriber.last_active,
+                    subscriber.role,
+                ])
+            return response
+
         # Render the response with context.
         context = {
             'network': network,
@@ -287,6 +322,16 @@ class SubscriberListView(ProtectedView):
         template = get_template("dashboard/subscribers.html")
         html = template.render(context, request)
         return HttpResponse(html)
+
+    def post(self, request, *args, **kwargs):
+        # Added to check password to download the csv
+
+        if request.user.check_password(request.POST.get('password')):
+            response = {'status': 'ok'}
+        else:
+            response = {'status': 'fail'}
+        return HttpResponse(json.dumps(response),
+                            content_type="application/json")
 
 
 class SubscriberUpdateRole(ProtectedView):
