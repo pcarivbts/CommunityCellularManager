@@ -439,7 +439,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
             tablesColumnValueName = [{
                 title: "IMSI"
             }, {
-                title: "Count"
+                title: "Amount in (" + frontTooltip + ")"
             }]
         } else {
             tablesColumnValueName = tablesColumnValueName
