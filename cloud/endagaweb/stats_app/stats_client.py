@@ -236,22 +236,10 @@ class StatsClientBase(object):
             timeseries = queryset_stats.time_series(start, end,
                                                     date_field='date',
                                                     interval='minutes')
-            newseries = timeseries
-            if param == 'bts down':
-                for idx, val in enumerate(timeseries):
-                    if val[1] == 0:
-                        newseries.pop(idx)
-                    elif val[1] == 1:
-                        newseries.pop(idx)
-                        newseries.insert(idx, (val[0], 0))
-            elif param == 'bts up':
-                for idx, val in enumerate(timeseries):
-                    if val[1] == 0:
-                        newseries.pop(idx)
-                    elif val[1] == 1:
-                        newseries.pop(idx)
-                        newseries.insert(idx, (val[0], 1))
-            timeseries = newseries
+            for idx, val in enumerate(timeseries):
+                # remove unwanted objects count
+                if val[1] == 0:
+                    timeseries.pop(idx)
         datetimes, values = zip(*timeseries)
         if report_view == 'summary':
             # Return sum count for pie-chart and table view
@@ -563,8 +551,12 @@ class BTSStatsClient(StatsClientBase):
         results, usage, bts_values = ([] for i in range(3))
         start_time = datetime.fromtimestamp(kwargs['start_time_epoch'],
                                             pytz.utc)
-        previous_state = models.SystemEvent.objects.filter(
-            bts_id=self.level_id, date__lt=start_time).order_by('-date')[0]
+        try:
+            previous_state = models.SystemEvent.objects.filter(
+                bts_id=self.level_id, date__lt=start_time).order_by('-date')[0]
+            previous_state = previous_state.type
+        except IndexError:
+            previous_state = 'bts up'
 
         for call_kind in BTS_KINDS:
             usage = self.aggregate_timeseries(call_kind, **kwargs)
@@ -572,14 +564,13 @@ class BTSStatsClient(StatsClientBase):
             results.append(values)
         dates = [u[0] for u in usage]
         # Get last state
-        # previous_state_time = int(time.mktime(previous_state.date.timetuple()))
         last_val = None
         bts_status = [sum(v) for v in zip(*results)]
         for value in bts_status:
             if last_val is None:
-                if previous_state.type == 'bts up':
+                if previous_state == 'bts up':
                     last_val = 1
-                elif previous_state.type == 'bts up':
+                elif previous_state == 'bts up':
                     last_val = 0
                 # last_val = value
             if value > 0:
