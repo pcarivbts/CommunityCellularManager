@@ -368,10 +368,9 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
         var newValues = [];
         if (typeof(data[index]['values']) === 'object') {
             for (var series_index in data[index]['values']) {
+
                 var newValue = [
-                    // Shift out of the locale offset to 'convert' to UTC and then shift
-                    // back into the operator's tz by adding the tz offset from the server.
-                    moment(data[index]['values'][series_index][0] ) + 1e3 * localeOffset + 1e3 * timezoneOffset,
+                    moment(data[index]['values'][series_index][0] ),
                     data[index]['values'][series_index][1]
                 ];
                 newValues.push(newValue);
@@ -477,9 +476,10 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
 
             d3.select(domTarget)
                 .datum(shiftedData)
-                .transition().duration(1200)
+                .transition().duration(350)
                 .call(chart);
         } else if (chartType == 'bar-chart') {
+
             var chart = nv.models.multiBarChart()
                 .x(function(d) {
                     return d[0]
@@ -487,21 +487,27 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                 .y(function(d) {
                     return d[1]
                 })
-                .transitionDuration(350)
-                .stacked(false).showControls(false);
-
-            chart.xAxis.tickFormat(function(d) {
-                return d3.time.format(xAxisFormatter)(new Date(d));
-            });
-            var xScale = d3.time.scale.utc();
-
-            chart.yAxis.scale(xScale)
-                .axisLabel(yAxisLabel)
-                .axisLabelDistance(25)
-                .tickFormat(d3.format(yAxisFormatter));
+                .color(d3.scale.category10().range())
+                .options({
+                interpolate: 'monotone',
+                 grid:true //<== this line here
+                })
+                .showYAxis(true)
+                .stacked(false).showControls(false)
+                .reduceXTicks(true)
+                ;
+                chart.xAxis
+                  .scale( d3.time.scale.utc())
+                  .showMaxMin(true);
+                chart.xAxis
+                     .tickFormat(function(d){return d3.time.format(xAxisFormatter)(new Date(d));})
+                 chart.yAxis
+                  .axisLabel(yAxisLabel)
+                  .axisLabelDistance(25)
+                  .tickFormat(d3.format(yAxisFormatter));
             // Fixes the axis-labels being rendered out of the SVG element.
             chart.margin({
-                right: 80
+                right: 90
             });
             chart.tooltipContent(function(key, x, y) {
                 if (key == 'add_money') {
@@ -510,11 +516,11 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                     return '<p>' + frontTooltip + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
                 }
             });
-
-            d3.select(domTarget)
+                d3.select(domTarget)
                 .datum(shiftedData)
                 .transition().duration(350)
                 .call(chart);
+
         } else {
             var chart = nv.models.lineChart()
                 .x(function(d) {
@@ -525,8 +531,9 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                 })
                 .color(d3.scale.category10().range())
                 .interpolate('monotone')
-                .showYAxis(true);
-            chart.xAxis
+                .showYAxis(true)
+                ;
+                chart.xAxis
                 .tickFormat(function(d) {
                     return d3.time.format(xAxisFormatter)(new Date(d));
                 });

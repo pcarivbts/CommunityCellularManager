@@ -60,7 +60,6 @@ of patent rights can be found in the PATENTS file in the same directory.
 <script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.7.0/moment.min.js" type="text/javascript"></script>
 <script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
 <script src="/static/js/dashboard/saveSvgAsPng.js"></script>
 <script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
@@ -77,6 +76,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       levelID='{{ level_id }}'
       aggregation='count'
       yAxisLabel='numbers'
+      defaultButtonText='month'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       tooltipUnits='s of'
@@ -96,6 +96,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       levelID='{{ level_id }}'
       aggregation='count'
       yAxisLabel='numbers'
+      defaultButtonText='month'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       tooltipUnits='s of'
@@ -106,17 +107,6 @@ of patent rights can be found in the PATENTS file in the same directory.
   );
   {% endif %}
 </script>
-<script type="text/javascript">
 
-
-
-$(document).ready(function () {
-  $("a").tooltip({
-    'selector': '',
-    'placement': 'top',
-    'container':'body'
-  });
-});
-</script>
 
 {% endblock %}
