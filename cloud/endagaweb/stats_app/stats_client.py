@@ -183,20 +183,22 @@ class StatsClientBase(object):
                 adjust = -10
             elif param == 'add_money':
                 adjust = 0.00001
+            elif param == 'transfer':
+                adjust = -0.00001
             else:
                 adjust = 1
             queryset_stats = qsstats.QuerySetStats(
                 queryset, 'date', aggregate=(aggregates.Sum('change') * adjust))
 
             if report_view =='table_view':
+                imsi = {}
                 for qs in queryset_stats.qs.filter(
                     date__range=(str(start), str(end))):
-                    imsi_list.append(qs.subscriber.imsi)
-                my_dict = {i: imsi_list.count(i) for i in imsi_list}
-                imsi_dic['imsi'] = my_dict.keys()
-                imsi_dic['count'] = my_dict.values()
-
-                return my_dict
+                    if qs.subscriber.imsi in imsi:
+                        imsi[qs.subscriber.imsi] += round(qs.change * adjust, 2)
+                    else:
+                        imsi[qs.subscriber.imsi] = round(qs.change * adjust, 2)
+                return imsi
             # if percentage is set for top top-up
             percentage = kwargs['topup_percent']
             top_numbers = 1
