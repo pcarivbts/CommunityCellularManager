@@ -542,7 +542,6 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                 chart.yAxis
                 .axisLabel(yAxisLabel)
                 .axisLabelDistance(25)
-//                .tickFormat(d3.format(yAxisFormatter));
                  .tickFormat(function(d) {
                     if (d == 1){
                         return "UP";
@@ -564,14 +563,13 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                 right: 80
             });
             chart.tooltipContent(function(key, x, y) {
-                if (key == 'bts_health_status') {
-                    var status;
-                    if (y == 1) {
-                        status = "UP"
+                if (key == 'health_state') {
+                    key = ''
+                    if (y =='UP'){
+                        y = '<span class = "label label-success">UP</span>'
                     } else {
-                        status = "DOWN"
+                        y = '<span class = "label label-danger">DOWN</span>'
                     }
-                    return '<p>' + frontTooltip + status + tooltipUnits + ' ' + '</p>' + '<p>' + x + '</p>';
                 }
                 return '<p>' + frontTooltip + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
             });

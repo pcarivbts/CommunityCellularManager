@@ -21,6 +21,7 @@ from django.db.models import aggregates
 from endagaweb import models
 from decimal import *
 from pytz import timezone
+
 CALL_KINDS = [
     'local_call', 'local_recv_call', 'outside_call', 'incoming_call',
     'free_call', 'error_call']
@@ -30,7 +31,7 @@ SMS_KINDS = [
 SUBSCRIBER_KINDS = ['Provisioned', 'deactivate_number']
 ZERO_BALANCE_SUBSCRIBER = ['zero_balance_subscriber']
 INACTIVE_SUBSCRIBER = ['expired', 'first_expired', 'blocked']
-BTS_STATUS = ['bts_health_status']
+BTS_STATUS = ['health_state']
 TRANSFER_KINDS = ['transfer', 'add_money']
 WATERFALL_KINDS = ['loader', 'reload_rate', 'reload_amount',
                    'reload_transaction', 'average_load', 'average_frequency']
@@ -106,7 +107,7 @@ class StatsClientBase(object):
         imsi_dict = {}
         imsi_list = []
         # Turn the start and end epoch timestamps into datetimes.
-        start = datetime.fromtimestamp(start_time_epoch , pytz.utc)
+        start = datetime.fromtimestamp(start_time_epoch, pytz.utc)
         if end_time_epoch != -1:
             end = datetime.fromtimestamp(end_time_epoch, pytz.utc)
         else:
@@ -118,17 +119,17 @@ class StatsClientBase(object):
             filters = Q(kind=param)
         elif param in ZERO_BALANCE_SUBSCRIBER:
             objects = models.UsageEvent.objects
-            filters = Q(oldamt__gt=0,newamt__lte=0)
+            filters = Q(oldamt__gt=0, newamt__lte=0)
         elif param in INACTIVE_SUBSCRIBER:
             aggregation = 'valid_through'
             objects = models.Subscriber.objects
-            filters = Q(state = param)
+            filters = Q(state=param)
         elif param in TIMESERIES_STAT_KEYS:
             objects = models.TimeseriesStat.objects
             filters = Q(key=param)
         elif param in BTS_KINDS:
             objects = models.SystemEvent.objects
-            filters = Q(type=param)
+            filters = Q(type=param, bts_id=self.level_id)
         else:
             # For Dynamic Kinds coming from Database currently for Top Up
             objects = models.UsageEvent.objects
@@ -169,7 +170,8 @@ class StatsClientBase(object):
                 queryset, 'date', aggregate=(aggregates.Count('to_number')))
         elif aggregation == 'reload_transcation_sum':
             queryset_stats = qsstats.QuerySetStats(
-                queryset, 'date', aggregate=(aggregates.Sum('change') * 0.00001))
+                queryset, 'date',
+                aggregate=(aggregates.Sum('change') * 0.00001))
         # Sum of change in amounts for SMS/CALL
         elif aggregation in ['transaction_sum', 'transcation_count']:
             # Change is negative value, set positive for charts
@@ -180,7 +182,8 @@ class StatsClientBase(object):
             else:
                 adjust = 1
             queryset_stats = qsstats.QuerySetStats(
-                queryset, 'date', aggregate=(aggregates.Sum('change') * adjust))
+                queryset, 'date',
+                aggregate=(aggregates.Sum('change') * adjust))
             if report_view == 'table_view':
                 for qs in queryset_stats.qs.filter(
                         date__range=(str(start), str(end))):
@@ -223,19 +226,33 @@ class StatsClientBase(object):
                 queryset, 'date', aggregate=aggregates.Count('subscriber_id'))
         else:
             queryset_stats = qsstats.QuerySetStats(queryset, 'date')
-        timeseries = queryset_stats.time_series(start, end,
-                                                interval=interval)
-        if param =='bts down'or param=='bts up':
-            timeseries = queryset_stats.time_series(start, end, interval='minutes')
-        else:
-           timeseries = queryset_stats.time_series(start, end,
-                                                    interval=interval)
 
         # The timeseries results is a list of (datetime, value) pairs. We need
         # to convert the datetimes to timestamps with millisecond precision and
         # then zip the pairs back together.
+        timeseries = queryset_stats.time_series(start, end,
+                                                interval=interval)
+        if param in BTS_KINDS:
+            timeseries = queryset_stats.time_series(start, end,
+                                                    date_field='date',
+                                                    interval='minutes')
+            newseries = timeseries
+            if param == 'bts down':
+                for idx, val in enumerate(timeseries):
+                    if val[1] == 0:
+                        newseries.pop(idx)
+                    elif val[1] == 1:
+                        newseries.pop(idx)
+                        newseries.insert(idx, (val[0], 0))
+            elif param == 'bts up':
+                for idx, val in enumerate(timeseries):
+                    if val[1] == 0:
+                        newseries.pop(idx)
+                    elif val[1] == 1:
+                        newseries.pop(idx)
+                        newseries.insert(idx, (val[0], 1))
+            timeseries = newseries
         datetimes, values = zip(*timeseries)
-
         if report_view == 'summary':
             # Return sum count for pie-chart and table view
             if aggregation == 'transaction_sum':
@@ -279,8 +296,6 @@ class StatsClientBase(object):
         """
         self.level = level
         self.level_id = level_id
-
-
 
 
 class SMSStatsClient(StatsClientBase):
@@ -546,16 +561,27 @@ class BTSStatsClient(StatsClientBase):
 
     def timeseries(self, kind=None, **kwargs):
         results, usage, bts_values = ([] for i in range(3))
+        start_time = datetime.fromtimestamp(kwargs['start_time_epoch'],
+                                            pytz.utc)
+        previous_state = models.SystemEvent.objects.filter(
+            bts_id=self.level_id, date__lt=start_time).order_by('-date')[0]
+
         for call_kind in BTS_KINDS:
             usage = self.aggregate_timeseries(call_kind, **kwargs)
             values = [u[1] for u in usage]
             results.append(values)
         dates = [u[0] for u in usage]
-        bts_status = [sum(v) for v in zip(*results)]
+        # Get last state
+        # previous_state_time = int(time.mktime(previous_state.date.timetuple()))
         last_val = None
+        bts_status = [sum(v) for v in zip(*results)]
         for value in bts_status:
             if last_val is None:
-                last_val = value
+                if previous_state.type == 'bts up':
+                    last_val = 1
+                elif previous_state.type == 'bts up':
+                    last_val = 0
+                # last_val = value
             if value > 0:
                 last_val = 1
             elif value < 0:
@@ -606,7 +632,8 @@ class WaterfallStatsClient(StatsClientBase):
 
             month_row = {'month': key, 'activation': len(subscribers)}
             for col_mnth in months:
-                col_key = col_mnth.strftime("%b") + "-" + col_mnth.strftime("%Y")
+                col_key = col_mnth.strftime("%b") + "-" + col_mnth.strftime(
+                    "%Y")
                 month_start_dt = col_mnth
                 # Get last date of month from selected month
                 next_month = col_mnth.replace(day=28) + timedelta(days=4)
@@ -664,11 +691,11 @@ class NonLoaderStatsClient(StatsClientBase):
                                             pytz.utc) - timedelta(days=30)
         end_epoch = last_month.replace(day=calendar.monthrange(
             last_month.year, last_month.month)[1])
-        start_epoch = end_epoch - timedelta(6*365/12)
+        start_epoch = end_epoch - timedelta(6 * 365 / 12)
 
         response = {'header': [{'label': "Months", 'name': 'month',
                                 'frozen': True},
-                               #{'label': "Activation", 'name': 'activation',
+                               # {'label': "Activation", 'name': 'activation',
                                # 'frozen': True},
                                {'label': "Non Loader", 'name': 'nonloader',
                                 'frozen': True}],
@@ -688,7 +715,8 @@ class NonLoaderStatsClient(StatsClientBase):
             stats_end_dt = next_month - timedelta(days=next_month.day)
             stats_start_dt = mnth.replace(day=1)
 
-            kwargs['start_time_epoch'] = start_time_epoch #int(stats_start_dt.strftime("%s"))
+            kwargs[
+                'start_time_epoch'] = start_time_epoch  # int(stats_start_dt.strftime("%s"))
             kwargs['end_time_epoch'] = int(stats_end_dt.strftime("%s"))
             kwargs['query'] = Q(subscriber__role='retailer')
             kwargs['report_view'] = 'value'
@@ -702,9 +730,8 @@ class NonLoaderStatsClient(StatsClientBase):
 
             result = self.aggregate_timeseries('transfer', **kwargs2)
             month_row = {'month': "%d months" % (counter),
-                         #'activation': len(subscribers),
+                         # 'activation': len(subscribers),
                          'nonloader': result - len(subscribers)}
             response['data'].append(month_row)
             counter += 1
         return response
-
