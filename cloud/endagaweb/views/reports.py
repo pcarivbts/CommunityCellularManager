@@ -124,6 +124,7 @@ class BaseReport(ProtectedView):
         context = {
             'networks': get_objects_for_user(request.user, 'view_network',
                                              klass=Network),
+            'network': network,
             'towers': towers,
             'level': level,
             'level_id': level_id,
