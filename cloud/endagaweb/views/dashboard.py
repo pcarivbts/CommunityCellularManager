@@ -24,8 +24,7 @@ import stripe
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from guardian.decorators import permission_required_or_403
-from django.contrib.auth.models import User, Permission, ContentType, Group
+from django.contrib.auth.models import User, Permission, ContentType
 from django.contrib.auth.views import password_reset
 from django.core import urlresolvers
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -41,7 +40,8 @@ from django.utils import timezone as django_utils_timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import View
 from guardian.mixins import PermissionRequiredMixin
-from guardian.shortcuts import assign_perm, get_perms, remove_perm
+from guardian.shortcuts import assign_perm, get_perms, remove_perm, \
+    get_users_with_perms
 from guardian.shortcuts import (get_objects_for_user)
 from rest_framework.authtoken.models import Token
 
@@ -470,7 +470,7 @@ class SubscriberActivity(ProtectedView):
 
 class SubscriberSendSMS(ProtectedView):
     """Send an SMS to a single subscriber."""
-    permission_required = 'view_subscriber'
+    permission_required = ['send_sms', 'view_subscriber']
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -533,7 +533,7 @@ class SubscriberSendSMS(ProtectedView):
 
 class SubscriberAdjustCredit(ProtectedView):
     """Adjust credit for a single subscriber."""
-    permission_required = 'view_subscriber'
+    permission_required = ['adjust_credit','view_subscriber']
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -624,7 +624,7 @@ class SubscriberAdjustCredit(ProtectedView):
 
 class SubscriberEdit(ProtectedView):
     """Edit a single subscriber's info."""
-    permission_required = 'view_subscriber'
+    permission_required = 'edit_subscriber'
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -686,7 +686,7 @@ class SubscriberEdit(ProtectedView):
 
 class ActivityView(ProtectedView):
     """View activity on the network."""
-    permission_required = 'view_usage'
+    permission_required = 'view_activity'
     datepicker_time_format = '%Y-%m-%d at %I:%M%p'
 
     def get(self, request, *args, **kwargs):
@@ -949,6 +949,9 @@ class ActivityView(ProtectedView):
 
 
 class UserManagement(ProtectedView):
+    """
+    Handles User management operations.
+    """
     permission_required = 'user_management'
 
     def get(self, request, *args, **kwargs):
@@ -958,23 +961,48 @@ class UserManagement(ProtectedView):
         network = user_profile.network
         user = User.objects.get(id=user_profile.user_id)
         available_permissions = get_perms(request.user, network)
-        if not user.is_superuser:  # Network Admin
+        # Get all users except Cloud Admin
+        users_in_network = get_users_with_perms(
+            network, attach_perms=False, with_superusers=False).exclude(
+            Q(is_superuser=True) | Q(email='') | Q(
+                userprofile__role='Cloud Admin'))
+
+        if not user_profile.user.is_superuser:
+            users_in_network = users_in_network.exclude(
+                userprofile__role__in=['Network Admin', 'Cloud Admin'])
+        # Search for User query
+        query = request.GET.get('query', None)
+        if query:
+            query_users = (users_in_network.filter(username__icontains=query) |
+                           users_in_network.filter(email__icontains=query))
+        else:
+            query_users = users_in_network
+
+        if not user.is_superuser:  # If Cloud Admin
             role = USER_ROLES[0:len(USER_ROLES) - 1]
-        else:  # Cloud Admin
+        else:  # If Network Admin
             role = USER_ROLES
         content = ContentType.objects.get(
-            app_label='endagaweb',model='network')
+            app_label='endagaweb', model='network')
         network_permissions = Permission.objects.filter(
             codename__in=available_permissions,
             content_type_id=content.id).exclude(
             codename='view_network')
+
+        user_table = django_tables.UserTable(list(query_users))
+        tables.RequestConfig(request, paginate={'per_page': 12}).configure(
+            user_table)
         context = {
+            'users': user_table,
             'network': network,
             'user_profile': user_profile,
             'networks': get_objects_for_user(request.user,
                                              'view_network', klass=Network),
-            'permissions': network_permissions,
+            'permissions': sorted(network_permissions,reverse=True),
             'roles': role,
+            'total_users': len(users_in_network),
+            'total_users_found': len(query_users),
+            'search': dform.UserSearchForm({'query': query}),
             }
         info_template = get_template('dashboard/user_management/add.html')
         html = info_template.render(context, request)
@@ -1006,6 +1034,8 @@ class UserManagement(ProtectedView):
                 else:
                     user.is_staff = user.is_superuser = False
                 user.email = email
+                # Set random password as send mail fails if no password is set
+                user.set_password(uuid.uuid4())
                 user.save()
                 # creates Token that BTSs on the network use to authenticate
                 Token.objects.create(user=user)
@@ -1033,15 +1063,12 @@ class UserManagement(ProtectedView):
             # Re-connect the signal before return if it reaches exception
             post_save.connect(UserProfile.new_user_hook, sender=User)
             return JsonResponse({'status': 'error', 'message': message})
-
         # Sending email now to reset password
         try:
             self._send_reset_link(request)
-            mail_info = 'Password reset Mail has been sent to %s' % email
-            messages.success(request, mail_info)
+            mail_info = ' (Reset mail has been sent to %s)' % email
+            # messages.success(request, mail_info)
         except Exception as ex:
-            # Todo: proper handling of email
-            # Checking mail log on terminal
             logger.error(ex)
             mail_info = '\n Please configure email to send password reset ' \
                         'link to user'
@@ -1049,8 +1076,7 @@ class UserManagement(ProtectedView):
                              extra_tags="alert alert-danger")
         # Re-connect the signal before return if it reaches exception
         post_save.connect(UserProfile.new_user_hook, sender=User)
-
-        messages.success(request, 'User added successfully!')
+        messages.success(request, 'User added successfully.' + mail_info)
 
         return JsonResponse(
             {'status': 'success', 'message': 'User added successfully'})
@@ -1059,8 +1085,87 @@ class UserManagement(ProtectedView):
         return password_reset(request,
                               post_reset_redirect=reverse('user-management'))
 
+    def delete(self, request, *args, **kwargs):
+        """Handles POST requests to delete or block User."""
+
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        user_ids = request.GET.getlist('ids[]') or None
+        action = 'delete'
+        status = None
+        if user_ids is None:
+            action = 'block'
+            user_ids = request.GET.getlist('block_ids[]') or None
+            # For toggles
+            if user_ids is None:
+                user_ids = [int(request.GET.get('block_id'))]
+                status = request.GET.get('status')
+        user_profile = UserProfile.objects.get(user=request.user)
+        _users = []
+        admin_users = []
+        self_delete = False
+        message = None
+        try:
+            users = User.objects.filter(id__in=user_ids)
+            for user in users:
+                if ((user_profile.user.is_superuser and user_profile.user.is_staff) and
+                        (not user.is_superuser)) or (
+                            user_profile.user.is_staff and (not user.is_staff)):
+                    _users.append(user)
+                elif user_profile.user.id == user.id:
+                    # Lets not delete self
+                    self_delete = True
+                else:
+                    # Not deleting Admins either
+                    admin_users.append(user.username)
+            if len(_users)>0:
+                if action == 'delete':
+                    for user in _users:
+                        # Check if user exists in other N/Ws
+                        networks_assigned = get_objects_for_user(
+                            user, 'view_network', klass=Network)
+                        existing_permissions = get_perms(user, network)
+                        if len(networks_assigned) > 1:
+
+                            for perm in existing_permissions:
+                                permission = 'endagaweb.' + perm
+                                # remove from current network only
+                                remove_perm(permission, user, network)
+                        else:
+                            # if only one n/w it is associated with
+                            user.delete()
+                    action = 'Removed from %s' % network.name
+                elif action == 'block':
+                    for user in _users:
+                        if user.is_active:
+                            user.is_active = False
+                        else:
+                            user.is_active = True
+                        action = 'Updated'
+                        user.save()
+                message = 'Successfully, %s!' % action
+                if status is None:
+                    messages.success(request, message,
+                                    extra_tags="alert alert-success")
+            if len(admin_users)>0:
+                message = 'Cannot %s admin(s): %s ' % (action,
+                                                       ', '.join(admin_users))
+                messages.warning(request, message,
+                                 extra_tags="alert alert-warning")
+            if self_delete:
+                message = 'You cannot delete yourself.'
+                messages.warning(request, message,
+                                 extra_tags="alert alert-warning")
+            return HttpResponse(request, message)
+        except User.DoesNotExist:
+            return HttpResponseBadRequest()
+
 
 class UserUpdate(ProtectedView):
+    """
+    Updates the existing user's permissions or role,
+    this view is specific to cloud/network admins.
+    """
     permission_required = 'user_management'
 
     def get(self, request, *args, **kwargs):
@@ -1070,49 +1175,44 @@ class UserUpdate(ProtectedView):
         user = User.objects.get(id=user_profile.user_id)
         # Admin permissions on current network
         network_permissions = get_perms(request.user, network)
-        update_user = False
-        user_role = user_perms = None
-        existing_user = request.GET.get('user', None)
 
-        if not user.is_superuser:  # Network Admin
-            role = USER_ROLES[0:len(USER_ROLES) - 1]
-        else:  # Cloud Admin
-            role = USER_ROLES
-        available_permissions = Permission.objects.filter(
-            codename__in=network_permissions).exclude(
-            codename='view_network')
-        # if altering existing user
-        if existing_user is not None and User.objects.filter(
-                email=existing_user).exists():
+        if not user.is_superuser:  # if cloud admin
+            roles = USER_ROLES[0:len(USER_ROLES) - 1]
+        else:  # if network admin
+            roles = USER_ROLES
+        try:
+            existing_user = request.GET['user']
+            if len(existing_user) == 0:
+                existing_user = request.GET['id']
+                _user = User.objects.get(id=existing_user)
+            else:
+                _user = User.objects.get(email=existing_user)
             update_user = True
-            _user = User.objects.get(email=existing_user)
             _user_profile = UserProfile.objects.get(user=_user)
             user_role = _user_profile.role
-            existing_permissions = get_perms(_user, user_profile.network)
-
             # Setup available and assigned permissions
+            existing_permissions = get_perms(_user, user_profile.network)
             user_perms = Permission.objects.filter(
                 codename__in=existing_permissions).exclude(
                 codename='view_network')
             available_permissions = Permission.objects.filter(
                 codename__in=network_permissions).exclude(
                 codename__in=existing_permissions)
-
-        context = {
-            'network': network,
-            'user_profile': user_profile,
-            'networks': get_objects_for_user(request.user,
-                                             'view_network', klass=Network),
-            'permissions': available_permissions,
-            'roles': role,
-            'user_role': user_role,
-            'update': update_user,
-            'email': existing_user,
-            'user_permissions': user_perms,
+            permissions = [(a.id, a.name) for a in available_permissions]
+            user_permissions = [(a.id, a.name) for a in user_perms]
+            context = {
+                'permissions': permissions,
+                'user_permissions': user_permissions,
+                'roles': roles,
+                'user_role': user_role,
+                'update': update_user,
+                'email': _user.email,
             }
-        info_template = get_template('dashboard/user_management/edit.html')
-        html = info_template.render(context, request)
-        return HttpResponse(html)
+            return HttpResponse(json.dumps(context),
+                                content_type="application/json")
+        except User.DoesNotExist:
+            message = 'Strange! %s not found!' % existing_user
+            raise LookupError(message)
 
     def post(self, request, *args, **kwargs):
         user_profile = UserProfile.objects.get(user=request.user)
@@ -1150,9 +1250,8 @@ class UserUpdate(ProtectedView):
             if user_profile.role != user_role:
                 user_profile.role = user_role
             user_profile.save()
-            message = 'User updated successfully!'
+            message = 'User updated!'
             messages.success(request, message)
-
         else:
             if len(existing_permissions) < 1:
                 message = 'Nothing to update!'
@@ -1163,152 +1262,6 @@ class UserUpdate(ProtectedView):
                 message = 'Removed all permissions!'
             messages.info(request, message)
 
-        return HttpResponse(request, message)
-
-
-class UserDelete(ProtectedView):
-    permission_required = 'user_management'
-
-    def get(self, request, *args, **kwargs):
-
-        # Use render_table to hide/unhide users on search page.
-        user_profile = UserProfile.objects.get(user=request.user)
-        network = user_profile.network
-
-        query = request.GET.get('query', None)
-
-        if query:
-            query_users = (
-                User.objects.filter(username__icontains=query))
-            if not user_profile.user.is_superuser:
-                query_users = (
-                    User.objects.filter(username__icontains=query)).exclude(
-                    is_superuser=True)
-            render_table = True
-        else:
-            query_users = (
-                User.objects.all()).exclude(is_superuser=True)
-            # Set True to display all users without search
-            render_table = False
-
-        # Setup the subscriber table.
-        user_table = django_tables.UserTable(list(query_users))
-        tables.RequestConfig(request, paginate={'per_page': 10}).configure(
-            user_table)
-
-        context = {
-            'network': network,
-            'search': dform.UserSearchForm({'query': query}),
-            'users_found': len(query_users),
-            'user_table': user_table,
-            'show_all_users': render_table,
-            'user_profile': user_profile,
-            'networks': get_objects_for_user(request.user, 'view_network',
-                                             klass=Network),
-        }
-
-        # Check logged in user permission for delete user
-        # Render template.
-        info_template = get_template('dashboard/user_management/delete.html')
-        html = info_template.render(context, request)
-        return HttpResponse(html)
-
-    def post(self, request, *args, **kwargs):
-        """Handles POST requests to delete User."""
-        user_profile = UserProfile.objects.get(user=request.user)
-        try:
-            user = User.objects.get(id=request.GET['user'])
-        except User.DoesNotExist:
-            return HttpResponseBadRequest()
-
-        if ((user_profile.user.is_superuser and user_profile.user.is_staff) and
-                (not user.is_superuser)) or (
-                    user_profile.user.is_staff and (not user.is_staff)):
-            user.delete()
-            message = '%s deleted successfully!' % user.username
-            messages.success(request, message, extra_tags="alert alert-danger")
-        elif user_profile.user.id == user.id:
-            message = 'You cannot delete yourself.'
-            messages.error(request, message, extra_tags="alert alert-danger")
-        else:
-            role = 'Cloud Admin'
-            message = 'You don\'t have sufficient privileges to delete %s(%s).' % (
-                user.username, role)
-            if user.is_superuser:
-                role = 'Network Admin'
-                message = 'You cannot delete %s (%s).Please contact Cloud ' \
-                          'Admin for support!' % (user.username, role)
-            messages.error(request, message, extra_tags="alert alert-danger")
-
-        return HttpResponse(request, message)
-
-
-class UserBlockUnblock(ProtectedView):
-    permission_required = 'user_management'
-
-    def get(self, request, *args, **kwargs):
-        user_profile = UserProfile.objects.get(user=request.user)
-        network = user_profile.network
-        query = request.GET.get('query', None)
-
-        if query:
-            query_users = (
-                User.objects.filter(username__icontains=query))
-        else:
-            query_users = User.objects.all().exclude(is_active=True)
-        if not user_profile.user.is_superuser:
-            query_users = query_users.exclude(is_superuser=True)
-
-        # Setup the subscriber table.
-        user_table = django_tables.BlockedUserTable(list(query_users))
-        tables.RequestConfig(request, paginate={'per_page': 10}).configure(
-            user_table)
-        context = {
-            'network': network,
-            'search': dform.UserSearchForm({'query': query}),
-            'users_found': len(query_users),
-            'user_table': user_table,
-            'user_profile': user_profile,
-            'networks': get_objects_for_user(request.user, 'view_network',
-                                             klass=Network),
-        }
-        # Check logged in user permission for block user
-        info_template = get_template('dashboard/user_management/block-unblock.html')
-
-        html = info_template.render(context, request)
-        return HttpResponse(html)
-
-    def post(self, request, *args, **kwargs):
-        """Handles POST requests to block/unblock User.
-        """
-        user_profile = UserProfile.objects.get(user=request.user)
-        try:
-            user = User.objects.get(id=request.GET['user'])
-        except User.DoesNotExist:
-            return HttpResponseBadRequest()
-        if ((user_profile.user.is_superuser and user_profile.user.is_staff) and
-                (not user.is_superuser)) or (
-                    user_profile.user.is_staff and (not user.is_staff)):
-            if user.is_active:
-                user.is_active = False
-                message = '%s is Blocked!' % user.username
-            else:
-                user.is_active = True
-                message = '%s is Unblocked!' % user.username
-            user.save()
-            messages.success(request, message, extra_tags="alert "
-                                                          "alert-success")
-            return HttpResponse(message)
-        elif user_profile.user.id == user.id:
-            message = 'You cannot block yourself.'
-            messages.error(request, message, extra_tags="alert alert-danger")
-        else:
-            if user.is_active:
-                status = 'Block'
-            else:
-                status = 'Unblock'
-            message = 'Cannot %s %s' % (status, user.username)
-            messages.error(request, message, extra_tags="alert alert-danger")
         return HttpResponse(request, message)
 
 

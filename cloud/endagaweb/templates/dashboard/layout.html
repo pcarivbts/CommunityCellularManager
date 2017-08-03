@@ -23,7 +23,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.3/css/bootstrap.min.css" type="text/css"/>
     <link href="/static/css/dashboard.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.0.3/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.2.0/css/font-awesome.min.css">
 
     <!-- Custom styles for this template -->
     {% block pagestyle %}
@@ -35,10 +35,6 @@ of patent rights can be found in the PATENTS file in the same directory.
       .nav-pills > li.active > a,
       .nav-pills > li.active > a:hover {
         background-color: purple;
-      }
-      .btn {
-        background-color: purple;
-        border-color: purple;
       }
       .btn:hover {
         background-color: #B340B3;
@@ -134,7 +130,6 @@ of patent rights can be found in the PATENTS file in the same directory.
                 {% endif %}
                 {% if user_profile.user.is_staff %}
                     <li><a href="/dashboard/user/management"><i class="fa fa-user" aria-hidden="true"></i>&nbsp; User Management</a></li>
-                    <li><a href="/dashboard/subscriber_management/subscriber"><i class="fa fa-gear"></i>&nbsp; Subscriber Management</a></li>
                     <li class="divider"></li>
                 {% endif %}
                 <li><a href="/logout"><i class="fa fa-sign-out"></i>&nbsp; Log Out</a></li>

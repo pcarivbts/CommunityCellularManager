@@ -373,18 +373,17 @@ class SelectTowerForm(forms.Form):
 
 class UserSearchForm(forms.Form):
     """Crispy search form on /dashboard/subscribers."""
-    query = forms.CharField(required=False, label="Search Username")
+    query = forms.CharField(required=False, label="",
+                            widget=forms.TextInput(
+                                attrs={'placeholder':
+                                           'abc@domain.com'}))
 
     def __init__(self, sender, *args, **kwargs):
         self.helper = FormHelper()
         self.helper.form_id = 'id-SearchForm'
         self.helper.form_method = 'get'
-        if 'blocking' is sender:
-            self.helper.form_action = '/dashboard/user/management/blocking'
-        else:
-            self.helper.form_action = '/dashboard/user/management/delete'
-        # self.helper.form_class = 'form-vertical'
-        search_button = StrictButton('Find', css_class='btn-default',
+        self.helper.form_action = '/dashboard/user/management'
+        search_button = StrictButton('Search', css_class='btn-default',
                                      type='submit')
         self.helper.layout = Layout(FieldWithButtons('query', search_button))
         super(UserSearchForm, self).__init__(*args, **kwargs)

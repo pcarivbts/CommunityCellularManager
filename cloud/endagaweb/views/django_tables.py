@@ -389,26 +389,23 @@ class DenominationTable(tables.Table):
         return safestring.mark_safe(element)
 
 
-def render_username(record, **kwargs):
-    """Shows the username as a link.
-    kwargs:
-    sender: name for the sender to change on click behaviour"""
+def render_is_active(record):
+    user = record.id
+    is_superuser = ''
+    if record.is_active:
+        status = 'checked'
+    else:
+        status = ''
 
-    if kwargs.get('sender') == 'blocking':
-        element = "<a href='javascript:void(0)' id='user_" + str(
-            record.id) + "'" \
-                         " onclick='block(\"%s\",\"%s\");' " \
-                         "data-target='#block-user-modal' data-toggle='modal'>%s</a>" \
-                         % (record.id, record.is_active, html_utils.escape(
-            record.username))
-
-    elif kwargs.get('sender') == 'delete':
-        element = "<a href='javascript:void(0)' id='user_" + str(
-            record.id) + "'" \
-                         " onclick='remove(\"%s\");' " \
-                         "data-target='#delete-user-modal' " \
-                         "data-toggle='modal'>%s</a>" \
-                         % (record.id, html_utils.escape(record.username))
+    # Disable toggle for Cloud Admin
+    if record.is_superuser:
+        is_superuser = 'disabled'
+    element = "<input id='%d' type='checkbox' %s " \
+              "data-toggle='toggle' data-size='mini' data-off='Blocked' " \
+              "data-on='Active' %s><span id='toggle-%d' hidden>&nbsp;&nbsp;" \
+              "<span class='glyphicon glyphicon-ok'></span>"" \
+              ""</span>" % (
+        user, status, is_superuser, user)
 
     return safestring.mark_safe(element)
 
@@ -418,33 +415,32 @@ class UserTable(tables.Table):
 
     class Meta:
         model = models.User
-        fields = ('username', 'last_login')
+        fields = ('id', 'email', 'role', 'is_active', 'last_login')
         attrs = {'class': 'table'}
         orderable = False
 
-    username = tables.Column(verbose_name='Username')
-    last_login = tables.DateTimeColumn(verbose_name='Last Login', short=True)
+    id = tables.CheckBoxColumn(accessor="pk",
+                               attrs={
+                                   "th__input": {"onclick": "toggle(this)"}})
+    # Get user role from userprofile
+    role = tables.Column(accessor='userprofile.role', verbose_name='Role', orderable=True)
+    # username = tables.Column(verbose_name='Username', orderable=True)
+    email = tables.Column(verbose_name='Email', orderable=True)
+    is_active = tables.BooleanColumn(verbose_name='Status', orderable=True)
+    last_login = tables.DateTimeColumn(verbose_name='Last Login', short=True,
+                                       orderable=True)
 
-    def render_username(self, record):
-        return render_username(record, sender='delete')
+    def render_is_active(self, record):
+        return render_is_active(record)
 
+    def render_role(self, record):
+        role = record.userprofile.role
+        if role in ['Cloud Admin', 'Network Admin']:
+            element = '<span class = "label label-danger">%s</span>' % role
+        else:
+            element = '<span class = "label label-info">%s</span>' % role
 
-class BlockedUserTable(tables.Table):
-    """A django-tables2 Table definition for Blocked User."""
-
-    class Meta:
-        model = models.User
-        fields = ('username', 'is_active')
-        attrs = {'class': 'table'}
-        orderable = False
-
-    username = tables.Column(verbose_name='Username', orderable=True)
-    is_active = tables.BooleanColumn(yesno=u'Active, Blocked',
-                                     verbose_name='Status', orderable=True)
-
-    def render_username(self, record):
-        return render_username(record, sender='blocking')
-
+        return safestring.mark_safe(element)
 
 def render_imsi(record):
     element = "<input type = 'checkbox' class ='imsi_id' name='imsi[]' " \
@@ -477,5 +473,4 @@ class SubscriberManagementTable(tables.Table):
 
     def render_imsi(self, record):
         return render_imsi(record)
-
 

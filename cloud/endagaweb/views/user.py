@@ -277,35 +277,38 @@ def success(request):
 def role_default_permissions(request):
     if request.method == 'GET':
         role = request.GET['role']
-
-        business_analyst = ['view_graph', 'view_report', 'view_bts',
-                            'view_usage', 'view_subscriber',
-                            'view_network']
-
-        loader = ['view_graph', 'view_report', 'view_bts', 'view_subscriber',
-                  'view_network', 'edit_subscriber', 'change_network',
-                  'add_subscriber', 'add_sms', 'add_credit', 'download_graph',
-                  'view_usage']
-
-        partner = ['view_graph', 'view_report', 'view_bts', 'view_subscriber',
-                   'view_network', 'edit_subscriber', 'edit_network',
-                   'add_subscriber', 'add_sms', 'download_graph', 'view_usage']
-
+        # Default permissions on role selection
+        business_analyst = (
+            'view_activity', 'view_bts', 'view_denomination',
+            'view_graph', 'view_network', 'view_notification',
+            'view_report', 'view_subscriber',
+        )
+        loader = (
+            'view_activity', 'view_bts', 'view_denomination',
+            'view_graph', 'view_network', 'view_notification',
+            'view_report', 'view_subscriber', 'adjust_credit',
+            'send_sms', 'edit_subscriber',
+        )
+        partner = (
+            'view_activity', 'view_bts', 'view_denomination',
+            'view_graph', 'view_network', 'view_notification',
+            'view_report', 'view_subscriber', 'send_sms',
+            'edit_subscriber',
+        )
+        roles_and_permissions = {'Business Analyst': business_analyst,
+                                 'Loader': loader,
+                                 'Partner': partner,
+                                 }
         content_type = ContentType.objects.filter(
             app_label='endagaweb', model='network').values_list(
             'id', flat=True)
         permission = Permission.objects.filter(
             content_type__in=content_type).values_list('id', flat=True)
         role_permission = []
-        if role == 'Business Analyst':
+        if role in roles_and_permissions.keys():
             role_permission = Permission.objects.filter(
-                codename__in=business_analyst).values_list('id', flat=True)
-        elif role == 'Loader':
-            role_permission = Permission.objects.filter(
-                codename__in=loader).values_list('id', flat=True)
-        elif role == 'Partner':
-            role_permission = Permission.objects.filter(
-                codename__in=partner).values_list('id', flat=True)
+                codename__in=roles_and_permissions[role]).values_list(
+                'id', flat=True)
         else:
             for i in permission:
                 role_permission.append(i)

@@ -142,14 +142,6 @@ urlpatterns = [
         endagaweb.views.dashboard.UserUpdate.as_view(),
         name='user-update'),
 
-    url(r'^dashboard/user/management/delete',
-        endagaweb.views.dashboard.UserDelete.as_view(),
-        name='user-delete'),
-
-    url(r'^dashboard/user/management/blocking$',
-        endagaweb.views.dashboard.UserBlockUnblock.as_view(),
-        name='user-blocking'),
-
     url(r'^dashboard/user/management/checkuser',
         endagaweb.views.user.check_user),
 
