@@ -552,8 +552,13 @@ class BTSStatsClient(StatsClientBase):
 
     def timeseries(self, kind=None, **kwargs):
         results, usage, bts_values = ([] for i in range(3))
+
         start_time = datetime.fromtimestamp(kwargs['start_time_epoch'],
                                             pytz.utc)
+
+        # Limit end time to 7 days.
+        kwargs['end_time'] = start_time + timedelta(days=7)
+
         try:
             previous_state = models.SystemEvent.objects.filter(
                 bts_id=self.level_id, date__lt=start_time).order_by('-date')[0]
@@ -562,6 +567,7 @@ class BTSStatsClient(StatsClientBase):
             previous_state = 'bts up'
 
         for call_kind in BTS_KINDS:
+            # bts up
             usage = self.aggregate_timeseries(call_kind, **kwargs)
             values = [u[1] for u in usage]
             results.append(values)
