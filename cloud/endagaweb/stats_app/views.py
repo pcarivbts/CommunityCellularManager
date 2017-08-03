@@ -36,7 +36,7 @@ TIMESERIES_STAT_KEYS = stats_client.TIMESERIES_STAT_KEYS
 SUBSCRIBER_KINDS = stats_client.SUBSCRIBER_KINDS + \
                    stats_client.ZERO_BALANCE_SUBSCRIBER + \
                    stats_client.INACTIVE_SUBSCRIBER
-HEALTH_STATUS = stats_client.HEALTH_STATUS
+BTS_STATUS = stats_client.BTS_STATUS
 WATERFALL_KINDS = ['loader', 'reload_rate', 'reload_amount',
                    'reload_transaction', 'average_load', 'average_frequency']
 NON_LOADER_KINDS = ['non_loader_base', 'cumulative_base']
@@ -46,7 +46,7 @@ INTERVALS = ['years', 'months', 'weeks', 'days', 'hours', 'minutes']
 TRANSFER_KINDS = stats_client.TRANSFER_KINDS
 VALID_STATS = SMS_KINDS + CALL_KINDS + GPRS_KINDS + TIMESERIES_STAT_KEYS + \
               TRANSFER_KINDS + SUBSCRIBER_KINDS + WATERFALL_KINDS + \
-              HEALTH_STATUS + DENOMINATION_KINDS + NON_LOADER_KINDS
+              BTS_STATUS + DENOMINATION_KINDS + NON_LOADER_KINDS
 # Set valid aggregation types.
 AGGREGATIONS = ['count', 'duration', 'up_byte_count', 'down_byte_count',
                 'average_value', 'transaction_sum', 'transcation_count',
@@ -171,7 +171,7 @@ class StatsAPIView(views.APIView):
                 client_type = stats_client.SubscriberStatsClient
             elif stat_type in TRANSFER_KINDS:
                 client_type = stats_client.TransferStatsClient
-            elif stat_type in HEALTH_STATUS:
+            elif stat_type in BTS_STATUS:
                 client_type = stats_client.BTSStatsClient
             elif stat_type in WATERFALL_KINDS:
                 client_type = stats_client.WaterfallStatsClient
@@ -210,8 +210,7 @@ class StatsAPIView(views.APIView):
                     report_view ="table_view"
                 )
             else:
-                table_view ={}
-                #data['retailer_table_data'].append(table_view)
+                table_view = {}
             data['results'].append({
                 "key": stat_type,
                 "values": results,

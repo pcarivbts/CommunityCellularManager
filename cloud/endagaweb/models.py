@@ -554,7 +554,6 @@ class ChargingEntity(models.Model):
     class Meta:
         abstract = True
 
-
 class Subscriber(models.Model):
     network = models.ForeignKey('Network', on_delete=models.CASCADE)
     bts = models.ForeignKey(

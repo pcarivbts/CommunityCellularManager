@@ -527,7 +527,12 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                     return d[0]
                 })
                 .y(function(d) {
-                    return d[1]
+                if (d[1] > 0){
+                    return 1
+                } else {
+                    return 0
+                }
+
                 })
                 .color(d3.scale.category10().range())
                 .interpolate('monotone')
@@ -539,23 +544,39 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                 });
             // Fixes x-axis time alignment.
             chart.xScale(d3.time.scale.utc());
-            chart.yAxis
+            // For Health Graph
+            if(domTarget == '#call-chart') {
+                chart.yAxis
+                .axisLabel(yAxisLabel)
+                .axisLabelDistance(25)
+                 .tickFormat(function(d) {
+                    if (d == 1){
+                        return "UP";
+                    } else if (d > 0) {
+                        return ;
+                    } else {
+                        return "DOWN";
+                        }
+                    });
+            } else {
+                chart.yAxis
                 .axisLabel(yAxisLabel)
                 .axisLabelDistance(25)
                 .tickFormat(d3.format(yAxisFormatter));
+            }
+
             // Fixes the axis-labels being rendered out of the SVG element.
             chart.margin({
                 right: 80
             });
             chart.tooltipContent(function(key, x, y) {
-                if (key == 'bts_health_status') {
-                    var bts_status;
-                    if (y == 1) {
-                        bts_status = "BTS_UP"
+                if (key == 'health_state') {
+                    key = ''
+                    if (y =='UP'){
+                        y = '<span class = "label label-success">UP</span>'
                     } else {
-                        bts_status = "BTS_DOWN"
+                        y = '<span class = "label label-danger">DOWN</span>'
                     }
-                    return '<p>' + frontTooltip + bts_status + tooltipUnits + ' ' + '</p>' + '<p>' + x + '</p>';
                 }
                 return '<p>' + frontTooltip + y + tooltipUnits + ' ' + key + '</p>' + '<p>' + x + '</p>';
             });

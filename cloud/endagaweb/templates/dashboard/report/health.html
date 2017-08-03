@@ -62,11 +62,13 @@ of patent rights can be found in the PATENTS file in the same directory.
     <TimeseriesChartWithButtonsAndDatePickers
       title='BTS Status'
       chartID='call-chart'
-      statTypes='bts_health_status'
+      statTypes='health_state'
       level='tower'
       levelID='{{ level_id }}'
+      defaultButtonText='day'
       aggregation='bts_status'
-      yAxisLabel='numbers'
+      buttons={['day','week']}
+      yAxisLabel='STATE'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       tooltipUnits=''

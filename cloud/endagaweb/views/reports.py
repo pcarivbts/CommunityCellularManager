@@ -21,12 +21,11 @@ from ccm.common.currency import CURRENCIES
 from django.utils import timezone as django_utils_timezone
 from django.db.models import Q
 
-report_keys= ('Top Up', 'Call & SMS', 'Retailer', 'Waterfall')
-reports_dict= {
+report_keys = ('Top Up', 'Call & SMS', 'Retailer', 'Waterfall')
+reports_dict = {
     'Top Up': ['Amount Based', 'Count Based'],
     'Call and SMS': ['SMS Billing', 'Call and SMS Billing', 'Call Billing'],
     'Retailer': ['Retailer Recharge', 'Retailer Load Transfer'],
-    #'Non Loader': ['Total Base', 'Cumulative'],
     'Waterfall': ['Activation', 'Loader', 'Reload Rate', 'Reload Amount',
                   'Reload Transaction', 'Average Load', 'Average Frequency']
 }
@@ -95,32 +94,30 @@ class BaseReport(ProtectedView):
             else:
                 request.session['level_id'] = request.GET.get('level_id')
                 request.session['reports'] = report_list
-                request.session['filter'] = request.GET['filter']
-                request.session['level'] =request.GET.get('level','network')
+                request.session['filter'] = None
+                request.session['level'] = request.GET.get('level', 'network')
             # Reset filtering params.
-            #request.session['level'] = 'network'
-            request.session['level_id'] =  request.session['level_id']
+            request.session['level_id'] = request.session['level_id']
         else:
             return HttpResponseBadRequest()
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
             datetime.datetime.now()).total_seconds()
         level = request.session['level']
-        if request.session['level_id'] !=None:
+        if request.session['level_id'] != None:
             level_id = int(request.session['level_id'])
         else:
             level_id = network.id
-            level ='network'
-        if request.session['level']!=None:
+            level = 'network'
+        if request.session['level'] != None:
             request.session['level'] = request.session['level']
         else:
-            request.session['level'] = request.GET.get('level','network')
+            request.session['level'] = request.GET.get('level', 'network')
         reports = request.session['reports']
         filter = request.session['filter']
-        towers = models.BTS.objects.filter(network=user_profile.network).\
+        towers = models.BTS.objects.filter(network=user_profile.network). \
             order_by('id').values('nickname', 'uuid', 'id')
         network_has_activity = UsageEvent.objects.filter(
             network=network).exists()
-        #print("check level ",level)
         context = {
             'networks': get_objects_for_user(request.user, 'view_network',
                                              klass=Network),
@@ -227,24 +224,27 @@ class BillingReportView(ProtectedView):
             filter = request.session['filter']
             request.session['filter'] = filter
             return redirect(
-                urlresolvers.reverse(self.url_namespace) + '?filter='+filter)
+                urlresolvers.reverse(self.url_namespace) + '?filter=' + filter)
         elif request.method == "GET":
             if 'filter' in request.GET and 'filter' in request.session:
                 filter = request.GET.get('filter', 1)
                 if filter != request.session['filter']:
                     request.session['reports'] = self.reports[filter]
                 request.session['filter'] = filter
-                if(request.session['topup_percent'])!=None:
-                    request.session['topup_percent'] = request.session['topup_percent']
+                if (request.session['topup_percent']) != None:
+                    request.session['topup_percent'] = request.session[
+                        'topup_percent']
                 else:
-                    request.session['topup_percent'] =request.GET.get('topup_percent',100)
+                    request.session['topup_percent'] = request.GET.get(
+                        'topup_percent', 100)
             else:
                 request.session['level_id'] = request.GET.get('level_id')
                 request.session['reports'] = report_list
                 request.session['filter'] = None
                 request.session['level'] = request.GET.get('level', 'network')
-                request.session['topup_percent'] = request.GET.get('topup_percent',
-                                                               100)
+                request.session['topup_percent'] = request.GET.get(
+                    'topup_percent',
+                    100)
             # Reset filtering params.
             level = request.session['level']
             if request.session['level_id'] != None:
@@ -265,8 +265,12 @@ class BillingReportView(ProtectedView):
             network_id=network.id)
 
         for denom in denomination:
-            start_amount = humanize_credits(denom.start_amount, currency=CURRENCIES[network.currency])
-            end_amount = humanize_credits(denom.end_amount, currency=CURRENCIES[network.currency])
+            start_amount = humanize_credits(denom.start_amount,
+                                            currency=CURRENCIES[
+                                                network.currency])
+            end_amount = humanize_credits(denom.end_amount,
+                                          currency=CURRENCIES[
+                                              network.currency])
             denom_list.append(
                 (start_amount.amount_raw, end_amount.amount_raw))
         formatted_denomnation = []
@@ -274,10 +278,12 @@ class BillingReportView(ProtectedView):
             # Now format to set them as stat-types
             formatted_denomnation.append(
                 str(humanize_credits(
-                    denom[0], CURRENCIES[network.subscriber_currency])).replace(',', '')
+                    denom[0],
+                    CURRENCIES[network.subscriber_currency])).replace(',', '')
                 + ' - ' +
                 str(humanize_credits(
-                    denom[1], CURRENCIES[network.subscriber_currency])).replace(',', ''))
+                    denom[1],
+                    CURRENCIES[network.subscriber_currency])).replace(',', ''))
             denom_list2.append(
                 str(denom[0])
                 + '-' +
@@ -347,14 +353,16 @@ class ReportGraphDownload(ProtectedView):
         stat_types = stats_type.split(',')
         level = request.session['level']
         level_id = request.session['level_id']
-        start_time = datetime.datetime.fromtimestamp(float(start_date)).\
+        start_time = datetime.datetime.fromtimestamp(float(start_date)). \
             strftime('%Y-%m-%d %H:%M:%S.%f')
-        end_time = datetime.datetime.fromtimestamp(float(end_date)).\
+        end_time = datetime.datetime.fromtimestamp(float(end_date)). \
             strftime('%Y-%m-%d %H:%M:%S.%f')
         report_type = request.session['report-type']
-        if(report_type == 'Subscriber Status'):
+        if (report_type == 'Subscriber Status'):
             subscriber_events = self._get_subscriber_report(level, level_id,
-                                      start_time, end_time, stat_types)
+                                                            start_time,
+                                                            end_time,
+                                                            stat_types)
             headers = [
                 'Subscriber IMSI',
                 'Subscriber Name',
@@ -379,11 +387,12 @@ class ReportGraphDownload(ProtectedView):
                 writer.writerow([
                     subscriber,
                     e.name,
-                    humanize_credits(e.balance, currency=currency).amount_str(),
+                    humanize_credits(e.balance,
+                                     currency=currency).amount_str(),
                     e.state,
                     django_utils_timezone.localtime(e.last_active, timezone)
                         .strftime("%Y-%m-%d at %I:%M%p")
-                    if e.last_active else '' ,
+                    if e.last_active else '',
                     django_utils_timezone.localtime(e.last_outbound_activity,
                                                     timezone)
                         .strftime("%Y-%m-%d at %I:%M%p")
@@ -396,8 +405,8 @@ class ReportGraphDownload(ProtectedView):
                     e.role,
                 ])
             return response
-        if(report_type == 'BTS Status'):
-            bts_events = self._get_bts_health_report(level,level_id,
+        if (report_type == 'BTS Status'):
+            bts_events = self._get_bts_health_report(level, level_id,
                                                      start_time, end_time,
                                                      stat_types)
             headers = [
@@ -407,7 +416,7 @@ class ReportGraphDownload(ProtectedView):
                 'Time',
                 'Time Zone',
                 'Status',
-             ]
+            ]
             response = HttpResponse(content_type='text/csv')
             writer = csv.writer(response)
             writer.writerow(headers)
@@ -476,30 +485,32 @@ class ReportGraphDownload(ProtectedView):
                     e.billsec,
                     e.call_duration,
                     humanize_credits(e.tariff,
-                                 currency=currency).amount_str()
+                                     currency=currency).amount_str()
                     if e.tariff else None,
                     humanize_credits(e.change,
-                                 currency=currency).amount_str()
+                                     currency=currency).amount_str()
                     if e.change else None,
                     humanize_credits(e.oldamt,
-                                 currency=currency).amount_str()
+                                     currency=currency).amount_str()
                     if e.oldamt else None,
                     humanize_credits(e.newamt,
-                                 currency=currency).amount_str()
+                                     currency=currency).amount_str()
                     if e.newamt else None,
                     e.uploaded_bytes,
                     e.downloaded_bytes,
                 ])
             return response
 
-    def _get_usage_event_values(self, report_type, level, level_id, user_profile,
+    def _get_usage_event_values(self, report_type, level, level_id,
+                                user_profile,
                                 start_date=None, end_date=None,
                                 stats_type=None):
         network = user_profile.network
         events = UsageEvent.objects.filter(
             network=network).order_by('-date')
-        retailer_role_reports =['Top Up Report (Count Based)','Top Up Report (Amount Based)',
-                                'Retailer Load Transfer Report']
+        retailer_role_reports = ['Top Up Report (Count Based)',
+                                 'Top Up Report (Amount Based)',
+                                 'Retailer Load Transfer Report']
         if start_date or end_date:
             events = events.filter(
                 date__range=(str(start_date), str(end_date)))
@@ -518,9 +529,9 @@ class ReportGraphDownload(ProtectedView):
                 qs = Q(subscriber__role='retailer')
                 events = events.filter(qs1 & qs)
                 return events
-            qs = ([Q(kind__icontains=s)for s in stats_type] )
+            qs = ([Q(kind__icontains=s) for s in stats_type])
             if report_type == 'Subscriber Activity':
-                qs.append((Q(oldamt__gt=0,newamt__lte=0)))
+                qs.append((Q(oldamt__gt=0, newamt__lte=0)))
             events = events.filter(reduce(operator.or_, qs))
         return events
 
@@ -529,8 +540,9 @@ class ReportGraphDownload(ProtectedView):
         subscriber_events = Subscriber.objects.filter(
             valid_through__range=(str(start_date), str(end_date)))
         if stats_type:
-            qs =([Q(state=s)for s in stats_type])
-            subscriber_events = subscriber_events.filter(reduce(operator.or_, qs))
+            qs = ([Q(state=s) for s in stats_type])
+            subscriber_events = subscriber_events.filter(
+                reduce(operator.or_, qs))
         if level == 'tower':
             subscriber_events = subscriber_events.filter(bts__id=level_id)
         elif level == 'network':
@@ -547,4 +559,3 @@ class ReportGraphDownload(ProtectedView):
         if level == 'tower':
             bts_events = bts_events.filter(bts__id=level_id)
         return bts_events
-
