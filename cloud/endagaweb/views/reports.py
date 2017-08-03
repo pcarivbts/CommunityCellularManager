@@ -95,7 +95,7 @@ class BaseReport(ProtectedView):
             else:
                 request.session['level_id'] = request.GET.get('level_id')
                 request.session['reports'] = report_list
-                request.session['filter'] = None
+                request.session['filter'] = request.GET['filter']
                 request.session['level'] =request.GET.get('level','network')
             # Reset filtering params.
             #request.session['level'] = 'network'
