@@ -37,7 +37,7 @@ class BaseReport(ProtectedView):
         Process request and response for report view pages.This class used for
         handling filter by network, tower and report list.
         """
-    permission_required = 'view_graph'
+    permission_required = 'view_report'
 
     def __init__(self, reports, template, url_namespace='call-report',
                  **kwargs):
@@ -331,7 +331,7 @@ class BillingReportView(ProtectedView):
 class ReportGraphDownload(ProtectedView):
     """downoad csv on basis of reports"""
 
-    permission_required = ['downloads_graph']
+    permission_required = ['download_graph']
 
     def get(self, request):
         user_profile = UserProfile.objects.get(user=request.user)
