@@ -84,7 +84,7 @@ class IPATests(unittest.TestCase):
         self.length = 30
         self.stream_id = 'bad_id'
         self.payload = memoryview(b'\x00\x00\x00\x00')
-        self.assertRaises(RuntimeError, self._ipa._handle_ipa_msg, \
+        self.assertRaises(RuntimeError, self._ipa._handle_ipa_msg,
                           self.length, self.stream_id, self.payload)
 
 
@@ -97,8 +97,9 @@ class OsmoCtrlClientTests(unittest.TestCase):
         self.mock = Mock()
         self.mock.message = 'message'
         self._client_completed = asyncio.Future()
-        self._ctrl_client = functools.partial(OsmoCtrlClient, self.mock.message,\
+        self._ctrl_client = functools.partial(OsmoCtrlClient, self.mock.message,
                                               future=self._client_completed)
+
     def test_client_completed(self):
         """ test connection_lost() completes the client"""
         self.assertEquals(self._client_completed.done(), False)
@@ -123,7 +124,7 @@ class CtrlProcessorTests(unittest.TestCase):
         """ testing handling of error message from Osmo stack"""
         response = {'id': self.request_id,
                     'msg_type': "ERROR",
-                    'error': b'Read Only attribute',}
+                    'error': b'Read Only attribute'}
         self.assertRaises(OsmoCtrlError, self._ctrl_processor.process_response, response)
 
 
@@ -140,7 +141,7 @@ class OsmoCtrlManagerTests(unittest.TestCase):
         """ testing the generation of a Ctrl SET message"""
         self.mock.variable = 'mcc'
         self.mock.value = 600
-        _, self.cmd = self._ctrl_manager.generate_msg(self.mock.variable,\
+        _, self.cmd = self._ctrl_manager.generate_msg(self.mock.variable,
                                                       self.mock.value)
         responses = self._process_msg(self.cmd)
         self.assertEquals(responses['action'], 'SET')
@@ -151,7 +152,7 @@ class OsmoCtrlManagerTests(unittest.TestCase):
         """ testing the generation of a Ctrl GET message"""
         self.mock.variable = 'mcc'
         self.mock.value = None
-        _, self.cmd = self._ctrl_manager.generate_msg(self.mock.variable,\
+        _, self.cmd = self._ctrl_manager.generate_msg(self.mock.variable,
                                                       self.mock.value)
         responses = self._process_msg(self.cmd)
         self.assertEquals(responses['action'], 'GET')

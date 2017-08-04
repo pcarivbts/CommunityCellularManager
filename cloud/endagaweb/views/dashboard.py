@@ -53,6 +53,7 @@ from endagaweb.models import (UserProfile, Subscriber, UsageEvent,
                               Network, PendingCreditUpdate, Number)
 from endagaweb.util.currency import cents2mc
 from endagaweb.views import django_tables
+import json
 
 
 class ProtectedView(PermissionRequiredMixin, View):
@@ -723,6 +724,12 @@ class ActivityView(ProtectedView):
             request.session['end_date'] = request.POST.get('end_date', None)
             request.session['services'] = request.POST.getlist('services[]',
                                                                None)
+            # Added to check password to download the csv
+            if (request.user.check_password(request.POST.get('password'))):
+                response = {'status': 'ok'}
+                return HttpResponse(json.dumps(response),
+                                    content_type="application/json")
+
             # We always just do a redirect to GET. We include page reference
             # to retain the search parameters in the session.
             return redirect(urlresolvers.reverse('network-activity') +
