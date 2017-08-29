@@ -11,6 +11,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 import datetime
 import time
 import json
+import logging
 
 from django import http
 from django import template
@@ -38,6 +39,8 @@ NUMBER_COUNTRIES = {
     'ID': 'Indonesia (+62)',
     'PH': 'Philippines (+63)',
 }
+
+logger = logging.getLogger(__name__)
 
 
 class NetworkInfo(ProtectedView):
@@ -746,14 +749,21 @@ class NetworkNotifications(ProtectedView):
                     notification.number = number
                     notification.save()
                     # Write message to template for parsing and translation
-                    tasks.translate(message)
-                    message = 'Notification added successfully!'
-                    messages.success(request, message)
+                    ##########tasks.translate(message)
+                    msg = 'Notification added successfully!'
+                    messages.success(request, msg)
             except IntegrityError:
                 alert_message = '{0} notification already exists!'.format(
                     str(type).title())
                 messages.error(request, alert_message,
                                extra_tags="alert alert-danger")
+            # Send translation files to client BTS
+            bts_list = models.BTS.objects.filter(network=network)
+            for bts in bts_list:
+                url = bts.inbound_url + "/translate"
+                logger.error("Translation update called: %s %s",
+                             url, message)
+                tasks.translate(message, url)
             return redirect(urlresolvers.reverse('network-notifications'))
         else:
             # Delete the notifications

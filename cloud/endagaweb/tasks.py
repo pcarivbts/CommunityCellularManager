@@ -453,11 +453,35 @@ def req_bts_log(self, obj, retry_delay=60*10, max_retries=432):
       obj.save()
 
 @app.task(bind=True)
-def translate(self, message, retry_delay=60*10, max_retries=432):
+def translate(self, message, url, retry_delay=60*10, max_retries=432):
     """Tries to write notification message for translation.
 
     The default retry is every 10 min for 3 days.
     """
+    print "TRANSLATION - attempting to send POST request to endpoint '%s'" % url
+    try:
+        translation_files = []
+        for lang in LANGUAGES:
+            po_path = LOCALE_PATHS[0] + '/' + lang[
+                0] + '/LC_MESSAGES/django.po'
+            file = ('locale', ('cloud.po', open(po_path, 'rb'), 'text/plain'))
+            translation_files.append(file)
+
+        r = requests.post(url, data={'status':'translation-files'},
+                          files=translation_files,
+                          timeout=settings.ENDAGA['BTS_REQUEST_TIMEOUT_SECS'])
+        if r.status_code >= 200 and r.status_code < 300:
+            print "async_post SUCCESS. url: '%s' (%d). Response was: %s" % (
+                r.url, r.status_code, r.text)
+            return r.status_code
+        else:
+            print "async_post FAIL. url: '%s' (%d). Response was: %s" % (
+                r.url, r.status_code, r.text)
+            raise ValueError(r.status_code)
+    except Exception as exception:
+        print "translate ERROR. url: '%s' exception: %s" % (url, exception)
+        raise
+
     print "writing network notification message for translation '%s'"
     try:
         handle = open(TEMPLATES_PATH + "/translate.html", 'a+')
