@@ -654,49 +654,23 @@ class SubscriberAdjustCredit(ProtectedView):
         # Validate the input.
         if 'amount' not in request.POST:
             return HttpResponseBadRequest()
-        error_text = 'Credit value must be between -10M and 10M.'
-
+        error_text = 'Error: credit value must be between -10M and 10M.'
         try:
             currency = network.subscriber_currency
             amount = parse_credits(request.POST['amount'],
-                                   CURRENCIES[currency]).amount_raw
+                    CURRENCIES[currency]).amount_raw
             if abs(amount) > 2147483647:
-                error_text = 'Credit value must be between -10M and 10M.'
-                raise ValueError(error_text)
-            if sub.balance + amount > network.max_account_limit:
-                error_text = 'Error : Crossed Credit Limit.'
-                raise ValueError(error_text)
-            try:
-                # Check for existing denomination range exist.
-                denom_exists = NetworkDenomination.objects.filter(
-                    start_amount__lte=amount,
-                    end_amount__gt=amount,
-                    network=network).exists()
-                # Update user validity for recharge denomination amount
-                if denom_exists:
-                    try:
-                        # Validation suceeded, create a PCU and start the
-                        # update credit task.
-                        msgid = str(uuid.uuid4())
-                        credit_update = PendingCreditUpdate(subscriber=sub,
-                                                            uuid=msgid,
-                                                            amount=amount)
-                        credit_update.save()
-                        tasks.update_credit.delay(sub.imsi, msgid)
-                        return adjust_credit_redirect
-                    except Number.DoesNotExist:
-                        error_text = 'Subscriber has no number assigned.'
-                        raise ValueError(error_text)
-                else:
-                    error_text = 'Credit value must be in denomination range.'
-                    raise ValueError(error_text)
-            except NetworkDenomination.DoesNotExist:
-                error_text = 'Credit value must be in denomination range.'
                 raise ValueError(error_text)
         except ValueError:
-            messages.error(request, error_text,
-                           extra_tags="alert alert-danger")
+            messages.error(request, error_text)
             return adjust_credit_redirect
+        # Validation suceeded, create a PCU and start the update credit task.
+        msgid = str(uuid.uuid4())
+        credit_update = PendingCreditUpdate(subscriber=sub, uuid=msgid,
+                                            amount=amount)
+        credit_update.save()
+        tasks.update_credit.delay(sub.imsi, msgid)
+        return adjust_credit_redirect
 
     def delete(self, request, imsi=None):
         """Handle the deletion of Pending Credit Updates."""
