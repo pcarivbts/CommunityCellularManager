@@ -403,6 +403,8 @@ class CheckinResponder(object):
             'latest_stable_version': latest_stable_version,
             'latest_beta_version': latest_beta_version,
         }
+        # Send network max balance
+        result['endaga']['network_max_balance'] = self.bts.network.max_balance
         return result
 
     def gen_events(self):
