@@ -58,10 +58,12 @@ class BaseSubscriber(KVStore):
 
         res = {}
         for (imsi, balance) in subs:
+        # for (imsi, balance, status) in subs:
             res[imsi] = {}
             # ship this as json string straight from db
             res[imsi]['balance'] = balance
             res[imsi]['numbers'] = []  # TODO(shasan): nothing for now
+            #res[imsi]['status'] = status
         return res
 
     def create_subscriber(self, imsi, number, ip=None, port=None):
@@ -485,3 +487,6 @@ class BaseSubscriber(KVStore):
                 logger.error("Balance sync fail! IMSI: %s, %s Error: %s" %
                                 (imsi, sub['balance'], e))
 
+    def get_account_status(self, imsi):
+        # return str(self[imsi].value())
+        return 'active'
