@@ -15,7 +15,7 @@ of patent rights can be found in the PATENTS file in the same directory.
    1: First Expire, Recycle or Blocked
    -->
   <condition field='${vbts_callerid}' expression="^\d+$"/>
-  <condition field='${cond(${vbts_account_status} == "active" ? YES : NO)}' expression="^NO$">
+  <condition field='${cond(${vbts_account_status} == "active" ? YES : NO)}' expression="^YES$">
     <action application="set" data='service_type=error_call'/>
     <action application="export" data='service_type=error_call'/>
     <action application="python" data="endaga_i18n Your account is blocked or expired, Please contact your provider."/>
