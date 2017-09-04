@@ -276,7 +276,8 @@ class CheckinResponder(object):
         res = {}
         for s in Subscriber.objects.filter(network=self.bts.network):
             bal = crdt.PNCounter.from_state(json.loads(s.crdt_balance))
-            data = {'numbers': s.numbers_as_list(), 'balance': bal.state}
+            data = {'numbers': s.numbers_as_list(), 'balance': bal.state,
+                    'sub_status': s.state}
             res[s.imsi] = data
         return res
 

@@ -31,6 +31,7 @@ class BaseSubscriber(KVStore):
         super(BaseSubscriber, self).__init__('subscribers', connector,
                                              key_name='imsi',
                                              val_name='balance')
+        self.subscriber_status = BaseSubscriberStatus()
 
     def get_subscriber_states(self, imsis=None):
         """
@@ -486,7 +487,170 @@ class BaseSubscriber(KVStore):
             except (SubscriberNotFound, ValueError) as e:
                 logger.error("Balance sync fail! IMSI: %s, %s Error: %s" %
                                 (imsi, sub['balance'], e))
+                logger.error("Status sync fail! IMSI: %s, %s Error: %s" %
+                                                (imsi, sub['sub_status'], e))
+        self._update_status(net_subs)
+
+    def _update_status(self, net_subs):
+        bts_imsis = self.subscriber_status.get_subscriber_imsis()
+        net_imsis = set(net_subs.keys())
+
+        subs_to_add = net_imsis.difference(bts_imsis)
+        subs_to_delete = bts_imsis.difference(net_imsis)
+        subs_to_update = bts_imsis.intersection(net_imsis)
+
+        for imsi in subs_to_delete:
+            self.subscriber_status.delete_subscriber(imsi)
+
+        for imsi in subs_to_update:
+            sub = net_subs[imsi]
+            sub_status = sub['sub_status']
+            try:
+                self.subscriber_status.update_status(imsi, sub_status)
+            except SubscriberNotFound as e:
+                logger.warning(
+                    "Status sync fail! IMSI: %s is not found Error: %s" %
+                    (imsi, e))
+            except ValueError as e:
+                logger.error("Status sync fail! IMSI: %s, %s Error: %s" %
+                             (imsi, sub['sub_status'], e))
+                subs_to_add.add(imsi)  # try to add it (again)
+
+        for imsi in subs_to_add:
+            sub = net_subs[imsi]
+            numbers = sub['numbers']
+
+            sub_status = sub['sub_status']
+            if not numbers:
+                logger.notice("IMSI with no numbers? %s" % imsi)
+                continue
+            self.create_subscriber(imsi, numbers[0])
+            self.subscriber_status.create_subscriber_status(imsi, sub_status)
+
+            for n in numbers[1:]:
+                self.add_number(imsi, n)
+            try:
+                bal = crdt.PNCounter.from_state(sub['balance'])
+                self.update_balance(imsi, bal)
+                self.subscriber_status.update_status(imsi, sub_status)
+            except (SubscriberNotFound, ValueError) as e:
+                logger.error("Status sync fail! IMSI: %s, %s Error: %s" %
+                                                (imsi, sub['sub_status'], e))
+
+
+class BaseSubscriberStatus(KVStore):
+
+    def __init__(self, connector=None):
+        super(BaseSubscriberStatus, self).__init__('subscribers_status', connector,
+                                             key_name='imsi',
+                                             val_name='current_status')
+
+    def get_subscriber_states(self, imsis=None):
+        """
+        Return a dictionary containing all the subscriber status.  Format is:
+
+        { 'IMSIxxx...' : {'status': 'subscriber's status'},
+            ...
+        }
+
+        Args:
+            imsis: A list of IMSIs to get state for. If None, returns
+                   everything.
+        Returns: if imsis is None => return ALL subscribers
+                 imsis is an empty list [] => return an empty dictionary
+                 otherwise => return information about the subscribers listed
+                 in imsis
+        """
+        if imsis:  # non-empty list, return requested subscribers
+            subs = self.get_multiple(imsis)
+        elif imsis is None:  # empty list, return all subscribers
+            subs = list(self.items())
+        else:
+            return {}  # empty list - return an empty dict
+
+        res = {}
+        for (imsi, status) in subs:
+            res[imsi] = {}
+            res[imsi]['status'] = status
+        return res
+
+    def create_subscriber_status(self, imsi, status):
+        def _add_if_absent(cur):
+            if self._get_option(cur, imsi):
+                raise ValueError(imsi)
+            self._insert(cur, imsi, status)
+        self._connector.with_cursor(_add_if_absent)
+
+    def delete_subscriber(self, imsi):
+        del self[imsi]
+
+    def _set_status(self, cur, imsi, status):
+        """
+        Sets a subscriber balance to the given PN counter. Subscriber must
+        exist in the database.
+
+        Important: This doesn't do anything about transactions, you need to
+        make sure the caller appropriately implements that logic.
+
+        Arguments:
+            imsi: Subscriber IMSI
+            cursor: DB cursor
+            pncounter: A PNCounter representing the subscriber's balance
+
+        Returns: None
+
+        Raises:
+            ValueError: Invalid PNCounter
+            SubscriberNotFound: No subscriber exists in the DB
+        """
+        try:
+            self._update(cur, imsi, status)
+        except KeyError:
+            # No subscriber affected
+            raise SubscriberNotFound(imsi)
+
+    def update_status(self, imsi, status):
+        def _update(cur):
+            self._set_status(cur, imsi, status)
+        self._connector.with_cursor(_update)
+
+    def get_subscriber_imsis(self):
+        return {key for key in self.get_subscriber_states().keys()}
+
+    def process_status_update(self, net_subs):
+        bts_imsis = self.get_subscriber_imsis()
+        net_imsis = set(net_subs.keys())
+
+        subs_to_add = net_imsis.difference(bts_imsis)
+        subs_to_delete = bts_imsis.difference(net_imsis)
+        subs_to_update = bts_imsis.intersection(net_imsis)
+
+        for imsi in subs_to_delete:
+            self.delete_subscriber(imsi)
+
+        for imsi in subs_to_update:
+            sub = net_subs[imsi]
+            sub_status = sub['sub_status']
+            try:
+                self.update_status(imsi, sub_status)
+            except SubscriberNotFound as e:
+                logger.warning(
+                    "Status sync fail! IMSI: %s is not found Error: %s" %
+                    (imsi, e))
+            except ValueError as e:
+                logger.error("Status sync fail! IMSI: %s, %s Error: %s" %
+                             (imsi, sub['sub_status'], e))
+                subs_to_add.add(imsi)  # try to add it (again)
+
+        for imsi in subs_to_add:
+            sub = net_subs[imsi]
+            sub_status = sub['sub_status']
+            self.create_subscriber_status(imsi, sub_status)
+            try:
+                self.update_status(imsi, sub_status)
+            except (SubscriberNotFound, ValueError) as e:
+                logger.error("Status sync fail! IMSI: %s, %s Error: %s" %
+                                (imsi, sub['sub_status'], e))
 
     def get_account_status(self, imsi):
-        # return str(self[imsi].value())
-        return 'active'
+        return str(self[imsi])
