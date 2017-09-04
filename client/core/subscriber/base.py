@@ -487,8 +487,8 @@ class BaseSubscriber(KVStore):
             except (SubscriberNotFound, ValueError) as e:
                 logger.error("Balance sync fail! IMSI: %s, %s Error: %s" %
                                 (imsi, sub['balance'], e))
-                logger.error("Status sync fail! IMSI: %s, %s Error: %s" %
-                                                (imsi, sub['sub_status'], e))
+
+        # Update status table as well
         self._update_status(net_subs)
 
     def _update_status(self, net_subs):
@@ -518,20 +518,10 @@ class BaseSubscriber(KVStore):
 
         for imsi in subs_to_add:
             sub = net_subs[imsi]
-            numbers = sub['numbers']
-
             sub_status = sub['sub_status']
-            if not numbers:
-                logger.notice("IMSI with no numbers? %s" % imsi)
-                continue
-            self.create_subscriber(imsi, numbers[0])
             self.subscriber_status.create_subscriber_status(imsi, sub_status)
 
-            for n in numbers[1:]:
-                self.add_number(imsi, n)
             try:
-                bal = crdt.PNCounter.from_state(sub['balance'])
-                self.update_balance(imsi, bal)
                 self.subscriber_status.update_status(imsi, sub_status)
             except (SubscriberNotFound, ValueError) as e:
                 logger.error("Status sync fail! IMSI: %s, %s Error: %s" %
