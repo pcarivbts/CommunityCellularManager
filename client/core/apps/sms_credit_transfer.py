@@ -62,17 +62,26 @@ def process_transfer(from_imsi, to_imsi, amount):
     if not from_balance or from_balance < amount:
         return False, gt("Your account doesn't have sufficient funds for"
                          " the transfer.")
-    # Error when user tries to transfer more credit than network max balance
-    network_max_balance = int(config_db['network_max_balance'])
-    credit_limit = freeswitch_strings.humanize_credits(network_max_balance)
-    if amount > network_max_balance:
-        return False, gt("You crossed credit limit.Your credit limit is "
-                         "%(credit)s.") % {'credit': credit_limit}
     # Error when user tries to transfer to a non-existent user.
     #       Could be 0!  Need to check if doesn't exist.
     if not to_imsi or (subscriber.get_account_balance(to_imsi) == None):
         return False, gt("The number you're sending to doesn't exist."
                          " Try again.")
+    # Error when user tries to transfer more credit than network max balance
+    network_max_balance = int(config_db['network_max_balance'])
+    credit_limit = freeswitch_strings.humanize_credits(network_max_balance)
+    to_balance = int (subscriber.get_account_balance(to_imsi))
+    max_transfer = network_max_balance - to_balance
+    max_transfer_str = freeswitch_strings.humanize_credits(max_transfer)
+    if (amount + to_balance) > network_max_balance:
+        return False, gt("Top-up not allowed.Maximum balance limit crossed."
+                         "%(credit)s.You can transfer upto %(transfer)s.") % \
+               {'credit': credit_limit,'transfer' :max_transfer_str}
+    elif to_balance > network_max_balance:
+        return  False, gt("Top-up not allowed. Maximum balance limit crossed"
+                         "%(credit)s.") % {'credit': credit_limit}
+
+
     # Add the pending transfer.
     code = ''
     for _ in range(int(config_db['code_length'])):
