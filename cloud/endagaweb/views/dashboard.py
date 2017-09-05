@@ -37,14 +37,14 @@ import pytz
 import stripe
 from guardian.shortcuts import get_objects_for_user
 
-from ccm.common.currency import parse_credits, humanize_credits, \
-    CURRENCIES, Money
+from ccm.common.currency import parse_credits, humanize_credits, CURRENCIES
 from endagaweb.models import (UserProfile, Subscriber, UsageEvent,
                               Network, PendingCreditUpdate, Number, BTS)
 from endagaweb.util.currency import cents2mc
 from endagaweb.forms import dashboard_forms as dform
 from endagaweb import tasks
 from endagaweb.views import django_tables
+import json
 
 class ProtectedView(View):
     """ A class-based view that requires a login. """
@@ -693,6 +693,12 @@ class ActivityView(ProtectedView):
             request.session['end_date'] = request.POST.get('end_date', None)
             request.session['services'] = request.POST.getlist('services[]',
                                                                None)
+            # Added to check password to download the csv
+            if (request.user.check_password(request.POST.get('password'))):
+                response = {'status': 'ok'}
+                return HttpResponse(json.dumps(response),
+                                    content_type="application/json")
+
             # We always just do a redirect to GET. We include page reference
             # to retain the search parameters in the session.
             return redirect(urlresolvers.reverse('network-activity') +
@@ -940,13 +946,9 @@ class BroadcastView(ProtectedView):
             if (sendto == 'tower' and not tower_id) or sendto == 'network':
                 # Lookup for BTS inbound_url.
                 bts_list = BTS.objects.filter(network=network_id)
-                level = 'network'
-                level_id = network_id
             else:
                 # Lookup for BTS inbound_url.
                 bts_list = BTS.objects.filter(id=tower_id)
-                level = 'tower'
-                level_id = tower_id
 
             for bts in bts_list:
                 # Fire off an async task request to send the SMS.
@@ -954,9 +956,7 @@ class BroadcastView(ProtectedView):
                     'to': '*',
                     'sender': '0000',
                     'text': message,
-                    'msgid': str(uuid.uuid4()),
-                    'level_id': level_id,
-                    'level': level
+                    'msgid': str(uuid.uuid4())
                 }
                 url = bts.inbound_url + "/endaga_sms"
                 tasks.async_post.delay(url, params)
@@ -966,7 +966,7 @@ class BroadcastView(ProtectedView):
             subscribers = []
             for imsi in imsi_list:
                 try:
-                    sub = Subscriber.objects.get(imsi=imsi)
+                    sub = Subscriber.objects.get(imsi=imsi,network=network_id)
                     subscribers.append(sub)
                 except Subscriber.DoesNotExist:
                     invalid_imsi.append(imsi)
@@ -976,7 +976,7 @@ class BroadcastView(ProtectedView):
                 return HttpResponse(json.dumps(response),
                                     content_type="application/json")
             if len(invalid_imsi) > 0:
-                message = "Invalid %s in IMSI numbers." % (','.join(
+                message = "%s does not exist in this network." % (','.join(
                     invalid_imsi))
                 response['messages'].append(message)
                 return HttpResponse(json.dumps(response),
@@ -993,9 +993,7 @@ class BroadcastView(ProtectedView):
                         'to': num.number,
                         'sender': '0000',
                         'text': message,
-                        'msgid': str(uuid.uuid4()),
-                        'level_id': 123,
-                        'level': 89
+                        'msgid': str(uuid.uuid4())
                     }
                     url = subscriber.bts.inbound_url + "/endaga_sms"
                     tasks.async_post.delay(url, params)
