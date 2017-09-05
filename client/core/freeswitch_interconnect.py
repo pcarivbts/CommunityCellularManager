@@ -12,8 +12,9 @@ of patent rights can be found in the PATENTS file in the same directory.
 """
 
 from ESL import ESLconnection
-
+from freeswitch import consoleLog
 from core import number_utilities
+from core.subscriber import subscriber
 
 
 class freeswitch_ic(object):
@@ -41,10 +42,24 @@ class freeswitch_ic(object):
             to = number_utilities.convert_to_e164(to, to_country)
         if from_country:
             from_ = number_utilities.convert_to_e164(from_, from_country)
-        to = number_utilities.strip_number(to)
-        from_ = number_utilities.strip_number(from_)
-        return self._send_raw_to_freeswitch_cli(
-                   str("python VBTS_Send_SMS %s|%s|%s" % (to, from_, body)))
+        # Check brodacast. TO receive * from cloud for send sms to all IMSIs
+        if to == '*':
+            # Get all subscribers and thier IMSIs
+            imsi_list = subscriber.get_subscriber_imsis()
+            consoleLog('info', 'Broadcast SMS to IMISs %s : \n' % (imsi_list))
+            for imsi in imsi_list:
+                numbers = subscriber.get_numbers_from_imsi(imsi)
+                for number in numbers:
+                    to = str(number)
+                    self._send_raw_to_freeswitch_cli(
+                        str("python VBTS_Send_SMS %s|%s|%s" % (
+                        to, from_, body)))
+            return True
+        else:
+            to = number_utilities.strip_number(to)
+            from_ = number_utilities.strip_number(from_)
+            return self._send_raw_to_freeswitch_cli(
+                str("python VBTS_Send_SMS %s|%s|%s" % (to, from_, body)))
 
     def send_to_imsi(self, to, ipaddr, port, from_, body):
         """Send a message directly to an IMSI. These messages will go directly to
