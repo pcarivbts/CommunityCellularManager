@@ -529,7 +529,14 @@ class BaseSubscriber(KVStore):
 
 
 class BaseSubscriberStatus(KVStore):
-
+    """
+    Sets and Updates Subscriber Status similar to balance updates
+    Current Status can be (i.e States of subscriber):
+        Blocked : Subscriber blocked for some reason (no call/sms) for some period.
+        Active: Subscriber is active
+        First Expire : Subscriber has no validity (no call/sms)
+        Expired: Grace period also expired after First Expire (no call/sms)
+    """
     def __init__(self, connector=None):
         super(BaseSubscriberStatus, self).__init__('subscribers_status', connector,
                                              key_name='imsi',
@@ -575,28 +582,9 @@ class BaseSubscriberStatus(KVStore):
         del self[imsi]
 
     def _set_status(self, cur, imsi, status):
-        """
-        Sets a subscriber balance to the given PN counter. Subscriber must
-        exist in the database.
-
-        Important: This doesn't do anything about transactions, you need to
-        make sure the caller appropriately implements that logic.
-
-        Arguments:
-            imsi: Subscriber IMSI
-            cursor: DB cursor
-            pncounter: A PNCounter representing the subscriber's balance
-
-        Returns: None
-
-        Raises:
-            ValueError: Invalid PNCounter
-            SubscriberNotFound: No subscriber exists in the DB
-        """
         try:
             self._update(cur, imsi, status)
         except KeyError:
-            # No subscriber affected
             raise SubscriberNotFound(imsi)
 
     def update_status(self, imsi, status):
