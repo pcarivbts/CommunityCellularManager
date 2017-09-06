@@ -8,17 +8,11 @@ of patent rights can be found in the PATENTS file in the same directory.
 -->
 
 <extension name="number_status">
-  <!-- free local numbers don't require money -->
-  <!--
-   Number/Subscriber Status:
-   0: Active
-   1: First Expire, Recycle or Blocked
-   -->
   <condition field='${vbts_callerid}' expression="^\d+$"/>
   <condition field='${vbts_account_status}' expression="False">
     <action application="set" data='service_type=error_call'/>
     <action application="export" data='service_type=error_call'/>
-    <action application="python" data="endaga_i18n Your account is blocked or expired, Please contact your provider."/>
+    <action application="python" data="endaga_i18n Failed to connect! Your account is blocked or expired, Please contact your provider."/>
     <action application="set" data='res=${python(VBTS_Send_SMS ${vbts_callerid}|103|${_localstr})}'/>
     <action application="answer"/>
     <action application="speak" data='flite|slt|${_localstr}'/>

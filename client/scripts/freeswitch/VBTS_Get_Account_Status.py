@@ -21,7 +21,8 @@ def chat(message, imsi):
       imsi: a subscriber's IMSI
     """
     try:
-        if 'active' == str(subscriber.subscriber_status.get_account_status(imsi)).lower():
+        if 'active' == str(
+                subscriber.subscriber_status.get_account_status(imsi)).lower():
             account_status = True
         else:
             account_status = False
@@ -38,7 +39,8 @@ def fsapi(session, stream, env, imsi):
       imsi: a subscriber's IMSI
     """
     try:
-        if 'active' == str(subscriber.subscriber_status.get_account_status(imsi)).lower():
+        if 'active' == str(
+                subscriber.subscriber_status.get_account_status(imsi)).lower():
             account_status = True
         else:
             account_status = False
