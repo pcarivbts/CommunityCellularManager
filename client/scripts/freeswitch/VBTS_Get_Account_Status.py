@@ -21,12 +21,13 @@ def chat(message, imsi):
       imsi: a subscriber's IMSI
     """
     try:
-        # account_status = str(subscriber.get_account_status(imsi))
-        account_status = str(
-            subscriber.subscriber_status.get_subscriber_states(imsi))
+        if 'active' == str(subscriber.subscriber_status.get_account_status(imsi)).lower():
+            account_status = True
+        else:
+            account_status = False
     except SubscriberNotFound:
-        account_status = ''
-    consoleLog('info', "Returned Chat:" + account_status + "\n")
+        account_status = False
+    consoleLog('info', "Returned Chat:" + str(account_status) + "\n")
     message.chat_execute('set', '_openbts_ret=%s' % account_status)
 
 
@@ -37,8 +38,11 @@ def fsapi(session, stream, env, imsi):
       imsi: a subscriber's IMSI
     """
     try:
-        account_status = str(subscriber.get_account_status(imsi))
+        if 'active' == str(subscriber.subscriber_status.get_account_status(imsi)).lower():
+            account_status = True
+        else:
+            account_status = False
     except SubscriberNotFound:
-        account_status = ''
-    consoleLog('info', "Returned FSAPI: " + account_status + "\n")
-    stream.write(account_status)
+        account_status = False
+    consoleLog('info', "Returned FSAPI: " + str(account_status) + "\n")
+    stream.write(str(account_status))
