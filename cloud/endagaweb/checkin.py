@@ -26,7 +26,7 @@ from endagaweb.models import Subscriber
 from endagaweb.models import TimeseriesStat
 from endagaweb.models import UsageEvent
 from endagaweb.util.parse_destination import parse_destination
-
+from endagaweb.models import NetworkDenomination
 
 class CheckinResponder(object):
 
@@ -161,6 +161,7 @@ class CheckinResponder(object):
         resp['config'] = self._optimize('config', self.gen_config())
         resp['subscribers'] = self._optimize('subscribers',
                                              self.gen_subscribers())
+        resp['network_denomination'] =self.get_network_denomination()
         resp['events'] = self.gen_events()
         resp['sas'] = self.gen_spectrum()
         self.bts.save()
@@ -278,6 +279,17 @@ class CheckinResponder(object):
             bal = crdt.PNCounter.from_state(json.loads(s.crdt_balance))
             data = {'numbers': s.numbers_as_list(), 'balance': bal.state}
             res[s.imsi] = data
+        return res
+
+    def get_network_denomination(self):
+        """
+        Returns a list of denomination bracket
+        """
+        res = []
+        for s in NetworkDenomination.objects.filter(network=self.bts.network,status='done'):
+            data = {'id': s.id,'start_amount': s.start_amount, 'end_amount': s.end_amount,
+                    'validity': s.validity_days}
+            res.append(data)
         return res
 
     def gen_config(self):
