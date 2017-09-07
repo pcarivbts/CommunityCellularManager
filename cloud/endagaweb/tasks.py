@@ -483,6 +483,7 @@ def unblock_blocked_subscribers(self):
     subscribers.update(is_blocked=False, block_time=None,
                        block_reason='No reason to block yet!')
 
+@app.task(bind=True)
 def zero_out_subscribers_balance(self):
     """Subscriber balance zero outs when validity expires.
 
@@ -498,6 +499,7 @@ def zero_out_subscribers_balance(self):
         [subscriber.imsi for subscriber in subscribers],)
     subscribers.update(crdt_balance=credit_balance)
 
+@app.task(bind=True)
 def subscriber_validity_state(self):
     """ Updates the subscribers state to inactive/active/"""
 
@@ -631,7 +633,7 @@ def block_user(self):
         print '%s user is Blocked!' % user_profile.user.username
         user_profile.user.save()
 
-@app.task(bind=True)
+
 def translate(self, message, retry_delay=60*10, max_retries=432):
     """Tries to write notification message for translation.
 
