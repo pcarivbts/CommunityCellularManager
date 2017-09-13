@@ -1444,13 +1444,9 @@ class BroadcastView(ProtectedView):
             if (sendto == 'tower' and not tower_id) or sendto == 'network':
                 # Lookup for BTS inbound_url.
                 bts_list = BTS.objects.filter(network=network_id)
-                level = 'network'
-                level_id = network_id
             else:
                 # Lookup for BTS inbound_url.
                 bts_list = BTS.objects.filter(id=tower_id)
-                level = 'tower'
-                level_id = tower_id
 
             for bts in bts_list:
                 # Fire off an async task request to send the SMS.
@@ -1458,9 +1454,7 @@ class BroadcastView(ProtectedView):
                     'to': '*',
                     'sender': '0000',
                     'text': message,
-                    'msgid': str(uuid.uuid4()),
-                    'level_id': level_id,
-                    'level': level
+                    'msgid': str(uuid.uuid4())
                 }
                 url = bts.inbound_url + "/endaga_sms"
                 tasks.async_post.delay(url, params)
@@ -1470,7 +1464,7 @@ class BroadcastView(ProtectedView):
             subscribers = []
             for imsi in imsi_list:
                 try:
-                    sub = Subscriber.objects.get(imsi=imsi)
+                    sub = Subscriber.objects.get(imsi=imsi,network=network_id)
                     subscribers.append(sub)
                 except Subscriber.DoesNotExist:
                     invalid_imsi.append(imsi)
