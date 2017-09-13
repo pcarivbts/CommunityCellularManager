@@ -453,22 +453,21 @@ def req_bts_log(self, obj, retry_delay=60*10, max_retries=432):
       obj.save()
 
 @app.task(bind=True)
-def translate(self, message, url, retry_delay=60*10, max_retries=432):
-    """Tries to write notification message for translation.
+def async_translation(self):
+    """Tries to send updated notification messages to client.
 
     The default retry is every 10 min for 3 days.
     """
+    url = "http://10.64.0.158:80/translate"
     print "TRANSLATION - attempting to send POST request to endpoint '%s'" % url
     try:
         translation_files = []
         for lang in LANGUAGES:
-            po_path = LOCALE_PATHS[0] + '/' + lang[
-                0] + '/LC_MESSAGES/django.po'
-            file = ('locale', ('cloud.po', open(po_path, 'rb'), 'text/plain'))
+            po_path = LOCALE_PATHS[0]+'/'+lang[0]+'/LC_MESSAGES/django.po'
+            print "po file path = ", po_path
+            file = (lang[0], ('django.po', open(po_path, 'rb'), 'text/plain'))
             translation_files.append(file)
-
-        r = requests.post(url, data={'status':'translation-files'},
-                          files=translation_files,
+        r = requests.post(url, files=translation_files,
                           timeout=settings.ENDAGA['BTS_REQUEST_TIMEOUT_SECS'])
         if r.status_code >= 200 and r.status_code < 300:
             print "async_post SUCCESS. url: '%s' (%d). Response was: %s" % (
@@ -482,16 +481,20 @@ def translate(self, message, url, retry_delay=60*10, max_retries=432):
         print "translate ERROR. url: '%s' exception: %s" % (url, exception)
         raise
 
+@app.task(bind=True)
+def translate(self, message, retry_delay=60 * 10, max_retries=432):
+    """Tries to write notification message for translation.
+
+    The default retry is every 10 min for 3 days.
+    """
     print "writing network notification message for translation '%s'"
     try:
         handle = open(TEMPLATES_PATH + "/translate.html", 'a+')
         handle.write('{% trans "' + message + '" %}\r\n')
         handle.close()
-        subprocess.Popen(
-            ['python', 'manage.py', 'makemessages', '-a'])
+        subprocess.Popen(['python', 'manage.py', 'makemessages', '-a'])
         subprocess.Popen(['python', 'manage.py', 'compilemessages'])
-    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
-        raise self.retry(countdown=retry_delay, max_retries=max_retries)
     except Exception as exception:
         raise self.retry(countdown=retry_delay, max_retries=max_retries)
-        print "Translation ERROR. Exception:- %s" % (exception)
+        print "Translation ERROR. Exception:- %s" % exception
+
