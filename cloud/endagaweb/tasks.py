@@ -147,17 +147,7 @@ def async_post(self, url, data, retry_delay=60*10, max_retries=432):
     """
     print "attempting to send POST request to endpoint '%s'" % url
     try:
-        translation_files = []
-        for lang in LANGUAGES:
-            po_path = LOCALE_PATHS[0]+'/'+lang[0]+'/LC_MESSAGES/django.po'
-            file = ('locale', ('cloud.po', open(po_path, 'rb'), 'text/plain'))
-            translation_files.append(file)
-
-        if USE_I18N and translation_files:
-            r = requests.post(url, data=data, files=translation_files,
-                              timeout=settings.ENDAGA['BTS_REQUEST_TIMEOUT_SECS'])
-        else:
-            r = requests.post(url, data=data,
+        r = requests.post(url, data=data,
                           timeout=settings.ENDAGA['BTS_REQUEST_TIMEOUT_SECS'])
         if r.status_code >= 200 and r.status_code < 300:
             print "async_post SUCCESS. url: '%s' (%d). Response was: %s" % (
@@ -458,27 +448,30 @@ def async_translation(self):
 
     The default retry is every 10 min for 3 days.
     """
-    url = "http://10.64.0.158:80/translate"
-    print "TRANSLATION - attempting to send POST request to endpoint '%s'" % url
+    print "TRANSLATION - attempting to send POST request to all active BTS."
     try:
+        timeout = settings.ENDAGA['BTS_REQUEST_TIMEOUT_SECS']
         translation_files = []
         for lang in LANGUAGES:
             po_path = LOCALE_PATHS[0]+'/'+lang[0]+'/LC_MESSAGES/django.po'
-            print "po file path = ", po_path
             file = (lang[0], ('django.po', open(po_path, 'rb'), 'text/plain'))
             translation_files.append(file)
-        r = requests.post(url, files=translation_files,
-                          timeout=settings.ENDAGA['BTS_REQUEST_TIMEOUT_SECS'])
-        if r.status_code >= 200 and r.status_code < 300:
-            print "async_post SUCCESS. url: '%s' (%d). Response was: %s" % (
-                r.url, r.status_code, r.text)
-            return r.status_code
-        else:
-            print "async_post FAIL. url: '%s' (%d). Response was: %s" % (
-                r.url, r.status_code, r.text)
-            raise ValueError(r.status_code)
+        # Send translation files to all client BTS
+        bts_list = BTS.objects.filter(status='active')
+        for bts in bts_list:
+            url = bts.inbound_url + "/translate"
+            url = "http://10.64.0.158:80/translate"
+            r = requests.post(url, files=translation_files, timeout=timeout)
+            if r.status_code >= 200 and r.status_code < 300:
+                print "async_post SUCCESS. url: '%s' (%d). Response was: %s" \
+                      % (r.url, r.status_code, r.text)
+                return r.status_code
+            else:
+                print "async_post FAIL. url: '%s' (%d). Response was: %s" \
+                      % (r.url, r.status_code, r.text)
+                raise ValueError(r.status_code)
     except Exception as exception:
-        print "translate ERROR. url: '%s' exception: %s" % (url, exception)
+        print "translate ERROR. '%s' exception: %s" % exception
         raise
 
 @app.task(bind=True)

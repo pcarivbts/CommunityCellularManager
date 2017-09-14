@@ -757,13 +757,8 @@ class NetworkNotifications(ProtectedView):
                     str(type).title())
                 messages.error(request, alert_message,
                                extra_tags="alert alert-danger")
-            # Send translation files to client BTS
-            bts_list = models.BTS.objects.filter(network=network)
-            for bts in bts_list:
-                url = bts.inbound_url + "/translate"
-                logger.error("Translation update called: %s %s",
-                             url, message)
-                tasks.translate(message, url)
+            # Update message to translation files
+            tasks.translate(message)
             return redirect(urlresolvers.reverse('network-notifications'))
         else:
             # Delete the notifications
