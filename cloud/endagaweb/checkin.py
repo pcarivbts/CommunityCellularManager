@@ -271,12 +271,17 @@ class CheckinResponder(object):
     def gen_subscribers(self):
         """
         Returns a list of active subscribers for a network, along with
-        PN-counter for each sub containing last known balance.
+        PN-counter for each sub containing last known balance and state.
         """
         res = {}
         for s in Subscriber.objects.filter(network=self.bts.network):
             bal = crdt.PNCounter.from_state(json.loads(s.crdt_balance))
-            data = {'numbers': s.numbers_as_list(), 'balance': bal.state}
+            state = str(s.state)
+            if s.is_blocked:
+                # append '*' if subscriber is blocked, even if in active state
+                state = state + '*'
+            data = {'numbers': s.numbers_as_list(), 'balance': bal.state,
+                    'state': state}
             res[s.imsi] = data
         return res
 
