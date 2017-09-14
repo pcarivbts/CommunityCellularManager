@@ -504,28 +504,28 @@ class BaseSubscriber(KVStore):
 
         for imsi in subs_to_update:
             sub = net_subs[imsi]
-            sub_status = sub['sub_status']
+            sub_state = sub['state']
             try:
-                self.subscriber_status.update_status(imsi, sub_status)
+                self.subscriber_status.update_status(imsi, sub_state)
             except SubscriberNotFound as e:
                 logger.warning(
-                    "Status sync fail! IMSI: %s is not found Error: %s" %
+                    "State sync fail! IMSI: %s is not found Error: %s" %
                     (imsi, e))
             except ValueError as e:
-                logger.error("Status sync fail! IMSI: %s, %s Error: %s" %
-                             (imsi, sub['sub_status'], e))
+                logger.error("State sync fail! IMSI: %s, %s Error: %s" %
+                             (imsi, sub['state'], e))
                 subs_to_add.add(imsi)  # try to add it (again)
 
         for imsi in subs_to_add:
             sub = net_subs[imsi]
-            sub_status = sub['sub_status']
-            self.subscriber_status.create_subscriber_status(imsi, sub_status)
+            sub_state = sub['state']
+            self.subscriber_status.create_subscriber_status(imsi, sub_state)
 
             try:
-                self.subscriber_status.update_status(imsi, sub_status)
+                self.subscriber_status.update_status(imsi, sub_state)
             except (SubscriberNotFound, ValueError) as e:
-                logger.error("Status sync fail! IMSI: %s, %s Error: %s" %
-                                                (imsi, sub['sub_status'], e))
+                logger.error("State sync fail! IMSI: %s, %s Error: %s" %
+                                                (imsi, sub['state'], e))
 
 
 class BaseSubscriberStatus(KVStore):
@@ -538,9 +538,9 @@ class BaseSubscriberStatus(KVStore):
         Expired: Grace period also expired after First Expire (no call/sms)
     """
     def __init__(self, connector=None):
-        super(BaseSubscriberStatus, self).__init__('subscribers_status', connector,
-                                             key_name='imsi',
-                                             val_name='current_status')
+        super(BaseSubscriberStatus, self).__init__('subscribers_status',
+                                                   connector, key_name='imsi',
+                                                   val_name='state')
 
     def get_subscriber_states(self, imsis=None):
         """
@@ -566,9 +566,9 @@ class BaseSubscriberStatus(KVStore):
             return {}  # empty list - return an empty dict
 
         res = {}
-        for (imsi, status) in subs:
+        for (imsi, state) in subs:
             res[imsi] = {}
-            res[imsi]['status'] = status
+            res[imsi]['state'] = state
         return res
 
     def create_subscriber_status(self, imsi, status):
@@ -608,27 +608,27 @@ class BaseSubscriberStatus(KVStore):
 
         for imsi in subs_to_update:
             sub = net_subs[imsi]
-            sub_status = sub['sub_status']
+            sub_state = sub['state']
             try:
-                self.update_status(imsi, sub_status)
+                self.update_status(imsi, sub_state)
             except SubscriberNotFound as e:
                 logger.warning(
-                    "Status sync fail! IMSI: %s is not found Error: %s" %
+                    "State sync fail! IMSI: %s is not found Error: %s" %
                     (imsi, e))
             except ValueError as e:
-                logger.error("Status sync fail! IMSI: %s, %s Error: %s" %
-                             (imsi, sub['sub_status'], e))
+                logger.error("State sync fail! IMSI: %s, %s Error: %s" %
+                             (imsi, sub['state'], e))
                 subs_to_add.add(imsi)  # try to add it (again)
 
         for imsi in subs_to_add:
             sub = net_subs[imsi]
-            sub_status = sub['sub_status']
-            self.create_subscriber_status(imsi, sub_status)
+            sub_state = sub['state']
+            self.create_subscriber_status(imsi, sub_state)
             try:
-                self.update_status(imsi, sub_status)
+                self.update_status(imsi, sub_state)
             except (SubscriberNotFound, ValueError) as e:
-                logger.error("Status sync fail! IMSI: %s, %s Error: %s" %
-                                (imsi, sub['sub_status'], e))
+                logger.error("State sync fail! IMSI: %s, %s Error: %s" %
+                                (imsi, sub['state'], e))
 
     def get_account_status(self, imsi):
         return str(self[imsi])
