@@ -574,7 +574,7 @@ class Subscriber(models.Model):
     prevent_automatic_deactivation = models.BooleanField(default=False)
     # Block subscriber if repeated unauthorized events.
     is_blocked = models.BooleanField(default=False)
-    block_reason = models.TextField(default='No reason to block yet!',
+    block_reason = models.TextField(default='N/A',
                                     max_length=255)
     block_time = models.DateTimeField(null=True, blank=True)
     valid_through = models.DateTimeField(null=True, auto_now_add=True)
@@ -735,7 +735,6 @@ class Subscriber(models.Model):
         last_camped_secs = (django.utils.timezone.now() - self.last_camped) \
             .total_seconds()
         return last_camped_secs < t3212_secs
-
 
 class Number(ChargingEntity):
     subscriber = models.ForeignKey(Subscriber, null=True, blank=True,
@@ -936,32 +935,34 @@ class UsageEvent(models.Model):
             return
         event = instance
         if event.kind in INVALID_EVENTS:
-            subscriber = Subscriber.objects.get(imsi=event.subscriber_imsi)
             if SubscriberInvalidEvents.objects.filter(
                     subscriber=event.subscriber).exists():
-                # Subscriber is blocked after 3 counts i.e there won't be UEs
-                # unless unblocked
-                subscriber_event = SubscriberInvalidEvents.objects.get(
+                # Subscriber is blocked after N(max_failure_transaction)
+                # counts
+                sub_evt = SubscriberInvalidEvents.objects.get(
                     subscriber=event.subscriber)
-                # if it is a 3rd event in 24hr block the subscriber
-                negative_transactions_ids = subscriber_event.negative_transactions + [
+                # if it hits max_failure_trx of Network in 24hr
+                # block the subscriber
+                negative_transactions_ids = sub_evt .negative_transactions + [
                     event.transaction_id]
-                subscriber_event.count = subscriber_event.count + 1
-                subscriber_event.event_time = event.date
-                subscriber_event.negative_transactions = negative_transactions_ids
-                subscriber_event.save()
+                sub_evt.count = sub_evt .count + 1
+                sub_evt.event_time = event.date
+                sub_evt.negative_transactions = negative_transactions_ids
+                sub_evt.save()
 
                 max_transactions = event.subscriber.network.max_failure_transaction
-                if subscriber_event.count == max_transactions:
-                    subscriber.is_blocked = True
-                    subscriber.block_reason = 'Repeated %s within 24 hours ' % (
+                if sub_evt.count >= max_transactions:
+                    block_reason = 'Repeated %s within 24 hours ' % (
                         '/'.join(INVALID_EVENTS),)
-                    subscriber.block_time = django.utils.timezone.now()
-                    subscriber.save()
+                    event.subscriber.is_blocked = True
+                    event.subscriber.block_reason = block_reason
+                    if sub_evt.count == max_transactions:
+                        # Update time for last max failure trx event only
+                        event.subscriber.block_time = django.utils.timezone.now()
+                    event.subscriber.save()
                     logger.info('Subscriber %s blocked for 30 minutes, '
                                 'repeated invalid transactions within 24 '
-                                'hours' % (
-                                    subscriber.imsi))
+                                'hours' % event.subscriber_imsi)
             else:
                 subscriber_event = SubscriberInvalidEvents.objects.create(
                     subscriber=event.subscriber, count=1)

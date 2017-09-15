@@ -470,7 +470,6 @@ def req_bts_log(self, obj, retry_delay=60*10, max_retries=432):
 @app.task(bind=True)
 def unblock_blocked_subscribers(self):
     """Unblock subscribers who are blocked for past 30 minutes.
-
     This runs this as a periodic task managed by celerybeat.
     """
     unblock_time = django.utils.timezone.now() - datetime.timedelta(minutes=30)
@@ -478,10 +477,20 @@ def unblock_blocked_subscribers(self):
                                             block_time__lte=unblock_time)
     if not subscribers:
         return  # Do nothing
-    print 'Unblocking subscribers %s blocked for past 24 hours' % (
+    print '%s was blocked for past 30 minutes now Unblocked!' % (
         [subscriber.imsi for subscriber in subscribers], )
     subscribers.update(is_blocked=False, block_time=None,
-                       block_reason='No reason to block yet!')
+                       block_reason='N/A')
+    body = 'You number is unblocked and service are resumed!'
+    for sub in subscribers:
+        try:
+            # We send sms to the subscriber's first number.
+            num = sub.number_set.all()[0]
+        except:
+            num = None
+        if num:
+            # Send unblock notification via SMS
+            sms_notification(body=body, to=num)
 
 def zero_out_subscribers_balance(self):
     """Subscriber balance zero outs when validity expires.
