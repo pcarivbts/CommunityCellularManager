@@ -577,7 +577,7 @@ class Subscriber(models.Model):
     block_reason = models.TextField(default='N/A',
                                     max_length=255)
     block_time = models.DateTimeField(null=True, blank=True)
-    valid_through = models.DateTimeField(null=True, auto_now_add=True)
+    valid_through = models.DateTimeField(null=True, blank=True)
     # role of subscriber
     role = models.TextField(null=True, blank=True, default="Subscriber")
 
