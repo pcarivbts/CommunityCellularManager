@@ -469,19 +469,28 @@ def req_bts_log(self, obj, retry_delay=60*10, max_retries=432):
 
 @app.task(bind=True)
 def unblock_blocked_subscribers(self):
-    """Unblock subscribers who are blocked for past 24 hrs.
-
+    """Unblock subscribers who are blocked for past 30 minutes.
     This runs this as a periodic task managed by celerybeat.
     """
-    unblock_time = django.utils.timezone.now() - datetime.timedelta(days=1)
+    unblock_time = django.utils.timezone.now() - datetime.timedelta(minutes=30)
     subscribers = Subscriber.objects.filter(is_blocked=True,
                                             block_time__lte=unblock_time)
     if not subscribers:
         return  # Do nothing
-    print 'Unblocking subscribers %s blocked for past 24 hours' % (
+    print '%s was blocked for past 30 minutes now Unblocked!' % (
         [subscriber.imsi for subscriber in subscribers], )
     subscribers.update(is_blocked=False, block_time=None,
-                       block_reason='No reason to block yet!')
+                       block_reason='N/A')
+    body = 'You number is unblocked and service are resumed!'
+    for sub in subscribers:
+        try:
+            # We send sms to the subscriber's first number.
+            num = sub.number_set.all()[0]
+        except:
+            num = None
+        if num:
+            # Send unblock notification via SMS
+            sms_notification(body=body, to=num)
 
 @app.task(bind=True)
 def zero_out_subscribers_balance(self):
@@ -504,17 +513,15 @@ def subscriber_validity_state(self):
     """ Updates the subscribers state to inactive/active/"""
 
     today = django.utils.timezone.now()
-    subscribers = Subscriber.objects.filter(
-        number__valid_through__lte=today)
+    subscribers = Subscriber.objects.filter(valid_through__lte=today)
     today = today.date()
     for subscriber in subscribers:
         try:
-            number = subscriber.number_set.all()[0]
-            if number.valid_through is None:
+            if subscriber.valid_through is None:
                 continue
         except IndexError:
             continue
-        subscriber_validity = number.valid_through.date()
+        subscriber_validity = subscriber.valid_through.date()
         first_expire = subscriber_validity + datetime.timedelta(
             days=subscriber.network.sub_vacuum_inactive_days)
         recycle = first_expire + datetime.timedelta(
@@ -564,7 +571,7 @@ def validity_expiry_sms(self, days=7):
             continue
         try:
             number = subscriber.number_set.all()[0]
-            subscriber_validity = number.valid_through
+            subscriber_validity = subscriber.valid_through
             # In case where number has no validity
             if subscriber_validity is None:
                 print '%s has no validity' % (subscriber.imsi,)
