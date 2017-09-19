@@ -15,3 +15,10 @@ of patent rights can be found in the PATENTS file in the same directory.
     <action application="system" data='curl --data "from_number=${vbts_callerid}&from_name=${from_imsi}&service_type=${service_type}&destination=${vbts_tp_dest_address}" http://127.0.0.1/smscdr'/>
   </condition>
 </extension>
+
+
+<extension name="called_number_status">
+  <condition field='${vbts_dest_account_status}' expression="False">
+    <action application="hangup"/>
+  </condition>
+</extension>

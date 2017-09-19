@@ -474,13 +474,12 @@ def unblock_blocked_subscribers(self):
     """
     unblock_time = django.utils.timezone.now() - datetime.timedelta(minutes=30)
     subscribers = Subscriber.objects.filter(is_blocked=True,
-                                            block_time__lte=unblock_time)
+                                            last_blocked__lte=unblock_time)
     if not subscribers:
         return  # Do nothing
     print '%s was blocked for past 30 minutes now Unblocked!' % (
         [subscriber.imsi for subscriber in subscribers], )
-    subscribers.update(is_blocked=False, block_time=None,
-                       block_reason='N/A')
+    subscribers.update(is_blocked=False, block_reason='N/A')
     body = 'You number is unblocked and service are resumed!'
     for sub in subscribers:
         try:
@@ -640,7 +639,7 @@ def block_user(self):
         print '%s user is Blocked!' % user_profile.user.username
         user_profile.user.save()
 
-
+@app.task(bind=True)
 def translate(self, message, retry_delay=60*10, max_retries=432):
     """Tries to write notification message for translation.
 

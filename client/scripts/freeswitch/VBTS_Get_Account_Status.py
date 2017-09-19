@@ -14,36 +14,66 @@ from core.subscriber import subscriber
 from core.subscriber.base import SubscriberNotFound
 
 
-def chat(message, imsi):
+def chat(message, args):
     """Handle chat requests.
 
     Args:
-      imsi: a subscriber's IMSI
+    string of the form <imsi>|<True if for dest_imsi (default is False)>
+
+    Subscriber State can be:
+      active (unblocked), -active (blocked),first_expired (validity expired)
     """
+    args = args.split('|')
+    imsi = args[0]
+    dest_imsi = False
+
+    if len(args) > 1:
+        dest_imsi = True
+    subscriber_state = str(
+        subscriber.subscriber_status.get_account_status(imsi)).lower()
     try:
-        if 'active' == str(
-                subscriber.subscriber_status.get_account_status(imsi)).lower():
-            account_status = True
+        account_status = False
+        if not dest_imsi:
+            if 'active' == subscriber_state:
+                account_status = True
         else:
-            account_status = False
+            # incoming number status
+            if subscriber_state == 'active' or subscriber_state == 'active*':
+                account_status = True
+
     except SubscriberNotFound:
         account_status = False
     consoleLog('info', "Returned Chat:" + str(account_status) + "\n")
     message.chat_execute('set', '_openbts_ret=%s' % account_status)
 
 
-def fsapi(session, stream, env, imsi):
+def fsapi(session, stream, env, args):
     """Handle FS API requests.
 
     Args:
-      imsi: a subscriber's IMSI
+    string of the form <imsi>|<True if for dest_imsi (default is False)>
+
+    Subscriber State can be:
+      active (unblocked), -active (blocked),first_expired (validity expired)
     """
+    args = args.split('|')
+    imsi = args[0]
+    dest_imsi = False
+
+    if len(args) > 1:
+        dest_imsi = True
+    subscriber_state = str(
+        subscriber.subscriber_status.get_account_status(imsi)).lower()
     try:
-        if 'active' == str(
-                subscriber.subscriber_status.get_account_status(imsi)).lower():
-            account_status = True
+        account_status = False
+        if not dest_imsi:
+            if 'active' == subscriber_state:
+                account_status = True
         else:
-            account_status = False
+            # incoming number status
+            if subscriber_state == 'active' or subscriber_state == 'active*':
+                account_status = True
+
     except SubscriberNotFound:
         account_status = False
     consoleLog('info', "Returned FSAPI: " + str(account_status) + "\n")

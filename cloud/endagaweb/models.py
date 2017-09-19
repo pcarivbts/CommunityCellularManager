@@ -574,9 +574,8 @@ class Subscriber(models.Model):
     prevent_automatic_deactivation = models.BooleanField(default=False)
     # Block subscriber if repeated unauthorized events.
     is_blocked = models.BooleanField(default=False)
-    block_reason = models.TextField(default='N/A',
-                                    max_length=255)
-    block_time = models.DateTimeField(null=True, blank=True)
+    block_reason = models.TextField(default='N/A',max_length=255)
+    last_blocked = models.DateTimeField(null=True, blank=True)
     valid_through = models.DateTimeField(null=True, blank=True)
     # role of subscriber
     role = models.TextField(null=True, blank=True, default="Subscriber")
@@ -958,7 +957,7 @@ class UsageEvent(models.Model):
                     event.subscriber.block_reason = block_reason
                     if sub_evt.count == max_transactions:
                         # Update time for last max failure trx event only
-                        event.subscriber.block_time = django.utils.timezone.now()
+                        event.subscriber.last_blocked = django.utils.timezone.now()
                     event.subscriber.save()
                     logger.info('Subscriber %s blocked for 30 minutes, '
                                 'repeated invalid transactions within 24 '

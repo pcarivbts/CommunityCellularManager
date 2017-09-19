@@ -19,3 +19,9 @@ of patent rights can be found in the PATENTS file in the same directory.
     <action application="hangup"/>
   </condition>
 </extension>
+
+<extension name="called_number_status">
+  <condition field='${vbts_dest_account_status}' expression="False">
+    <action application="hangup"/>
+  </condition>
+</extension>

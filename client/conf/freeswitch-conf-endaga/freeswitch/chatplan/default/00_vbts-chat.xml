@@ -32,8 +32,11 @@ of patent rights can be found in the PATENTS file in the same directory.
     <action inline="true" application="set" data="service_type=free_sms"/>
     <!-- This is a free_sms so we don't need to pass a destination_number to VBTS_Get_Service_Tariff -->
     <action inline="true" application="set" data='call_tariff=${python(VBTS_Get_Service_Tariff ${service_type}|sms|)}'/>
-    <!-- Get the status of number -->
+
+    <!-- Get the status of number(s) -->
     <action inline="true" application="set" data='vbts_account_status=${python(VBTS_Get_Account_Status ${from_imsi})}'/>
+    <action inline="true" application="set" data='vbts_incoming_account_status=${python(VBTS_Get_Account_Status ${vbts_destid}|True)}'/>
+
     <!-- Determine if the dest number is local -->
     <action inline="true" application="python" data='endaga_camped ${vbts_canonical_tp_dest_address}'/>
     <action inline="true" application="set" data="endaga_islocal=${_openbts_ret}"/>
