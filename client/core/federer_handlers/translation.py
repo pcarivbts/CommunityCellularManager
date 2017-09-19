@@ -9,41 +9,36 @@ of patent rights can be found in the PATENTS file in the same directory.
 """
 
 import web
+import traceback
 from core.federer_handlers import common
 from commands.translating import compile_lang
+from ccm.common import logger
 
 class translate(common.incoming):
     """
-    Class for handling incoming message from Endaga.
+    Class for handling incoming translation files from Endaga cloud.
     """
     def __init__(self):
         common.incoming.__init__(self)
 
     def GET(self):
-        data = web.input()
-        f = open("/var/log/lighttpd/translation.txt", "w+")
-        f.write("---- GET ----- %s " % data)
         return web.ok()
 
     def POST(self):
-        headers = {
-            'Content-type': 'text/plain'
-        }
-        data = web.input()
-        f = open("/var/log/lighttpd/translation.txt", "w+")
-        f.write("\n---------POST Method called------------------------\n")
-        # f.write("\n POST ---  %s " % data)
-
-        filedir = '/usr/share/locale/'
-        uploaded_files = ['en', 'es', 'fil', 'id']
-        for dt in data:
-            f.write("\n****************** %s ************************** " % dt)
-            if dt in uploaded_files:
-                filepath = filedir + dt + "/LC_MESSAGES/endaga.po"
-                fout = open(filepath, 'wb')
-                fout.write(data[dt])
-                fout.close()
-            else:
-                f.write("\n---- %s ------ %s" % (dt, data[dt]))
-        compile_lang()
-        return web.ok(None, headers)
+        try:
+            headers = {
+                'Content-type': 'text/plain'
+            }
+            data = web.input()
+            filedir = '/usr/share/locale/'
+            uploaded_files = ['en', 'es', 'fil', 'id']
+            for dt in data:
+                if dt in uploaded_files:
+                    filepath = filedir + dt + "/LC_MESSAGES/endaga.po"
+                    fout = open(filepath, 'wb')
+                    fout.write(data[dt])
+                    fout.close()
+            compile_lang()
+            return web.ok(None, headers)
+        except Exception as e:
+            logger.error("Endaga translation " + traceback.format_exc(e))
