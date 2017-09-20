@@ -1024,7 +1024,7 @@ class ActivityView(ProtectedView):
 
 class UserManagement(ProtectedView):
     """
-    Handles User management operations like Add, Block or Delete
+    Handles User management operations.
     """
     permission_required = 'user_management'
 
@@ -1217,7 +1217,7 @@ class UserManagement(ProtectedView):
                             user.is_active = True
                         action = 'Updated'
                         user.save()
-                message = 'Successfully! %s!' % action
+                message = 'Successfully, %s!' % action
                 if status is None:
                     messages.success(request, message,
                                     extra_tags="alert alert-success")

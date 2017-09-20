@@ -195,7 +195,7 @@ class NetworkInactiveSubscribers(ProtectedView):
 
 class NetworkPrices(ProtectedView):
     """View pricing for a single network."""
-    permission_required = 'view_network'
+    permission_required = ['view_network', 'edit_network']
 
     def get(self, request):
         """Handles GET requests."""
