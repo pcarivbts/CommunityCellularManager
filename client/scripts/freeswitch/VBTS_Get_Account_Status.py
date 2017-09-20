@@ -38,7 +38,9 @@ def chat(message, args):
                 account_status = True
         else:
             # incoming number status
-            if subscriber_state == 'active' or subscriber_state == 'active*':
+            allowed_states = ['active', 'active*',
+                              'fist_expired', 'first_expired*']
+            if subscriber_state in allowed_states:
                 account_status = True
 
     except SubscriberNotFound:
@@ -71,7 +73,9 @@ def fsapi(session, stream, env, args):
                 account_status = True
         else:
             # incoming number status
-            if subscriber_state == 'active' or subscriber_state == 'active*':
+            allowed_states = ['active', 'active*',
+                              'fist_expired', 'first_expired*']
+            if subscriber_state in allowed_states:
                 account_status = True
 
     except SubscriberNotFound:
