@@ -89,7 +89,7 @@ def process_transfer(from_imsi, to_imsi, amount):
                          "%(credit)s.You can transfer upto %(transfer)s.") % \
                {'credit': credit_limit,'transfer' :max_transfer_str}
 
-    validity_days = get_validity_days(amount)
+    validity_days = get_validity_days(amount, to_imsi)
     if(validity_days == None):
         return False, gt("Top-up not under denomination range")
     # Add the pending transfer.
