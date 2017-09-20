@@ -56,6 +56,7 @@ class CheckinResponder(object):
             'system_utilization': self.timeseries_handler,
             'subscribers': self.subscribers_handler,
             'radio': self.radio_handler,  # needs location_handler -kurtis
+            'subscriber_status' :self.subscriber_status_handler,
             # TODO: (kheimerl) T13270418 Add location update information
         }
 
@@ -265,6 +266,26 @@ class CheckinResponder(object):
                               (imsi, ))
                 continue
 
+    def subscriber_status_handler(self, subscriber_status):
+        """
+        Update the subscribers' state and validity info based on
+         what the client submits.
+        """
+        for imsi in subscriber_status:
+            sub_info = json.loads(subscriber_status['state'])
+            state = str(sub_info['status'])
+            valid_through = str(sub_info['validity'])
+            try:
+                sub = Subscriber.objects.get(imsi=imsi)
+                sub.state = state
+                sub.valid_through =valid_through
+                sub.save()
+
+            except Subscriber.DoesNotExist:
+                logging.warn(
+                    '[subscriber_status_handler] subscriber %s does not exist.' % imsi)
+
+
     def radio_handler(self, radio):
         if 'band' in radio and 'c0' in radio:
             self.bts.update_band_and_channel(radio['band'], radio['c0'])
@@ -272,12 +293,17 @@ class CheckinResponder(object):
     def gen_subscribers(self):
         """
         Returns a list of active subscribers for a network, along with
-        PN-counter for each sub containing last known balance.
+        PN-counter for each sub containing last known balance and state.
         """
         res = {}
         for s in Subscriber.objects.filter(network=self.bts.network):
             bal = crdt.PNCounter.from_state(json.loads(s.crdt_balance))
-            data = {'numbers': s.numbers_as_list(), 'balance': bal.state}
+            state = str(s.state)
+            if s.is_blocked:
+                # append '*' if subscriber is blocked, even if in active state
+                state = state + '*'
+            data = {'numbers': s.numbers_as_list(), 'balance': bal.state,
+                    'state': state, 'validity':s.valid_through}
             res[s.imsi] = data
         return res
 
@@ -288,9 +314,10 @@ class CheckinResponder(object):
         res = []
         for s in NetworkDenomination.objects.filter(network=self.bts.network,status='done'):
             data = {'id': s.id,'start_amount': s.start_amount, 'end_amount': s.end_amount,
-                    'validity': s.validity_days}
+                    'validity': str(s.validity_days)}
             res.append(data)
         return res
+
 
     def gen_config(self):
         """Create a checkinresponse with Network and BTS config settings.
@@ -415,8 +442,6 @@ class CheckinResponder(object):
             'latest_stable_version': latest_stable_version,
             'latest_beta_version': latest_beta_version,
         }
-        # Send network max balance
-        result['endaga']['network_max_balance'] = self.bts.network.max_balance
         return result
 
     def gen_events(self):

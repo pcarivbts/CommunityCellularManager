@@ -45,10 +45,11 @@ def _init_pending_transfer_db():
         # Make the DB world-writable.
         os.chmod(config_db['pending_transfer_db_path'], 0o777)
 
-def get_validity_days(amount):
+def get_validity_days(amount, imsi):
     global validity_days
     denomination = DenominationStore()
-    validity_days = denomination.get_validity_days(amount)
+    validity = denomination.get_validity_days(amount)
+    validity_days = subscriber.subscriber_status.get_subscriber_validity(imsi,validity[0])
     return validity_days
 
 def process_transfer(from_imsi, to_imsi, amount):
@@ -157,7 +158,7 @@ def process_confirm(from_imsi, code):
                      "validity is %(validity)s days.") % {
                      'amount': amount_str, 'from_num': from_num,
                      'new_balance': to_balance_str,
-                     'validity' : validity_days[0]}
+                     'validity' : validity_days}
         sms.send(str(to_num), str(config_db['app_number']), str(message))
         # Remove this particular the transfer as it's no longer pending.
         db.execute("DELETE FROM pending_transfers WHERE code=?"
