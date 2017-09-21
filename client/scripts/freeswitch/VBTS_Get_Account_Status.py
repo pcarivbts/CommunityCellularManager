@@ -29,8 +29,14 @@ def chat(message, args):
 
     if len(args) > 1:
         dest_imsi = True
-    subscriber_state = str(
-        subscriber.subscriber_status.get_account_status(imsi)).lower()
+        if len(imsi) < 4:  # Toll Free Numbers don't have imsis
+            subscriber_state = 'active'
+        else:
+            subscriber_state = str(
+                subscriber.subscriber_status.get_account_status(imsi)).lower()
+    else:
+        subscriber_state = str(
+                subscriber.subscriber_status.get_account_status(imsi)).lower()
     try:
         account_status = False
         if not dest_imsi:
@@ -39,7 +45,7 @@ def chat(message, args):
         else:
             # incoming number status
             allowed_states = ['active', 'active*',
-                              'fist_expired', 'first_expired*']
+                              'first_expired', 'first_expired*']
             if subscriber_state in allowed_states:
                 account_status = True
 
@@ -64,8 +70,14 @@ def fsapi(session, stream, env, args):
 
     if len(args) > 1:
         dest_imsi = True
-    subscriber_state = str(
-        subscriber.subscriber_status.get_account_status(imsi)).lower()
+        if len(imsi) < 4:  # Toll Free Numbers don't have imsis
+            subscriber_state = 'active'
+        else:
+            subscriber_state = str(
+                subscriber.subscriber_status.get_account_status(imsi)).lower()
+    else:
+        subscriber_state = str(
+                subscriber.subscriber_status.get_account_status(imsi)).lower()
     try:
         account_status = False
         if not dest_imsi:
@@ -74,7 +86,7 @@ def fsapi(session, stream, env, args):
         else:
             # incoming number status
             allowed_states = ['active', 'active*',
-                              'fist_expired', 'first_expired*']
+                              'first_expired', 'first_expired*']
             if subscriber_state in allowed_states:
                 account_status = True
 
