@@ -27,6 +27,7 @@ from endagaweb.models import TimeseriesStat
 from endagaweb.models import UsageEvent
 from endagaweb.util.parse_destination import parse_destination
 from endagaweb.models import NetworkDenomination
+import dateutil.parser as dateparser
 
 class CheckinResponder(object):
 
@@ -272,13 +273,13 @@ class CheckinResponder(object):
          what the client submits.
         """
         for imsi in subscriber_status:
-            sub_info = json.loads(subscriber_status['state'])
-            state = str(sub_info['status'])
-            valid_through = str(sub_info['validity'])
+            sub_info = json.loads(subscriber_status[imsi]['state'])
+            validity_now = str(sub_info['validity'])
             try:
                 sub = Subscriber.objects.get(imsi=imsi)
-                sub.state = state
-                sub.valid_through =valid_through
+                if sub.valid_through.date() < dateparser.parse(validity_now).date():
+                    sub.state = 'active'
+                    sub.valid_through = validity_now
                 sub.save()
 
             except Subscriber.DoesNotExist:
@@ -303,8 +304,9 @@ class CheckinResponder(object):
                 # append '*' if subscriber is blocked, even if in active state
                 state = state + '*'
             data = {'numbers': s.numbers_as_list(), 'balance': bal.state,
-                    'state': state, 'validity':s.valid_through}
+                    'state': state, 'validity': str(s.valid_through)}
             res[s.imsi] = data
+            print("piysuh subscriber", data)
         return res
 
     def get_network_denomination(self):
@@ -428,6 +430,7 @@ class CheckinResponder(object):
         # pylint: disable=no-member
         result['endaga']['number_country'] = self.bts.network.number_country
         result['endaga']['currency_code'] = self.bts.network.subscriber_currency
+        result['endaga']['network_max_balance'] = self.bts.network.max_balance
         # Get the latest versions available on each channel.
         latest_stable_version = ClientRelease.objects.filter(
             channel='stable').order_by('-date')[0].version
