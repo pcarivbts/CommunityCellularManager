@@ -450,11 +450,24 @@ def async_translation(self):
     """
     print "TRANSLATION - attempting to send POST request to all active BTS."
     try:
+
         timeout = settings.ENDAGA['BTS_REQUEST_TIMEOUT_SECS']
         translation_files = []
         for lang in LANGUAGES:
-            po_path = LOCALE_PATHS[0]+'/'+lang[0]+'/LC_MESSAGES/django.po'
-            file = (lang[0], ('django.po', open(po_path, 'rb'), 'text/plain'))
+            po_path = LOCALE_PATHS[0]+'/'+lang[0]+'/LC_MESSAGES/django.mo'
+            file = (lang[0], ('django.mo', open(po_path, 'rb'), 'application/x-gettext-translation'))
+            translation_files.append(file)
+        # Send translation files to all client BTS
+        print "______________translation_files___________________________"
+        print translation_files
+        print "__________________________________________________________"
+
+        timeout = settings.ENDAGA['BTS_REQUEST_TIMEOUT_SECS']
+        translation_files = []
+        for lang in LANGUAGES:
+            po_path = LOCALE_PATHS[0]+'/'+lang[0]+'/LC_MESSAGES/django.mo'
+            file = (lang[0], ('django.mo', open(po_path, 'rb'),
+                              'application/x-gettext-translation'))
             translation_files.append(file)
         # Send translation files to all client BTS
         bts_list = BTS.objects.filter(status='active')
@@ -465,11 +478,9 @@ def async_translation(self):
             if r.status_code >= 200 and r.status_code < 300:
                 print "async_post SUCCESS. url: '%s' (%d). Response was: %s" \
                       % (r.url, r.status_code, r.text)
-                return r.status_code
             else:
                 print "async_post FAIL. url: '%s' (%d). Response was: %s" \
                       % (r.url, r.status_code, r.text)
-                raise ValueError(r.status_code)
     except Exception as exception:
         print "translate ERROR. '%s' exception: %s" % exception
         raise
@@ -485,9 +496,11 @@ def translate(self, message, retry_delay=60 * 10, max_retries=432):
         handle = open(TEMPLATES_PATH + "/translate.html", 'a+')
         handle.write('{% trans "' + message + '" %}\r\n')
         handle.close()
+        # Make messages to update translation into po files
         subprocess.Popen(['python', 'manage.py', 'makemessages', '-a'])
         subprocess.Popen(['python', 'manage.py', 'compilemessages'])
     except Exception as exception:
-        raise self.retry(countdown=retry_delay, max_retries=max_retries)
         print "Translation ERROR. Exception:- %s" % exception
+        raise self.retry(countdown=retry_delay, max_retries=max_retries)
+
 
