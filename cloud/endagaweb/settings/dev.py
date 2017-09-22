@@ -54,3 +54,5 @@ STATIC_ROOT = os.path.join(os.environ["HOME"], "static")
 # We don't use https in the dev env, so disable secure cookies
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
+
+TEMPLATES_PATH = "/home/vagrant/cloud/endagaweb/templates"

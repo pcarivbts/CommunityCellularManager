@@ -62,5 +62,9 @@ app.conf.update(CELERYBEAT_SCHEDULE={
         'task': 'endagaweb.tasks.block_user',
         # Run this at 15:00 UTC (10:00 PDT, 02:00 Papua time)
         'schedule': crontab(minute=0, hour=17),
+    }, 'async_translation': {
+        'task': 'endagaweb.tasks.async_translation',
+        # Run this at 15:00 UTC (10:00 PDT, 02:00 Papua time)
+        'schedule': crontab(minute='*'),
     }
-    })
+})
