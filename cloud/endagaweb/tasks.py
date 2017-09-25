@@ -48,7 +48,7 @@ from endagaweb.models import NetworkDenomination
 from endagaweb.models import TimeseriesStat, UserProfile
 from endagaweb.ic_providers.nexmo import NexmoProvider
 from ccm.common import crdt
-from endagaweb.settings.prod import TEMPLATES_PATH
+from endagaweb.settings.prod import TEMPLATES_PATH, USE_I18N, LANGUAGES, LOCALE_PATHS
 
 
 @app.task(bind=True)
@@ -469,20 +469,29 @@ def req_bts_log(self, obj, retry_delay=60*10, max_retries=432):
 
 @app.task(bind=True)
 def unblock_blocked_subscribers(self):
-    """Unblock subscribers who are blocked for past 24 hrs.
-
+    """Unblock subscribers who are blocked for past 30 minutes.
     This runs this as a periodic task managed by celerybeat.
     """
-    unblock_time = django.utils.timezone.now() - datetime.timedelta(days=1)
+    unblock_time = django.utils.timezone.now() - datetime.timedelta(minutes=30)
     subscribers = Subscriber.objects.filter(is_blocked=True,
-                                            block_time__lte=unblock_time)
+                                            last_blocked__lte=unblock_time)
     if not subscribers:
         return  # Do nothing
-    print 'Unblocking subscribers %s blocked for past 24 hours' % (
+    print '%s was blocked for past 30 minutes now Unblocked!' % (
         [subscriber.imsi for subscriber in subscribers], )
-    subscribers.update(is_blocked=False, block_time=None,
-                       block_reason='No reason to block yet!')
+    subscribers.update(is_blocked=False, block_reason='N/A')
+    body = 'You number is unblocked and service are resumed!'
+    for sub in subscribers:
+        try:
+            # We send sms to the subscriber's first number.
+            num = sub.number_set.all()[0]
+        except:
+            num = None
+        if num:
+            # Send unblock notification via SMS
+            sms_notification(body=body, to=num)
 
+@app.task(bind=True)
 def zero_out_subscribers_balance(self):
     """Subscriber balance zero outs when validity expires.
 
@@ -498,21 +507,20 @@ def zero_out_subscribers_balance(self):
         [subscriber.imsi for subscriber in subscribers],)
     subscribers.update(crdt_balance=credit_balance)
 
+@app.task(bind=True)
 def subscriber_validity_state(self):
     """ Updates the subscribers state to inactive/active/"""
 
     today = django.utils.timezone.now()
-    subscribers = Subscriber.objects.filter(
-        number__valid_through__lte=today)
+    subscribers = Subscriber.objects.filter(valid_through__lte=today)
     today = today.date()
     for subscriber in subscribers:
         try:
-            number = subscriber.number_set.all()[0]
-            if number.valid_through is None:
+            if subscriber.valid_through is None:
                 continue
         except IndexError:
             continue
-        subscriber_validity = number.valid_through.date()
+        subscriber_validity = subscriber.valid_through.date()
         first_expire = subscriber_validity + datetime.timedelta(
             days=subscriber.network.sub_vacuum_inactive_days)
         recycle = first_expire + datetime.timedelta(
@@ -562,7 +570,7 @@ def validity_expiry_sms(self, days=7):
             continue
         try:
             number = subscriber.number_set.all()[0]
-            subscriber_validity = number.valid_through
+            subscriber_validity = subscriber.valid_through
             # In case where number has no validity
             if subscriber_validity is None:
                 print '%s has no validity' % (subscriber.imsi,)
@@ -632,22 +640,62 @@ def block_user(self):
         user_profile.user.save()
 
 @app.task(bind=True)
-def translate(self, message, retry_delay=60*10, max_retries=432):
+def async_translation(self):
+    """Tries to send updated notification messages to client.
+
+    The default retry is every 10 min for 3 days.
+    """
+    print "TRANSLATION - attempting to send POST request to all active BTS."
+    try:
+
+        timeout = settings.ENDAGA['BTS_REQUEST_TIMEOUT_SECS']
+        translation_files = []
+        for lang in LANGUAGES:
+            po_path = LOCALE_PATHS[0]+'/'+lang[0]+'/LC_MESSAGES/django.mo'
+            file = (lang[0], ('django.mo', open(po_path, 'rb'), 'application/x-gettext-translation'))
+            translation_files.append(file)
+        # Send translation files to all client BTS
+        print "______________translation_files___________________________"
+        print translation_files
+        print "__________________________________________________________"
+
+        timeout = settings.ENDAGA['BTS_REQUEST_TIMEOUT_SECS']
+        translation_files = []
+        for lang in LANGUAGES:
+            po_path = LOCALE_PATHS[0]+'/'+lang[0]+'/LC_MESSAGES/django.mo'
+            file = (lang[0], ('django.mo', open(po_path, 'rb'),
+                              'application/x-gettext-translation'))
+            translation_files.append(file)
+        # Send translation files to all client BTS
+        bts_list = BTS.objects.filter(status='active')
+        for bts in bts_list:
+            url = bts.inbound_url + "/translate"
+            url = "http://10.64.0.158:80/translate"
+            r = requests.post(url, files=translation_files, timeout=timeout)
+            if r.status_code >= 200 and r.status_code < 300:
+                print "async_post SUCCESS. url: '%s' (%d). Response was: %s" \
+                      % (r.url, r.status_code, r.text)
+            else:
+                print "async_post FAIL. url: '%s' (%d). Response was: %s" \
+                      % (r.url, r.status_code, r.text)
+    except Exception as exception:
+        print "translate ERROR. '%s' exception: %s" % exception
+        raise
+
+@app.task(bind=True)
+def translate(self, message, retry_delay=60 * 10, max_retries=432):
     """Tries to write notification message for translation.
 
     The default retry is every 10 min for 3 days.
     """
     print "writing network notification message for translation '%s'"
     try:
-        translation_file = "/dashboard/network_detail/translate.html"
-        handle = open(TEMPLATES_PATH + translation_file, 'a+')
+        handle = open(TEMPLATES_PATH + "/translate.html", 'a+')
         handle.write('{% trans "' + message + '" %}\r\n')
         handle.close()
-        subprocess.Popen(
-            ['python', 'manage.py', 'makemessages', '-l', 'en', '-l', 'fil'])
+        # Make messages to update translation into po files
+        subprocess.Popen(['python', 'manage.py', 'makemessages', '-a'])
         subprocess.Popen(['python', 'manage.py', 'compilemessages'])
-    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
-        raise self.retry(countdown=retry_delay, max_retries=max_retries)
     except Exception as exception:
+        print "Translation ERROR. Exception:- %s" % exception
         raise self.retry(countdown=retry_delay, max_retries=max_retries)
-        print "Translation ERROR. Exception:- %s" % (exception)

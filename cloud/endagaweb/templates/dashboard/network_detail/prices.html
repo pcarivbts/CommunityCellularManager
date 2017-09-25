@@ -10,7 +10,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load apptags %}
 {% load humanize %}
 {% load crispy_forms_tags %}
-
+{% load guardian_tags %}
 
 {% block title %}
 {% if network.name %}
@@ -22,7 +22,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 
 {% block content %}
-
+{% get_obj_perms request.user for network as 'user_permission' %}
 
 <div class='modal fade' id='billing-tier-info-modal'>
   <div class='modal-dialog'>
@@ -111,14 +111,11 @@ of patent rights can be found in the PATENTS file in the same directory.
   </div> <!-- /.modal-dialog -->
 </div> <!-- /.billing-tier-info-modal -->
 
-
 {% include "dashboard/network_detail/header.html" with network=network %}
-
-
 <div class = 'row'>
-  {% include "dashboard/network_detail/nav.html" with active_tab='prices'%}
-
+  {% include "dashboard/network_detail/nav.html" with active_tab='network-prices' %}
   {# We create this inner col so the left-nav retains some offset from the content. #}
+    {% if 'edit_network' in user_permission %}
   <div class='col-xs-12 col-offset-sm-2 col-sm-10'>
     <div class='col-xs-12'>
       {% for message in messages %}
@@ -165,7 +162,6 @@ of patent rights can be found in the PATENTS file in the same directory.
               or would like to upgrade your towers.
             </div>
             {% endif %}
-
             <p>{{ billing_tier.note }}</p>
 
             <span class='col-xs-12 col-lg-offset-2 col-lg-8'>
@@ -219,7 +215,9 @@ of patent rights can be found in the PATENTS file in the same directory.
         </div>  <!-- /.panel -->
       </div>  <!-- /.col-md-10 -->
     {% endfor %}
-
+{% else %}
+  {% include 'dashboard/permission_denied.html' %}
+  {% endif %}
   </div>  <!-- /.col-sm-10 -->
 </div>  <!-- /.row -->
 

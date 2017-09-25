@@ -534,7 +534,6 @@ class BaseSubscriber(KVStore):
                 logger.error("State sync fail! IMSI: %s, %s Error: %s" %
                                                 (imsi, sub['state'], e))
 
-    #def _get_subscriber_status(self):
 class BaseSubscriberStatus(KVStore):
     """
     Sets and Updates Subscriber Status similar to balance updates

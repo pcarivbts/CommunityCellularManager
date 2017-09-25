@@ -33,8 +33,14 @@ of patent rights can be found in the PATENTS file in the same directory.
         {% if total_number_of_subscribers == 1 %}
           You have 1 subscriber on your network.
         {% else %}
-          You have {{ total_number_of_subscribers }} total subscribers on your network.
+          You have {{ total_number_of_subscribers }} total subscribers on <b>{{ network.name }}</b>
+          {% if total_number_of_subscribers > number_of_filtered_subscribers %}
+          <a href="/dashboard/subscribers">
+              (Clear Search)<sup>&nbsp;<i class="fa fa-times" data-toggle="tooltip" title="Clear Search" aria-hidden="true"></i></sup>
+          </a>
+          {% endif %}
         {% endif %}
+        <div></div>
         Keep it up!
       </p>
     {% endif %}

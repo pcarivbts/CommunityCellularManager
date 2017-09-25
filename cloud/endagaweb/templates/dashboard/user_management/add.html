@@ -534,6 +534,7 @@ of patent rights can be found in the PATENTS file in the same directory.
         $('form input[name="email"]').blur(function () {
             $('#email').removeClass('form-control-success');
             $('#email').removeClass('form-control-warning');
+            $('#email').removeClass('form-control-error');
             var email = $(this).val();
             var _changeInterval = null;
             var validate = /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/;
@@ -555,12 +556,14 @@ of patent rights can be found in the PATENTS file in the same directory.
                     }).done(function(response) {
                         $('#email').removeClass('form-control-success');
                         $('#email').removeClass('form-control-warning');
+                        $('.exists').hide();
                         if(response.email_available) {
                             $('#valid_email').val(1);
                             $('#email').parent().parent().addClass('has-success');
                             $('#email').addClass('form-control-success');
                             $('#submit').removeAttr('disabled');
                             $('.success').show();
+                            $('.exists').hide();
                             $('#role').removeAttr('disabled');
                             $('#permissions_left').removeAttr('disabled');
                             $('#lstview_rightAll').removeAttr('disabled');
@@ -570,6 +573,9 @@ of patent rights can be found in the PATENTS file in the same directory.
                             $('.success').hide();
                             $('#submit').attr('disabled','disabled');
                             $('.exists').show();
+                        }
+                        if (email=='') {
+                            $('.exists').hide();
                         }
                     });
                 }, 200);

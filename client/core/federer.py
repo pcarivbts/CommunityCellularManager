@@ -16,7 +16,6 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 import web
 import traceback
-
 from ccm.common import logger
 
 
@@ -27,7 +26,8 @@ urls = (
         "core.federer_handlers.registration.endaga_registration",
     "/config/(.*)", "core.federer_handlers.config.config",
     "/cdr", "core.federer_handlers.cdr.cdr",
-    "/smscdr", "core.federer_handlers.sms_cdr.smscdr"
+    "/smscdr", "core.federer_handlers.sms_cdr.smscdr",
+    "/translate", "core.federer_handlers.translation.translate"
 )
 
 def handle_with_logging(self):
