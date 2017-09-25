@@ -304,9 +304,8 @@ class CheckinResponder(object):
                 # append '*' if subscriber is blocked, even if in active state
                 state = state + '*'
             data = {'numbers': s.numbers_as_list(), 'balance': bal.state,
-                    'state': state, 'validity': str(s.valid_through)}
+                    'state': state, 'validity': str(s.valid_through.date())}
             res[s.imsi] = data
-            print("piysuh subscriber", data)
         return res
 
     def get_network_denomination(self):
@@ -577,6 +576,8 @@ def handle_event(bts, event, destinations=None):
     usage_event.from_imsi = event.get('from_imsi')
     usage_event.from_number = event.get('from_number')
     usage_event.to_imsi = event.get('to_imsi')
+    sub.state = event.get('state')
+    sub.valid_through = event.get('valid_through')
     # Set the to_number and, if there is a to_number, set the Destination.
     usage_event.to_number = event.get('to_number')
     if event.get('to_number', None):

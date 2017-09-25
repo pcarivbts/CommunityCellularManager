@@ -45,12 +45,16 @@ def _init_pending_transfer_db():
         # Make the DB world-writable.
         os.chmod(config_db['pending_transfer_db_path'], 0o777)
 
-def get_validity_days(amount, imsi):
+def get_validity_days(amount):
     global validity_days
     denomination = DenominationStore()
-    validity = denomination.get_validity_days(amount)
-    validity_days = subscriber.subscriber_status.get_subscriber_validity(imsi,validity[0])
+    validity_days = denomination.get_validity_days(amount)
     return validity_days
+
+def get_subscriber_validity(imsi,validity_days):
+    validity = subscriber.subscriber_status.get_subscriber_validity(imsi,validity_days)
+    return validity
+
 
 def process_transfer(from_imsi, to_imsi, amount):
     """Process a transfer request.
@@ -88,10 +92,10 @@ def process_transfer(from_imsi, to_imsi, amount):
         return False, gt("Top-up not allowed.Maximum balance limit crossed."
                          "%(credit)s.You can transfer upto %(transfer)s.") % \
                {'credit': credit_limit,'transfer' :max_transfer_str}
-
-    validity_days = get_validity_days(amount, to_imsi)
+    # check top-up amount in denomination bracket
+    validity_days = get_validity_days(amount)
     if(validity_days == None):
-        return False, gt("Top-up not under denomination range")
+        return False, gt("Top-up not under denomination range.")
     # Add the pending transfer.
     code = ''
     for _ in range(int(config_db['code_length'])):
@@ -145,6 +149,7 @@ def process_confirm(from_imsi, code):
         events.create_transfer_event(to_imsi, to_imsi_old_credit,
                                      to_imsi_new_credit, reason,
                                      from_number=from_num, to_number=to_num)
+        top_up_validity = get_subscriber_validity(to_imsi, validity_days[0])
         subscriber.add_credit(to_imsi, str(int(amount)))
         # Humanize credit strings
         amount_str = freeswitch_strings.humanize_credits(amount)
@@ -153,12 +158,13 @@ def process_confirm(from_imsi, code):
         from_balance_str = freeswitch_strings.humanize_credits(
                 from_imsi_new_credit)
         # Let the recipient know they got credit.
+
         message = gt("You've received %(amount)s credits from %(from_num)s!"
                      " Your new balance is %(new_balance)s.Your top-up "
                      "validity is %(validity)s days.") % {
                      'amount': amount_str, 'from_num': from_num,
                      'new_balance': to_balance_str,
-                     'validity' : validity_days}
+                     'validity' : top_up_validity}
         sms.send(str(to_num), str(config_db['app_number']), str(message))
         # Remove this particular the transfer as it's no longer pending.
         db.execute("DELETE FROM pending_transfers WHERE code=?"

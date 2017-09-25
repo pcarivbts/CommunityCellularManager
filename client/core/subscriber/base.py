@@ -529,7 +529,7 @@ class BaseSubscriber(KVStore):
             self.subscriber_status.create_subscriber_status(imsi, json.dumps(sub_info))
 
             try:
-                self.subscriber_status.update_status(imsi, sub_state)
+                self.subscriber_status.update_status(imsi, json.dumps(sub_info))
             except (SubscriberNotFound, ValueError) as e:
                 logger.error("State sync fail! IMSI: %s, %s Error: %s" %
                                                 (imsi, sub['state'], e))
@@ -656,24 +656,21 @@ class BaseSubscriberStatus(KVStore):
 
     def get_subscriber_validity(self, imsis,days):
             sub_info = json.loads(self.get(imsis))
-            valid_through = str(sub_info['validity'])
-            today = date.today()
-            delta_day = today + timedelta(days=days)
-            if valid_through is None:
-                status = 'active'
-                validity = delta_day
-                sub_info = {"state": status, "validity": str(validity)}
+            validity = str(sub_info['validity'])
+            delta_validity = datetime.utcnow()  + timedelta(days=days)
+            if validity is None:
+                sub_info = {"state": 'active', "validity": str(delta_validity.date())}
                 self.update_status(imsis,json.dumps(sub_info))
-                return str(datetime.combine(delta_day, datetime.min.time()))
+                return str(datetime.combine(delta_validity, datetime.min.time()))
             else:
-                valid_date = dateparser.parse(valid_through).date()
-                if valid_date < delta_day:
-                    sub_info = {"state": 'active', "validity": str(delta_day)}
+                validity_date = dateparser.parse(validity).date()
+                if validity_date < delta_validity.date():
+                    sub_info = {"state": 'active', "validity": str(delta_validity.date())}
                     self.update_status(imsis, json.dumps(sub_info))
-                    return str(datetime.combine(delta_day, datetime.min.time()))
+                    return str(datetime.combine(delta_validity, datetime.min.time()))
 
                 else:
-                    sub_info =  {"state": 'active', "validity": str(valid_date)}
+                    sub_info =  {"state": 'active', "validity": str(validity_date)}
                     self.update_status(imsis, json.dumps(sub_info))
-                    return str(datetime.combine(valid_date, datetime.min.time()))
+                    return str(datetime.combine(validity_date, datetime.min.time()))
 
