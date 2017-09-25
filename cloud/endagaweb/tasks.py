@@ -641,13 +641,9 @@ def block_user(self):
 
 @app.task(bind=True)
 def async_translation(self):
-    """Tries to send updated notification messages to client.
-
-    The default retry is every 10 min for 3 days.
-    """
+    """Tries to send updated notification messages to client."""
     print "TRANSLATION - attempting to send POST request to all active BTS."
     try:
-
         timeout = settings.ENDAGA['BTS_REQUEST_TIMEOUT_SECS']
         # Send translation files to all client BTS
         bts_list = BTS.objects.filter(status='active')
@@ -688,7 +684,10 @@ def translate(self, message, retry_delay=60 * 10, max_retries=432):
         handle.write('ValidationError(_("' + message + '"))\n\n')
         handle.close()
         # Make messages to update translation into po files
-        subprocess.Popen(['python', 'manage.py', 'makemessages', '-a'])
+        command = "cd /var/www; envdir /var/opt/endagaweb-envdir/ python manage.py makemessages -a"
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+        proc_stdout = process.communicate()[0].strip()
+        #subprocess.Popen(['python', 'manage.py', 'makemessages', '-a'])
         #subprocess.Popen(['python', 'manage.py', 'compilemessages'])
     except Exception as exception:
         print "Translation ERROR. Exception:- %s" % exception
