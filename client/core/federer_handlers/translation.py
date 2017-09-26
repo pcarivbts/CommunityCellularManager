@@ -38,18 +38,21 @@ class translate(common.incoming):
                 'Content-type': 'text/plain'
             }
             data = web.input()
-            # import subprocess
-            # cmd = ['mount', '-o' ,'remount', 'rw' ,'/tmp/.opkg_rootfs/']
-            # proc=subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            # proc.wait()
+            #import subprocess
+            #cmd = ['mount', '-o' ,'remount', 'rw' ,'/tmp/.opkg_rootfs/']
+            #proc=subprocess.Popen(cmd, stdout=subprocess.PIPE,
+            #                      stderr=subprocess.STDOUT)
+            #proc.wait()
+            # Source path need to make writable by mount tmp directory manually
             filedir = '/tmp/.opkg_rootfs/%s' % config_db['localedir']
-            uploaded_files = ['en', 'es', 'fil', 'id']
+            languages = ['en', 'es', 'fil', 'id']
             for dt in data:
-                if dt in uploaded_files:
+                if dt in languages:
                     filepath = filedir + dt + "/LC_MESSAGES/endaga.mo"
                     fout = open(filepath, 'wb')
                     fout.write(data[dt])
                     fout.close()
+                    logger.error("Translation updated for %s " % dt)
             return web.ok(None, headers)
         except Exception as e:
             logger.error("Endaga translation " + traceback.format_exc(e))
