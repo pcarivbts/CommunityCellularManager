@@ -26,7 +26,8 @@ from endagaweb.models import Subscriber
 from endagaweb.models import TimeseriesStat
 from endagaweb.models import UsageEvent
 from endagaweb.util.parse_destination import parse_destination
-
+from endagaweb.models import NetworkDenomination
+import dateutil.parser as dateparser
 
 class CheckinResponder(object):
 
@@ -56,6 +57,7 @@ class CheckinResponder(object):
             'system_utilization': self.timeseries_handler,
             'subscribers': self.subscribers_handler,
             'radio': self.radio_handler,  # needs location_handler -kurtis
+            'subscriber_status' : self.subscriber_status_handler,
             # TODO: (kheimerl) T13270418 Add location update information
         }
 
@@ -161,6 +163,7 @@ class CheckinResponder(object):
         resp['config'] = self._optimize('config', self.gen_config())
         resp['subscribers'] = self._optimize('subscribers',
                                              self.gen_subscribers())
+        resp['network_denomination'] = self.get_network_denomination()
         resp['events'] = self.gen_events()
         resp['sas'] = self.gen_spectrum()
         self.bts.save()
@@ -264,6 +267,26 @@ class CheckinResponder(object):
                               (imsi, ))
                 continue
 
+    def subscriber_status_handler(self, subscriber_status):
+        """
+        Update the subscribers' state and validity info based on
+         what the client submits.
+        """
+        for imsi in subscriber_status:
+            sub_info = json.loads(subscriber_status[imsi]['state'])
+            validity_now = str(sub_info['validity'])
+            try:
+                sub = Subscriber.objects.get(imsi=imsi)
+                if sub.valid_through.date() < dateparser.parse(validity_now).date():
+                    sub.state = 'active'
+                    sub.valid_through = validity_now
+                sub.save()
+
+            except Subscriber.DoesNotExist:
+                logging.warn('[subscriber_status_handler] subscriber %s does not'
+                             ' exist.' % imsi)
+
+
     def radio_handler(self, radio):
         if 'band' in radio and 'c0' in radio:
             self.bts.update_band_and_channel(radio['band'], radio['c0'])
@@ -281,9 +304,22 @@ class CheckinResponder(object):
                 # append '*' if subscriber is blocked, even if in active state
                 state = state + '*'
             data = {'numbers': s.numbers_as_list(), 'balance': bal.state,
-                    'state': state}
+                    'state': state, 'validity': str(s.valid_through.date())}
             res[s.imsi] = data
         return res
+
+    def get_network_denomination(self):
+        """
+        Returns a list of denomination bracket
+        """
+        res = []
+        for s in NetworkDenomination.objects.filter(network=self.bts.network,
+                                                    status='done'):
+            data = {'id': s.id,'start_amount': s.start_amount,
+                    'end_amount': s.end_amount, 'validity': str(s.validity_days)}
+            res.append(data)
+        return res
+
 
     def gen_config(self):
         """Create a checkinresponse with Network and BTS config settings.
@@ -394,6 +430,7 @@ class CheckinResponder(object):
         # pylint: disable=no-member
         result['endaga']['number_country'] = self.bts.network.number_country
         result['endaga']['currency_code'] = self.bts.network.subscriber_currency
+        result['endaga']['network_max_balance'] = self.bts.network.max_balance
         # Get the latest versions available on each channel.
         latest_stable_version = ClientRelease.objects.filter(
             channel='stable').order_by('-date')[0].version
