@@ -26,6 +26,7 @@ import json
 from datetime import timedelta
 from datetime import datetime
 import dateutil.parser as dateparser
+from core import events
 
 class BaseSubscriber(KVStore):
 
@@ -436,7 +437,7 @@ class BaseSubscriber(KVStore):
         """
         raise NotImplementedError()
 
-    def     process_update(self, net_subs):
+    def process_update(self, net_subs):
         """
         Processes the subscriber list. Format is:
 
@@ -511,6 +512,12 @@ class BaseSubscriber(KVStore):
             sub_validity = sub['validity']
             sub_info ={"state":sub_state,"validity": sub_validity }
             try:
+                if not str(sub_state).startswith('active'):
+                    old_balance = self.get_account_balance(imsi)
+                    self.subtract_credit(imsi, str(old_balance))
+                    reason = 'Setting balance zero due to expired validiy ' \
+                             '(deduct_money)'
+                    events.create_add_money_event(imsi, old_balance, 0,reason)
                 self.subscriber_status.update_status(imsi, json.dumps(sub_info))
             except SubscriberNotFound as e:
                 logger.warning(
@@ -530,6 +537,12 @@ class BaseSubscriber(KVStore):
                                                             json.dumps(sub_info))
 
             try:
+                if not str(sub_state).startswith('active'):
+                    old_balance = self.get_account_balance(imsi)
+                    self.subtract_credit(imsi, str(old_balance))
+                    reason = 'Setting balance zero due to expired validiy ' \
+                             '(deduct_money)'
+                    events.create_add_money_event(imsi, old_balance, 0, reason)
                 self.subscriber_status.update_status(imsi, json.dumps(sub_info))
             except (SubscriberNotFound, ValueError) as e:
                 logger.error("State sync fail! IMSI: %s, %s Error: %s" %
@@ -643,7 +656,7 @@ class BaseSubscriberStatus(KVStore):
                                 (imsi, sub_info, e))
 
     def get_account_status(self, imsi):
-        sub_info =  json.loads(self.get(imsi))
+        sub_info = json.loads(self.get(imsi))
         status = str(sub_info['state'])
         return status
 
