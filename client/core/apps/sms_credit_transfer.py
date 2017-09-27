@@ -47,7 +47,11 @@ def _init_pending_transfer_db():
 
 def get_validity_days(amount):
     denomination = DenominationStore()
-    return denomination.get_validity_days(amount)[0]
+    validity_days = denomination.get_validity_days(amount)
+    if validity_days is None:
+        return None
+    else:
+        return validity_days[0]
 
 def process_transfer(from_imsi, to_imsi, amount):
     """Process a transfer request.
