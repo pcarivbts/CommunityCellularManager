@@ -27,10 +27,6 @@ class translate(common.incoming):
     def GET(self):
         try:
             headers = {'Content-type': 'text/plain'}
-            # This is DEBUG code, this need to remove before PR and core review
-            f = open("/var/log/lighttpd/translation.txt", "w+")
-            f.write("\nSKS---- GET ----- ")
-            f.close()
             return web.ok(None, headers)
         except Exception as e:
             logger.error("Endaga translation " + traceback.format_exc(e))
@@ -42,26 +38,21 @@ class translate(common.incoming):
                 'Content-type': 'text/plain'
             }
             data = web.input()
-            filedir = config_db['localedir']
-
-            # import subprocess
-            # cmd = ['mount', '-o' ,'remount', 'rw' ,'/tmp/.opkg_rootfs/']
-            # proc=subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            # proc.wait()
-            # This is DEBUG code, this need to remove before PR and core review
-            f = open("/var/log/lighttpd/translation.txt", "w+")
-            f.write("\n---------POST Method called------------------------\n")
-            f.write("\n POST ---  %s " % data)
-            filedir = '/tmp/.opkg_rootfs/usr/share/locale/'
-            uploaded_files = ['en', 'es', 'fil', 'id']
+            #import subprocess
+            #cmd = ['mount', '-o' ,'remount', 'rw' ,'/tmp/.opkg_rootfs/']
+            #proc=subprocess.Popen(cmd, stdout=subprocess.PIPE,
+            #                      stderr=subprocess.STDOUT)
+            #proc.wait()
+            # Source path need to make writable by mount tmp directory manually
+            filedir = config_db['tmp_localedir']
+            languages = ['en', 'es', 'fil', 'id']
             for dt in data:
-                f.write("\n****************** %s ********************* " % dt)
-                if dt in uploaded_files:
+                if dt in languages:
                     filepath = filedir + dt + "/LC_MESSAGES/endaga.mo"
                     fout = open(filepath, 'wb')
                     fout.write(data[dt])
                     fout.close()
-            f.close()
+                    logger.error("Translation updated for %s " % dt)
             return web.ok(None, headers)
         except Exception as e:
             logger.error("Endaga translation " + traceback.format_exc(e))

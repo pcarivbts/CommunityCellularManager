@@ -104,6 +104,7 @@ def set_defaults(force_replace=False):
         'code_length': 4,
         # Localization settings
         'localedir': "/usr/share/locale",
+        'tmp_localedir': "/tmp/.opkg_rootfs/usr/share/locale",
         'locale': "en",
         'currency_code': "USD",
         'number_country': "US",
