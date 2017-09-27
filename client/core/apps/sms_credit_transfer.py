@@ -46,15 +46,8 @@ def _init_pending_transfer_db():
         os.chmod(config_db['pending_transfer_db_path'], 0o777)
 
 def get_validity_days(amount):
-    global validity_days
     denomination = DenominationStore()
-    validity_days = denomination.get_validity_days(amount)
-    return validity_days
-
-def get_subscriber_validity(imsi,validity_days):
-    validity = subscriber.subscriber_status.get_subscriber_validity(imsi,validity_days)
-    return validity
-
+    return denomination.get_validity_days(amount)[0]
 
 def process_transfer(from_imsi, to_imsi, amount):
     """Process a transfer request.
@@ -94,7 +87,7 @@ def process_transfer(from_imsi, to_imsi, amount):
                {'credit': credit_limit,'transfer' :max_transfer_str}
     # check top-up amount in denomination bracket
     validity_days = get_validity_days(amount)
-    if(validity_days == None):
+    if validity_days is None:
         return False, gt("Top-up not under denomination range.")
     # Add the pending transfer.
     code = ''
@@ -149,7 +142,8 @@ def process_confirm(from_imsi, code):
         events.create_transfer_event(to_imsi, to_imsi_old_credit,
                                      to_imsi_new_credit, reason,
                                      from_number=from_num, to_number=to_num)
-        top_up_validity = get_subscriber_validity(to_imsi, validity_days[0])
+        top_up_validity = subscriber.subscriber_status.\
+            get_subscriber_validity( to_imsi, get_validity_days(amount))
         subscriber.add_credit(to_imsi, str(int(amount)))
         # Humanize credit strings
         amount_str = freeswitch_strings.humanize_credits(amount)
@@ -163,8 +157,7 @@ def process_confirm(from_imsi, code):
                      " Your new balance is %(new_balance)s.Your top-up "
                      "validity is %(validity)s days.") % {
                      'amount': amount_str, 'from_num': from_num,
-                     'new_balance': to_balance_str,
-                     'validity' : top_up_validity}
+                     'new_balance': to_balance_str, 'validity': top_up_validity}
         sms.send(str(to_num), str(config_db['app_number']), str(message))
         # Remove this particular the transfer as it's no longer pending.
         db.execute("DELETE FROM pending_transfers WHERE code=?"

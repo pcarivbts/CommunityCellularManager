@@ -57,7 +57,7 @@ class CheckinResponder(object):
             'system_utilization': self.timeseries_handler,
             'subscribers': self.subscribers_handler,
             'radio': self.radio_handler,  # needs location_handler -kurtis
-            'subscriber_status' :self.subscriber_status_handler,
+            'subscriber_status' : self.subscriber_status_handler,
             # TODO: (kheimerl) T13270418 Add location update information
         }
 
@@ -163,7 +163,7 @@ class CheckinResponder(object):
         resp['config'] = self._optimize('config', self.gen_config())
         resp['subscribers'] = self._optimize('subscribers',
                                              self.gen_subscribers())
-        resp['network_denomination'] =self.get_network_denomination()
+        resp['network_denomination'] = self.get_network_denomination()
         resp['events'] = self.gen_events()
         resp['sas'] = self.gen_spectrum()
         self.bts.save()
@@ -283,8 +283,8 @@ class CheckinResponder(object):
                 sub.save()
 
             except Subscriber.DoesNotExist:
-                logging.warn(
-                    '[subscriber_status_handler] subscriber %s does not exist.' % imsi)
+                logging.warn('[subscriber_status_handler] subscriber %s does not'
+                             ' exist.' % imsi)
 
 
     def radio_handler(self, radio):
@@ -313,9 +313,10 @@ class CheckinResponder(object):
         Returns a list of denomination bracket
         """
         res = []
-        for s in NetworkDenomination.objects.filter(network=self.bts.network,status='done'):
-            data = {'id': s.id,'start_amount': s.start_amount, 'end_amount': s.end_amount,
-                    'validity': str(s.validity_days)}
+        for s in NetworkDenomination.objects.filter(network=self.bts.network,
+                                                    status='done'):
+            data = {'id': s.id,'start_amount': s.start_amount,
+                    'end_amount': s.end_amount, 'validity': str(s.validity_days)}
             res.append(data)
         return res
 
