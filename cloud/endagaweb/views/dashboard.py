@@ -50,10 +50,12 @@ from ccm.common.currency import parse_credits, humanize_credits, \
 from endagaweb import tasks
 from endagaweb.forms import dashboard_forms as dform
 from endagaweb.models import NetworkDenomination
+from ccm.common.currency import parse_credits, humanize_credits, CURRENCIES
 from endagaweb.models import (UserProfile, Subscriber, UsageEvent,
                               Network, PendingCreditUpdate, Number, BTS)
 from endagaweb.util.currency import cents2mc
 from endagaweb.views import django_tables
+import json
 
 
 class ProtectedView(PermissionRequiredMixin, View):
@@ -1464,7 +1466,7 @@ class BroadcastView(ProtectedView):
             subscribers = []
             for imsi in imsi_list:
                 try:
-                    sub = Subscriber.objects.get(imsi=imsi,network=network_id)
+                    sub = Subscriber.objects.get(imsi=imsi, network=network_id)
                     subscribers.append(sub)
                 except Subscriber.DoesNotExist:
                     invalid_imsi.append(imsi)
@@ -1474,7 +1476,7 @@ class BroadcastView(ProtectedView):
                 return HttpResponse(json.dumps(response),
                                     content_type="application/json")
             if len(invalid_imsi) > 0:
-                message = "Invalid %s in IMSI numbers." % (','.join(
+                message = "%s does not exist in this network." % (','.join(
                     invalid_imsi))
                 response['messages'].append(message)
                 return HttpResponse(json.dumps(response),
@@ -1491,9 +1493,7 @@ class BroadcastView(ProtectedView):
                         'to': num.number,
                         'sender': '0000',
                         'text': message,
-                        'msgid': str(uuid.uuid4()),
-                        'level_id': 123,
-                        'level': 89
+                        'msgid': str(uuid.uuid4())
                     }
                     url = subscriber.bts.inbound_url + "/endaga_sms"
                     tasks.async_post.delay(url, params)
