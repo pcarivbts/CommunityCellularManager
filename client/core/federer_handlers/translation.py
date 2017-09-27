@@ -44,7 +44,7 @@ class translate(common.incoming):
             #                      stderr=subprocess.STDOUT)
             #proc.wait()
             # Source path need to make writable by mount tmp directory manually
-            filedir = '/tmp/.opkg_rootfs/%s' % config_db['localedir']
+            filedir = config_db['tmp_localedir']
             languages = ['en', 'es', 'fil', 'id']
             for dt in data:
                 if dt in languages:
