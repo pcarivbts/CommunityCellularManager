@@ -641,36 +641,26 @@ def block_user(self):
 
 @app.task(bind=True)
 def async_translation(self):
-    """Tries to send updated notification messages to client.
-
-    The default retry is every 10 min for 3 days.
-    """
+    """Tries to send updated notification messages to client."""
     print "TRANSLATION - attempting to send POST request to all active BTS."
     try:
-
         timeout = settings.ENDAGA['BTS_REQUEST_TIMEOUT_SECS']
-        translation_files = []
-        for lang in LANGUAGES:
-            po_path = LOCALE_PATHS[0]+'/'+lang[0]+'/LC_MESSAGES/django.mo'
-            file = (lang[0], ('django.mo', open(po_path, 'rb'), 'application/x-gettext-translation'))
-            translation_files.append(file)
-        # Send translation files to all client BTS
-        print "______________translation_files___________________________"
-        print translation_files
-        print "__________________________________________________________"
-
-        timeout = settings.ENDAGA['BTS_REQUEST_TIMEOUT_SECS']
-        translation_files = []
-        for lang in LANGUAGES:
-            po_path = LOCALE_PATHS[0]+'/'+lang[0]+'/LC_MESSAGES/django.mo'
-            file = (lang[0], ('django.mo', open(po_path, 'rb'),
-                              'application/x-gettext-translation'))
-            translation_files.append(file)
         # Send translation files to all client BTS
         bts_list = BTS.objects.filter(status='active')
         for bts in bts_list:
             url = bts.inbound_url + "/translate"
-            url = "http://10.64.0.158:80/translate"
+            translation_files = []
+            for lang in LANGUAGES:
+                po_path = LOCALE_PATHS[0] + '/' + lang[
+                    0] + '/LC_MESSAGES/django.mo'
+                file = (lang[0], ('django.mo', open(po_path, 'rb'),
+                                  'application/x-gettext-translation'))
+                translation_files.append(file)
+            # Send translation files to all client BTS
+            print "______________translation_files___________________________"
+            print translation_files
+            print "__________________________________________________________"
+
             r = requests.post(url, files=translation_files, timeout=timeout)
             if r.status_code >= 200 and r.status_code < 300:
                 print "async_post SUCCESS. url: '%s' (%d). Response was: %s" \
@@ -690,12 +680,15 @@ def translate(self, message, retry_delay=60 * 10, max_retries=432):
     """
     print "writing network notification message for translation '%s'"
     try:
-        handle = open(TEMPLATES_PATH + "/translate.html", 'a+')
-        handle.write('{% trans "' + message + '" %}\r\n')
+        handle = open(TEMPLATES_PATH + "/translate.py", 'a+')
+        handle.write('ValidationError(_("' + message + '"))\n\n')
         handle.close()
         # Make messages to update translation into po files
-        subprocess.Popen(['python', 'manage.py', 'makemessages', '-a'])
-        subprocess.Popen(['python', 'manage.py', 'compilemessages'])
+        command = "cd /var/www; envdir /var/opt/endagaweb-envdir/ python manage.py makemessages -a"
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+        proc_stdout = process.communicate()[0].strip()
+        #subprocess.Popen(['python', 'manage.py', 'makemessages', '-a'])
+        #subprocess.Popen(['python', 'manage.py', 'compilemessages'])
     except Exception as exception:
         print "Translation ERROR. Exception:- %s" % exception
         raise self.retry(countdown=retry_delay, max_retries=max_retries)
