@@ -955,37 +955,19 @@ class UsageEvent(models.Model):
                 sub_evt.event_time = event.date
                 sub_evt.negative_transactions = negative_transactions_ids
                 sub_evt.save()
-
                 max_transactions = event.subscriber.network.max_failure_transaction
-                attempts_left = max_transactions - sub_evt.count
-
                 if sub_evt.count >= max_transactions:
                     block_reason = 'Repeated %s within 24 hours ' % (
                         '/'.join(INVALID_EVENTS),)
-                    event.subscriber.is_blocked = True
+                    # event.subscriber.is_blocked = True (already blocked on
                     event.subscriber.block_reason = block_reason
                     if sub_evt.count == max_transactions:
                         # Update time for last max failure trx event only
                         event.subscriber.last_blocked = django.utils.timezone.now()
                     event.subscriber.save()
-                    # TODO(sagar): Block duration (30 minutes)
-                    # needs to be configurable in unblock task
-                    # Send SMS
-                    celery_app.send_task('endagaweb.tasks.sms_notification',
-                                         ("Blocked for 30 minutes due to "
-                                         "repeated wrong attempts",
-                                         event.subscriber.number_set.all()[0]))
                     logger.info('Subscriber %s blocked for 30 minutes, '
                                 'repeated invalid transactions within 24 '
                                 'hours' % event.subscriber_imsi)
-                else:
-                    #SMS notification about attempts left
-                    celery_app.send_task('endagaweb.tasks.sms_notification',
-                                         ("You attempted %s wrong recharge(s)."
-                                         "Attempts left (%s) before services "
-                                         "get blocked,"
-                                         % (sub_evt.count, attempts_left),
-                                         event.subscriber.number_set.all()[0]))
             else:
                 sub_evt = SubscriberInvalidEvents.objects.create(
                     subscriber=event.subscriber, count=1)

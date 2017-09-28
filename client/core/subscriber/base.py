@@ -503,7 +503,7 @@ class BaseSubscriberStatus(KVStore):
     def __init__(self, connector=None):
         super(BaseSubscriberStatus, self).__init__('subscribers_status',
                                                    connector, key_name='imsi',
-                                                   val_name='state')
+                                                   val_name='status')
 
     def get_subscriber_status(self, imsis=None):
         """
@@ -574,7 +574,12 @@ class BaseSubscriberStatus(KVStore):
             sub = net_subs[imsi]
             sub_state = sub['state']
             sub_validity = sub['validity']
-            sub_info = {"state": sub_state, "validity": sub_validity}
+            # Error Transfer Count this won't sync to cloud
+            if 'ie_count' not in sub:
+                sub['ie_count'] = 0
+
+            sub_info = {"state": sub_state, "validity": sub_validity,
+                        "ie_count": sub['ie_count']}
             try:
                 self.update_status(imsi, json.dumps(sub_info))
             except SubscriberNotFound as e:
@@ -622,7 +627,32 @@ class BaseSubscriberStatus(KVStore):
                                                 datetime.min.time()))
                 else:
                     sub_info = {"state": 'active',
-                                 "validity": str(validity_date)}
+                                "validity": str(validity_date)}
                     self.update_status(imsis, json.dumps(sub_info))
                     return str(datetime.combine(validity_date,
                                                 datetime.min.time()))
+
+    def get_invalid_count(self, imsi):
+        subscriber = json.loads(self.get(imsi))
+        try:
+            return int(subscriber['ie_count'])
+        except:
+            return 0  # doesn't exist
+
+    def reset_invalid_count(self, imsi):
+        subscriber = json.loads(self.get(imsi))
+        subscriber['ie_count'] = 0
+        self.update_status(imsi, json.dumps(subscriber))
+
+    def set_invalid_count(self, imsi, max_transactions):
+        subscriber = json.loads(self.get(imsi))
+        if 'ie_count' in subscriber:
+            subscriber['ie_count'] = int(subscriber['ie_count']) + 1
+        else:
+            subscriber['ie_count'] = 1
+
+        if subscriber['ie_count'] >= max_transactions:
+            # If transaction has happened means it's in active state
+            subscriber['state'] = 'active*'
+            subscriber['ie_count'] = 0
+        self.update_status(imsi, json.dumps(subscriber))

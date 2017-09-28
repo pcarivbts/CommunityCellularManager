@@ -157,8 +157,8 @@ def set_defaults(force_replace=False):
         # system
         'internal_interface': 'lo',
         # network balance limit
-        'network_max_balance':100000
-
+        'network_max_balance': 100000,
+        'network_mput': 3
 
     }
     config = ConfigDB()
