@@ -34,7 +34,8 @@ class BaseSubscriber(KVStore):
         super(BaseSubscriber, self).__init__('subscribers', connector,
                                              key_name='imsi',
                                              val_name='balance')
-        self.subscriber_status = BaseSubscriberStatus()
+        # Create Subscriber Status Table
+        self.status = BaseSubscriberStatus()
 
     def get_subscriber_states(self, imsis=None):
         """
@@ -62,12 +63,10 @@ class BaseSubscriber(KVStore):
 
         res = {}
         for (imsi, balance) in subs:
-        # for (imsi, balance, status) in subs:
             res[imsi] = {}
             # ship this as json string straight from db
             res[imsi]['balance'] = balance
             res[imsi]['numbers'] = []  # TODO(shasan): nothing for now
-            #res[imsi]['status'] = status
         return res
 
     def create_subscriber(self, imsi, number, ip=None, port=None):
@@ -436,7 +435,7 @@ class BaseSubscriber(KVStore):
         """
         raise NotImplementedError()
 
-    def     process_update(self, net_subs):
+    def process_update(self, net_subs):
         """
         Processes the subscriber list. Format is:
 
@@ -491,49 +490,6 @@ class BaseSubscriber(KVStore):
                 logger.error("Balance sync fail! IMSI: %s, %s Error: %s" %
                                 (imsi, sub['balance'], e))
 
-        # Update status table as well
-        self._update_status(net_subs)
-
-    def _update_status(self, net_subs):
-        bts_imsis = self.subscriber_status.get_subscriber_imsis()
-        net_imsis = set(net_subs.keys())
-
-        subs_to_add = net_imsis.difference(bts_imsis)
-        subs_to_delete = bts_imsis.difference(net_imsis)
-        subs_to_update = bts_imsis.intersection(net_imsis)
-
-        for imsi in subs_to_delete:
-            self.subscriber_status.delete_subscriber(imsi)
-
-        for imsi in subs_to_update:
-            sub = net_subs[imsi]
-            sub_state = sub['state']
-            sub_validity = sub['validity']
-            sub_info ={"state":sub_state,"validity": sub_validity }
-            try:
-                self.subscriber_status.update_status(imsi, json.dumps(sub_info))
-            except SubscriberNotFound as e:
-                logger.warning(
-                    "State sync fail! IMSI: %s is not found Error: %s" %
-                    (imsi, e))
-            except ValueError as e:
-                logger.error("State sync fail! IMSI: %s, %s Error: %s" %
-                             (imsi, sub_info, e))
-                subs_to_add.add(imsi)  # try to add it (again)
-
-        for imsi in subs_to_add:
-            sub = net_subs[imsi]
-            sub_state = sub['state']
-            sub_validity = sub['validity']
-            sub_info = {"state": sub_state, "validity": sub_validity}
-            self.subscriber_status.create_subscriber_status(imsi,
-                                                            json.dumps(sub_info))
-
-            try:
-                self.subscriber_status.update_status(imsi, json.dumps(sub_info))
-            except (SubscriberNotFound, ValueError) as e:
-                logger.error("State sync fail! IMSI: %s, %s Error: %s" %
-                                                (imsi, sub_info, e))
 
 class BaseSubscriberStatus(KVStore):
     """
@@ -549,11 +505,11 @@ class BaseSubscriberStatus(KVStore):
                                                    connector, key_name='imsi',
                                                    val_name='state')
 
-    def get_subscriber_states(self, imsis=None):
+    def get_subscriber_status(self, imsis=None):
         """
         Return a dictionary containing all the subscriber status.  Format is:
 
-        { 'IMSIxxx...' : {'status': 'subscriber's status'},
+        { 'IMSIxxx...' : {'state' : 'active' , 'valid_through': '01-09-2100'}
             ...
         }
 
@@ -575,6 +531,7 @@ class BaseSubscriberStatus(KVStore):
         res = {}
         for (imsi, state) in subs:
             res[imsi] = {}
+            # state = {'state': 'active', 'valid_through': '01-09-2100'}
             res[imsi]['state'] = state
         return res
 
@@ -600,9 +557,9 @@ class BaseSubscriberStatus(KVStore):
         self._connector.with_cursor(_update)
 
     def get_subscriber_imsis(self):
-        return {key for key in self.get_subscriber_states().keys()}
+        return {key for key in self.get_subscriber_status().keys()}
 
-    def process_status_update(self, net_subs):
+    def process_update(self, net_subs):
         bts_imsis = self.get_subscriber_imsis()
         net_imsis = set(net_subs.keys())
 
@@ -617,7 +574,7 @@ class BaseSubscriberStatus(KVStore):
             sub = net_subs[imsi]
             sub_state = sub['state']
             sub_validity = sub['validity']
-            sub_info ={"state":sub_state,"validity": sub_validity }
+            sub_info = {"state": sub_state, "validity": sub_validity}
             try:
                 self.update_status(imsi, json.dumps(sub_info))
             except SubscriberNotFound as e:
@@ -633,19 +590,17 @@ class BaseSubscriberStatus(KVStore):
             sub = net_subs[imsi]
             sub_state = sub['state']
             sub_validity = sub['validity']
-            sub_info ={"state":sub_state,"validity": sub_validity }
-
-            self.create_subscriber_status(imsi, json.dumps(sub_info))
+            sub_info = {"state": sub_state, "validity": sub_validity}
+            self.create_subscriber_status(imsi,json.dumps(sub_info))
             try:
-                self.update_status(imsi, json.dumps(sub_info))
+                self.update_status(imsi,json.dumps(sub_info))
             except (SubscriberNotFound, ValueError) as e:
                 logger.error("State sync fail! IMSI: %s, %s Error: %s" %
-                                (imsi, sub_info, e))
+                             (imsi, sub_info, e))
 
     def get_account_status(self, imsi):
-        sub_info =  json.loads(self.get(imsi))
-        status = str(sub_info['state'])
-        return status
+        status = json.loads(self.get(imsi))
+        return str(status['state'])
 
     def get_subscriber_validity(self, imsis, days):
             sub_info = json.loads(self.get(imsis))
@@ -665,11 +620,9 @@ class BaseSubscriberStatus(KVStore):
                     self.update_status(imsis, json.dumps(sub_info))
                     return str(datetime.combine(delta_validity,
                                                 datetime.min.time()))
-
                 else:
                     sub_info = {"state": 'active',
                                  "validity": str(validity_date)}
                     self.update_status(imsis, json.dumps(sub_info))
                     return str(datetime.combine(validity_date,
                                                 datetime.min.time()))
-

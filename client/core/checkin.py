@@ -97,6 +97,18 @@ class CheckinHandler(object):
     @delta.DeltaCapable(section_ctx['subscribers'], True)
     def process_subscribers(self, data_dict):
         subscriber.process_update(data_dict)
+        subscriber.status.process_update(data_dict)
+
+    def process_denomination(self, data_dict):
+        for data in data_dict:
+            if self.denominationstore.get_record(data['id']) == None:
+                self.denominationstore.add_record(data['id'],data['start_amount'],
+                                                  data['end_amount'],data['validity'])
+        id_list = self.denominationstore.get_all_id()
+        for id in id_list:
+            if id not in [d['id'] for d in data_dict]:
+                self.denominationstore.delete_record(id)
+
 
     def process_denomination(self, data_dict):
         for data in data_dict:

@@ -10,7 +10,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 from django.conf import settings
 from django.conf.urls import include, url
-from django.contrib import admin
+from django.contrib import admin, auth
 import django.contrib.auth.views
 
 import endagaweb.views

@@ -59,8 +59,10 @@ OUTBOUND_ACTIVITIES = (
     'outside_call', 'outside_sms', 'local_call', 'local_sms',
 )
 # These UsageEvent events are not allowed block the Subscriber if repeated
-# for 3 times
-INVALID_EVENTS = ('error_call', 'error_sms')
+# more than Maximum Permissible Unsuccessful Transactions
+INVALID_EVENTS = (
+    'error_transfer',
+)
 
 PERMISSIONS = (
                 # User Management
@@ -554,6 +556,7 @@ class ChargingEntity(models.Model):
     class Meta:
         abstract = True
 
+
 class Subscriber(models.Model):
     network = models.ForeignKey('Network', on_delete=models.CASCADE)
     bts = models.ForeignKey(
@@ -561,7 +564,7 @@ class Subscriber(models.Model):
     imsi = models.CharField(max_length=50, unique=True)
     name = models.TextField()
     crdt_balance = models.TextField(default=crdt.PNCounter("default").serialize())
-    state = models.CharField(max_length=15)
+    state = models.CharField(max_length=15, default='first_expired')
     # Time of the last received UsageEvent that's not in NON_ACTIVITIES.
     last_active = models.DateTimeField(null=True, blank=True)
     # Time of the last received UsageEvent that is in OUTBOUND_ACTIVITIES.  We
@@ -574,9 +577,12 @@ class Subscriber(models.Model):
     prevent_automatic_deactivation = models.BooleanField(default=False)
     # Block subscriber if repeated unauthorized events.
     is_blocked = models.BooleanField(default=False)
-    block_reason = models.TextField(default='N/A',max_length=255)
+    # older validity until first recharge
+    valid_through = models.DateTimeField(null=True,
+                                         default=django.utils.timezone.now()
+                                                 - datetime.timedelta(days=1))
+    block_reason = models.TextField(default='N/A', max_length=255)
     last_blocked = models.DateTimeField(null=True, blank=True)
-    valid_through = models.DateTimeField(null=True, blank=True)
     # role of subscriber
     role = models.TextField(null=True, blank=True, default="Subscriber")
 
@@ -734,6 +740,7 @@ class Subscriber(models.Model):
         last_camped_secs = (django.utils.timezone.now() - self.last_camped) \
             .total_seconds()
         return last_camped_secs < t3212_secs
+
 
 class Number(ChargingEntity):
     subscriber = models.ForeignKey(Subscriber, null=True, blank=True,
@@ -944,12 +951,14 @@ class UsageEvent(models.Model):
                 # block the subscriber
                 negative_transactions_ids = sub_evt .negative_transactions + [
                     event.transaction_id]
-                sub_evt.count = sub_evt .count + 1
+                sub_evt.count = sub_evt.count + 1
                 sub_evt.event_time = event.date
                 sub_evt.negative_transactions = negative_transactions_ids
                 sub_evt.save()
 
                 max_transactions = event.subscriber.network.max_failure_transaction
+                attempts_left = max_transactions - sub_evt.count
+
                 if sub_evt.count >= max_transactions:
                     block_reason = 'Repeated %s within 24 hours ' % (
                         '/'.join(INVALID_EVENTS),)
@@ -959,24 +968,40 @@ class UsageEvent(models.Model):
                         # Update time for last max failure trx event only
                         event.subscriber.last_blocked = django.utils.timezone.now()
                     event.subscriber.save()
+                    # TODO(sagar): Block duration (30 minutes)
+                    # needs to be configurable in unblock task
+                    # Send SMS
+                    celery_app.send_task('endagaweb.tasks.sms_notification',
+                                         ("Blocked for 30 minutes due to "
+                                         "repeated wrong attempts",
+                                         event.subscriber.number_set.all()[0]))
                     logger.info('Subscriber %s blocked for 30 minutes, '
                                 'repeated invalid transactions within 24 '
                                 'hours' % event.subscriber_imsi)
+                else:
+                    #SMS notification about attempts left
+                    celery_app.send_task('endagaweb.tasks.sms_notification',
+                                         ("You attempted %s wrong recharge(s)."
+                                         "Attempts left (%s) before services "
+                                         "get blocked,"
+                                         % (sub_evt.count, attempts_left),
+                                         event.subscriber.number_set.all()[0]))
             else:
-                subscriber_event = SubscriberInvalidEvents.objects.create(
+                sub_evt = SubscriberInvalidEvents.objects.create(
                     subscriber=event.subscriber, count=1)
-                subscriber_event.event_time = event.date
-                subscriber_event.negative_transactions = [event.transaction_id]
-                subscriber_event.save()
+                sub_evt.event_time = event.date
+                sub_evt.negative_transactions = [event.transaction_id]
+                sub_evt.save()
         elif SubscriberInvalidEvents.objects.filter(
                 subscriber=event.subscriber).count() > 0:
-            # Delete the event if events are non-consecutive
+            # Delete the event if events are non-consecutive keep the event if
+            # until subscriber is unblocked
             if not event.subscriber.is_blocked:
-                subscriber_event = SubscriberInvalidEvents.objects.get(
+                sub_evt = SubscriberInvalidEvents.objects.get(
                     subscriber=event.subscriber)
                 logger.info('Subscriber %s invalid event removed' % (
                     event.subscriber_imsi))
-                subscriber_event.delete()
+                sub_evt.delete()
 
     @staticmethod
     def set_transaction_id(sender, instance=None, **kwargs):
@@ -991,6 +1016,7 @@ class UsageEvent(models.Model):
             negative = False
         event.transaction_id = dbutils.format_transaction(instance.date,
                                                           negative)
+
 
 post_save.connect(UsageEvent.set_imsi_and_uuid_and_network, sender=UsageEvent)
 post_save.connect(UsageEvent.set_subscriber_last_active, sender=UsageEvent)

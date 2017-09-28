@@ -15,7 +15,6 @@ import re
 import sqlite3
 import time
 
-
 from core import config_database
 from core import events
 from core import freeswitch_strings
@@ -23,7 +22,6 @@ from core.sms import sms
 from core.subscriber import subscriber
 from core.exceptions import SubscriberNotFound
 from core.denomination_store import DenominationStore
-
 
 config_db = config_database.ConfigDB()
 gt = gettext.translation("endaga", config_db['localedir'],
@@ -65,6 +63,15 @@ def process_transfer(from_imsi, to_imsi, amount):
       boolean indicating success
     """
     from_balance = int(subscriber.get_account_balance(from_imsi))
+    # Error when blocked or expired user tries to transfer credit
+    from_imsi_status = subscriber.status.get_account_status(
+        from_imsi)
+    if from_imsi_status != 'active':
+        if from_imsi_status == 'active*':
+            status = 'is blocked'
+        else:
+            status = 'has no validity'
+        return False, gt("Your account %s!" % status)
     # Error when user tries to transfer more credit than they have.
     if not from_balance or from_balance < amount:
         return False, gt("Your account doesn't have sufficient funds for"
@@ -77,22 +84,34 @@ def process_transfer(from_imsi, to_imsi, amount):
     # Error when user tries to transfer more credit than network max balance
     network_max_balance = int(config_db['network_max_balance'])
     credit_limit = freeswitch_strings.humanize_credits(network_max_balance)
-    to_balance = int (subscriber.get_account_balance(to_imsi))
+    to_balance = int(subscriber.get_account_balance(to_imsi))
     max_transfer = network_max_balance - to_balance
     max_transfer_str = freeswitch_strings.humanize_credits(max_transfer)
+    from_num = subscriber.get_numbers_from_imsi(from_imsi)[0]
+    to_num = subscriber.get_numbers_from_imsi(to_imsi)[0]
+    error_kind = " error_transfer"
     if to_balance > network_max_balance:
-        return  False, gt("Top-up not allowed. Maximum balance limit crossed"
-                         "%(credit)s.") % {'credit': credit_limit}
-
+        reason = ("Top-up not allowed. Maximum balance "
+                  "limit crossed %(credit)s.") % {'credit': credit_limit}
+        events.create_transfer_event(from_imsi, from_balance, from_balance,
+                                     reason + error_kind, from_num, to_num)
+        return False, gt(reason)
     elif (amount + to_balance) > network_max_balance:
-
-        return False, gt("Top-up not allowed.Maximum balance limit crossed."
-                         "%(credit)s.You can transfer upto %(transfer)s.") % \
-               {'credit': credit_limit,'transfer' :max_transfer_str}
+        # Create error_transfer event
+        reason = ("Top-up not allowed. Maximum balance "
+                  "limit crossed %(credit)s. You can transfer upto "
+                  "%(transfer)s.") % {'credit': credit_limit,
+                                      'transfer': max_transfer_str}
+        events.create_transfer_event(from_imsi, from_balance, from_balance,
+                                     reason + error_kind, from_num, to_num)
+        return False, gt(reason)
     # check top-up amount in denomination bracket
     validity_days = get_validity_days(amount)
     if validity_days is None:
-        return False, gt("Top-up not under denomination range.")
+        reason = "Top-up not under denomination range. "
+        events.create_transfer_event(from_imsi, from_balance, from_balance,
+                                     reason + error_kind, from_num, to_num)
+        return False, gt(reason)
     # Add the pending transfer.
     code = ''
     for _ in range(int(config_db['code_length'])):
@@ -146,8 +165,8 @@ def process_confirm(from_imsi, code):
         events.create_transfer_event(to_imsi, to_imsi_old_credit,
                                      to_imsi_new_credit, reason,
                                      from_number=from_num, to_number=to_num)
-        top_up_validity = subscriber.subscriber_status.\
-            get_subscriber_validity( to_imsi, get_validity_days(amount))
+        top_up_validity = subscriber.status.get_subscriber_validity(
+            to_imsi, get_validity_days(amount))
         subscriber.add_credit(to_imsi, str(int(amount)))
         # Humanize credit strings
         amount_str = freeswitch_strings.humanize_credits(amount)
@@ -198,17 +217,16 @@ def handle_incoming(from_imsi, request):
                                  int(config_db['code_length']))
     confirm = confirm_command.match(request)
     _init_pending_transfer_db()
-
     if transfer:
         to_number, amount = transfer.groups()
         amount = freeswitch_strings.parse_credits(amount).amount_raw
         # Translate everything into IMSIs.
         try:
             to_imsi = subscriber.get_imsi_from_number(to_number)
-            _, resp,= process_transfer(from_imsi, to_imsi, amount)
-
+            _, resp, = process_transfer(from_imsi, to_imsi, amount)
         except SubscriberNotFound:
-            resp = gt("Invalid phone number: %(number)s" % {'number': to_number})
+            resp = gt(
+                "Invalid phone number: %(number)s" % {'number': to_number})
     elif confirm:
         # The code is the whole request, so no need for groups.
         code = request.strip()

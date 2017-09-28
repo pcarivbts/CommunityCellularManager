@@ -33,10 +33,10 @@ def chat(message, args):
             subscriber_state = 'active'
         else:
             subscriber_state = str(
-                subscriber.subscriber_status.get_account_status(imsi)).lower()
+                subscriber.status.get_account_status(imsi)).lower()
     else:
         subscriber_state = str(
-                subscriber.subscriber_status.get_account_status(imsi)).lower()
+                subscriber.status.get_account_status(imsi)).lower()
     try:
         account_status = False
         if not dest_imsi:
@@ -74,10 +74,10 @@ def fsapi(session, stream, env, args):
             subscriber_state = 'active'
         else:
             subscriber_state = str(
-                subscriber.subscriber_status.get_account_status(imsi)).lower()
+                subscriber.status.get_account_status(imsi)).lower()
     else:
         subscriber_state = str(
-                subscriber.subscriber_status.get_account_status(imsi)).lower()
+                subscriber.status.get_account_status(imsi)).lower()
     try:
         account_status = False
         if not dest_imsi:

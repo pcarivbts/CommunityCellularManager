@@ -57,7 +57,7 @@ class CheckinResponder(object):
             'system_utilization': self.timeseries_handler,
             'subscribers': self.subscribers_handler,
             'radio': self.radio_handler,  # needs location_handler -kurtis
-            'subscriber_status' : self.subscriber_status_handler,
+            'subscriber_status': self.subscriber_status_handler,
             # TODO: (kheimerl) T13270418 Add location update information
         }
 
