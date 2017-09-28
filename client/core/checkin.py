@@ -109,18 +109,6 @@ class CheckinHandler(object):
             if id not in [d['id'] for d in data_dict]:
                 self.denominationstore.delete_record(id)
 
-
-    def process_denomination(self, data_dict):
-        for data in data_dict:
-            if self.denominationstore.get_record(data['id']) == None:
-                self.denominationstore.add_record(data['id'],data['start_amount'],
-                                                  data['end_amount'],data['validity'])
-        id_list = self.denominationstore.get_all_id()
-        for id in id_list:
-            if id not in [d['id'] for d in data_dict]:
-                self.denominationstore.delete_record(id)
-
-
     def process_events(self, data_dict):
         """Process information about events.
 
