@@ -65,8 +65,11 @@ class cdr(object):
             cdr_dom.getElementsByTagName("duration")[0].childNodes))
         billsec = int(get_tag_text(
             cdr_dom.getElementsByTagName("billsec")[0].childNodes))
-        tariff = int(get_tag_text(
-            cdr_dom.getElementsByTagName("call_tariff")[0].childNodes))
+        try:
+            tariff = int(get_tag_text(
+                cdr_dom.getElementsByTagName("call_tariff")[0].childNodes))
+        except:
+            pass  # pass for now
         # In b-leg cdrs, there are multiple destinations -- the sip one (IMSI)
         # and the dialed one (MSISDN).  We want the latter.
         callees = cdr_dom.getElementsByTagName("destination_number")
