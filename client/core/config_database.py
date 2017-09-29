@@ -158,6 +158,7 @@ def set_defaults(force_replace=False):
         'internal_interface': 'lo',
         # network balance limit
         'network_max_balance': 100000,
+        # Network Max Permissible Transaction 
         'network_mput': 3
 
     }

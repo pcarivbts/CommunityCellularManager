@@ -531,7 +531,6 @@ class BaseSubscriberStatus(KVStore):
         res = {}
         for (imsi, state) in subs:
             res[imsi] = {}
-            # state = {'state': 'active', 'valid_through': '01-09-2100'}
             res[imsi]['state'] = state
         return res
 
@@ -612,25 +611,22 @@ class BaseSubscriberStatus(KVStore):
             validity = str(sub_info['validity'])
             delta_validity = datetime.utcnow() + timedelta(days=days)
             if validity is None:
-                sub_info = {"state": 'active',
-                            "validity": str(delta_validity.date())}
-                self.update_status(imsis, json.dumps(sub_info))
-                return str(datetime.combine(delta_validity,
-                                            datetime.min.time()))
+                sub_info['state'] = 'active'
+                sub_info["validity"] = str(delta_validity.date())
+                date = delta_validity
             else:
                 validity_date = dateparser.parse(validity).date()
                 if validity_date < delta_validity.date():
-                    sub_info = {"state": 'active',
-                                "validity": str(delta_validity.date())}
-                    self.update_status(imsis, json.dumps(sub_info))
-                    return str(datetime.combine(delta_validity,
-                                                datetime.min.time()))
+                    sub_info['state'] = 'active'
+                    sub_info["validity"] = str(delta_validity.date())
+                    date = delta_validity
                 else:
-                    sub_info = {"state": 'active',
-                                "validity": str(validity_date)}
-                    self.update_status(imsis, json.dumps(sub_info))
-                    return str(datetime.combine(validity_date,
-                                                datetime.min.time()))
+                    sub_info['state'] = 'active'
+                    sub_info["validity"] = str(validity_date)
+                    date = validity_date
+
+            self.update_status(imsis, json.dumps(sub_info))
+            return str(datetime.combine(date, datetime.min.time()))
 
     def get_invalid_count(self, imsi):
         subscriber = json.loads(self.get(imsi))
