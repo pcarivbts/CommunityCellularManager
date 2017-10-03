@@ -449,7 +449,6 @@ class BaseSubscriber(KVStore):
         this BTS.
         """
         # dict where keys are imsis and values are sub info
-        from core import events
         bts_imsis = self.get_subscriber_imsis()
         net_imsis = set(net_subs.keys())
 
@@ -475,27 +474,6 @@ class BaseSubscriber(KVStore):
                              (imsi, sub['balance'], e))
                 subs_to_add.add(imsi)  # try to add it (again)
 
-            sub_state = sub['state']
-            sub_validity = sub['validity']
-            sub_info = {"state": sub_state, "validity": sub_validity}
-            try:
-                if str(sub_state).lower() not in ['active','active*']:
-                    old_balance = self.get_account_balance(imsi)
-                    if old_balance > 0:
-                        self.subtract_credit(imsi, str(old_balance))
-                        reason = 'Subscriber expired:setting balance zero' \
-                                 ' (deduct_money)'
-                        events.create_add_money_event(imsi, old_balance, 0,reason)
-                self.status.update_status(imsi, json.dumps(sub_info))
-            except SubscriberNotFound as e:
-                logger.warning(
-                        "State sync fail! IMSI: %s is not found Error: %s" %
-                        (imsi, e))
-            except ValueError as e:
-                logger.error("State sync fail! IMSI: %s, %s Error: %s" %
-                                 (imsi, sub_info, e))
-                subs_to_add.add(imsi)  # try to add it (again)
-
         for imsi in subs_to_add:
             sub = net_subs[imsi]
             numbers = sub['numbers']
@@ -511,22 +489,6 @@ class BaseSubscriber(KVStore):
             except (SubscriberNotFound, ValueError) as e:
                 logger.error("Balance sync fail! IMSI: %s, %s Error: %s" %
                                 (imsi, sub['balance'], e))
-            sub_state = sub['state']
-            sub_validity = sub['validity']
-            sub_info = {"state": sub_state, "validity": sub_validity}
-            try:
-                if str(sub_state).lower() not in ['active', 'active*']:
-                    old_balance = self.get_account_balance(imsi)
-                    if old_balance > 0:
-                        self.subtract_credit(imsi, str(old_balance))
-                        reason = 'Subscriber expired:setting balance zero' \
-                                 ' (deduct_money)'
-                        events.create_add_money_event(imsi, old_balance, 0, reason)
-                        self.status.create_subscriber_status(imsi, json.dumps(
-                            sub_info))
-            except (SubscriberNotFound, ValueError) as e:
-                logger.error("State sync fail! IMSI: %s, %s Error: %s" %
-                             (imsi, sub_info, e))
 
 
 class BaseSubscriberStatus(KVStore):
@@ -542,6 +504,7 @@ class BaseSubscriberStatus(KVStore):
         super(BaseSubscriberStatus, self).__init__('subscribers_status',
                                                    connector, key_name='imsi',
                                                    val_name='state')
+        self.subscriber = BaseSubscriber()
 
     def get_subscriber_status(self, imsis=None):
         """
@@ -596,6 +559,61 @@ class BaseSubscriberStatus(KVStore):
 
     def get_subscriber_imsis(self):
         return {key for key in self.get_subscriber_status().keys()}
+
+    def process_update(self, net_subs):
+        from core import events
+        bts_imsis = self.get_subscriber_imsis()
+        net_imsis = set(net_subs.keys())
+
+        subs_to_add = net_imsis.difference(bts_imsis)
+        subs_to_delete = bts_imsis.difference(net_imsis)
+        subs_to_update = bts_imsis.intersection(net_imsis)
+
+        for imsi in subs_to_delete:
+            self.delete_subscriber(imsi)
+
+        for imsi in subs_to_update:
+            sub = net_subs[imsi]
+            sub_state = sub['state']
+            sub_validity = sub['validity']
+            sub_info = {"state": sub_state, "validity": sub_validity}
+            try:
+                if str(sub_state).lower() not in ['active','active*']:
+                    old_balance = self.get_account_balance(imsi)
+                    if old_balance > 0:
+                        self.subscriber.subtract_credit(imsi, str(old_balance))
+                        reason = 'Subscriber expired:setting balance zero' \
+                                 ' (deduct_money)'
+                        events.create_add_money_event(imsi, old_balance, 0,reason)
+
+                self.update_status(imsi, json.dumps(sub_info))
+            except SubscriberNotFound as e:
+                logger.warning(
+                    "State sync fail! IMSI: %s is not found Error: %s" %
+                    (imsi, e))
+            except ValueError as e:
+                logger.error("State sync fail! IMSI: %s, %s Error: %s" %
+                             (imsi, sub_info, e))
+                subs_to_add.add(imsi)  # try to add it (again)
+
+        for imsi in subs_to_add:
+            sub = net_subs[imsi]
+            sub_state = sub['state']
+            sub_validity = sub['validity']
+            sub_info = {"state": sub_state, "validity": sub_validity}
+            self.create_subscriber_status(imsi,json.dumps(sub_info))
+            try:
+                if str(sub_state).lower() not in ['active','active*']:
+                    old_balance = self.get_account_balance(imsi)
+                    if old_balance > 0:
+                        self.subscriber.subtract_credit(imsi, str(old_balance))
+                        reason = 'Subscriber expired:setting balance zero' \
+                                 ' (deduct_money)'
+                        events.create_add_money_event(imsi, old_balance, 0,reason)
+                self.create_subscriber_status(imsi,       json.dumps(sub_info))
+            except (SubscriberNotFound, ValueError) as e:
+                logger.error("State sync fail! IMSI: %s, %s Error: %s" %
+                             (imsi, sub_info, e))
 
     def get_account_status(self, imsi):
         status = json.loads(self.get(imsi))
