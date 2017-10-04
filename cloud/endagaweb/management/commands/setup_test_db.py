@@ -76,7 +76,7 @@ class Command(BaseCommand):
 
         # Add two users with a lot of activity, towers and subs.  Note that the
         # first sub, unlike the second one, has no 'endaga_version.'
-        self.create_data("testuser", "testpw", 1, "number.nexmo.monthly",
+        self.create_data("testuser1", "testpw", 1, "number.nexmo.monthly",
                          "628555", None)
         self.create_data("testuser2", "testpw2", 2, "number.telecom.permanent",
                          "63917555", '0.3.26')

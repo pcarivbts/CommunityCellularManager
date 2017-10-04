@@ -178,6 +178,37 @@ of patent rights can be found in the PATENTS file in the same directory.
         </div>
     </div>
 </div>
+<div class='modal fade' id='pwd-dialog-modal'>
+    <div class='modal-dialog'>
+        <div class='modal-content'>
+            <div class='modal-header'>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class='modal-title'>
+                    <p>Hello <strong>{{ user_profile.display_name }}</strong>, please enter your password for authorization.</p>
+                 </h4>
+            </div>
+            <div class='modal-body'>
+                 <div id='messages-container'></div>
+                <form id='password-authorization'>
+                    <div class='form-group'>
+                        <div class='controls'>
+                              <input class='textinput textInput form-control' id='pwd-input' name='pwd' type='password'>
+                        </div>
+                    </div><!-- /.form-group -->
+
+                </form>
+            </div> <!-- /.modal-body -->
+            <div class='modal-footer' id="modal-footerId">
+                <button type='button' class='btn btn-default' data-dismiss='modal'>Cancel</button>
+                <button class='btn btn-primary' type='button' id='pwd-dialog-submit'>
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% if 'download_activity' in user_permission %}
 <div class="row">

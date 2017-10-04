@@ -8,6 +8,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% endcomment %}
 
 {% load apptags %}
+{% load guardian_tags %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -28,7 +29,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     <!-- Custom styles for this template -->
     {% block pagestyle %}
     {% endblock %}
-
+    {% get_obj_perms request.user for network as 'user_permission' %}
     {% if user_profile.user.is_superuser %}
     <style>
       .navbar,
@@ -132,7 +133,8 @@ of patent rights can be found in the PATENTS file in the same directory.
                     <li><a href="/dashboard/staff/tower-monitoring"><i class="fa fa-paper-plane-o"></i>&nbsp; Tower Monitoring</a></li>
                     <li><a href="/dashboard/staff/network-earnings"><i class="fa fa-credit-card"></i>&nbsp; Network Earnings</a></li>
                 {% endif %}
-                {% if user_profile.user.is_staff %}
+
+                {% if 'user_management' in user_permission %}
                     <li><a href="/dashboard/user/management"><i class="fa fa-user" aria-hidden="true"></i>&nbsp; User Management</a></li>
                     <li class="divider"></li>
                 {% endif %}

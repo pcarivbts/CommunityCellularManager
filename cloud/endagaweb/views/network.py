@@ -551,19 +551,12 @@ class NetworkDenomination(ProtectedView):
             max_denominations = denomination.end_amount
         next_start_amount = humanize_credits(max_denominations,
                                              CURRENCIES[currency]).amount
-
-        # Configure the table of denominations. Do not show any pagination
-        # controls if the total number of donominations is small.
-        if not user_profile.user.is_staff:
-            denom_table = django_tables.DenominationListTable(list(denom))
-        else:
-            denom_table = django_tables.DenominationTable(list(denom))
+        denom_table = django_tables.DenominationTable(list(denom))
         towers_per_page = 8
         paginate = False
         if denom > towers_per_page:
             paginate = {'per_page': towers_per_page}
         tables.RequestConfig(request, paginate=paginate).configure(denom_table)
-
         # Set the context with various stats.
         context = {
             'networks': get_objects_for_user(request.user, 'view_network',
@@ -742,8 +735,6 @@ class NetworkDenominationEdit(ProtectedView):
                 extra_tags='alert alert-danger')
         return http.HttpResponse(json.dumps(response),
                                  content_type="application/json")
-
-
 
 
 class NetworkBalanceLimit(ProtectedView):

@@ -45,7 +45,7 @@ of patent rights can be found in the PATENTS file in the same directory.
         {% if 'view_denomination' in user_permission %}
         <div class='content col-xs-12 col-sm-10 col-md-10'>
 
-            {% if invalid_ranges and user_profile.user.is_staff %}
+            {% if invalid_ranges and 'edit_denomination' in user_permission %}
             <div class="alert alert-danger alert-dismissable">
                 <a href="#" class="close" data-dismiss="alert" aria-label="close">×</a>
                 <p>
@@ -54,7 +54,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 </p>
                 <p>Missing range are {% for range in invalid_ranges %}<span class="badge badge-danger">{{ range.start }} - {{ range.end }}</span> {% endfor %}</p>
             </div>
-            {% elif sync_status and user_profile.user.is_staff %}
+            {% elif sync_status and 'edit_denomination' in user_permission %}
             <div class="alert alert-warning alert-dismissable">
                 <h4>
                     <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
@@ -73,7 +73,10 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class="table-container">
                 {% if denomination %}
                 {% render_table denominations_table %}
-                {% if user_profile.user.is_staff %}
+                {% else %}
+                    <p>There are currently no denominations associated with this network.</p>
+                {% endif %}
+                {% if 'edit_denomination' in user_permission %}
                 <div class="dropdown actions">
                     <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Action(s)
                         <span class="caret"></span></button>
@@ -86,14 +89,12 @@ of patent rights can be found in the PATENTS file in the same directory.
                         </li>
                     </ul>
                 </div>
-                {% endif %}
-                {% else %}
-                    <p>There are currently no denominations associated with this network.</p>
-                {% endif %}
                 <p class="help-block">"Denomination" facilitates admin to create various top-up brackets along with limited validity period
                     which can be achieved using “Add Denomination” Button. "Add denomination" button is used to create various denomination brackets and their validity period for Recharges.
                     For error free creation of denomination brackets, Created denomination bracket must be continuous in terms of Amount.
-                    ( Ex:- Start Amount for 1st denomination is 1 & End Amount is 10 , for 2nd Denomination Start Amount must start from 11)</p>
+                    ( Ex:- Start Amount for 1st denomination is 1 & End Amount is 10 , for 2nd Denomination Start Amount must start from 11)
+                </p>
+                {% endif %}
             </div>
             </form>
         </div>

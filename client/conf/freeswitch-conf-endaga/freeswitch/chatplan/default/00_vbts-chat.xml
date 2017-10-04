@@ -1,5 +1,6 @@
 <!--
-Copyright (c) 2016-present, Facebook, Inc.
+Copyright (c) 2016-present, Face
+book, Inc.
 All rights reserved.
 
 This source code is licensed under the BSD-style license found in the
@@ -33,7 +34,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     <!-- This is a free_sms so we don't need to pass a destination_number to VBTS_Get_Service_Tariff -->
     <action inline="true" application="set" data='call_tariff=${python(VBTS_Get_Service_Tariff ${service_type}|sms|)}'/>
 
-    <!-- Get the status of number(s) -->
+    <!-- Get the IMSIs status -->
     <action inline="true" application="set" data='vbts_account_status=${python(VBTS_Get_Account_Status ${from_imsi})}'/>
     <action inline="true" application="set" data='vbts_incoming_account_status=${python(VBTS_Get_Account_Status ${vbts_destid}|True)}'/>
 

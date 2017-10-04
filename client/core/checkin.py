@@ -97,7 +97,7 @@ class CheckinHandler(object):
     @delta.DeltaCapable(section_ctx['subscribers'], True)
     def process_subscribers(self, data_dict):
         subscriber.process_update(data_dict)
-        subscriber.status.process_update(data_dict)
+        subscriber.status(update=data_dict)
 
     def process_denomination(self, data_dict):
         for data in data_dict:
@@ -108,7 +108,6 @@ class CheckinHandler(object):
         for id in id_list:
             if id not in [d['id'] for d in data_dict]:
                 self.denominationstore.delete_record(id)
-
 
     def process_events(self, data_dict):
         """Process information about events.
