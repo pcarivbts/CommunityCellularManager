@@ -10,7 +10,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load apptags %}
 {% load humanize %}
 {% load crispy_forms_tags %}
-
+{% load guardian_tags %}
 
 {% block title %}
 {% if network.name %}
@@ -37,7 +37,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 
 {% include "dashboard/network_detail/header.html" with network=network %}
-
+{% get_obj_perms request.user for network as 'user_permission' %}
 
 <div class = 'row'>
   {% include "dashboard/network_detail/nav.html" with active_tab='security'%}
@@ -45,7 +45,7 @@ of patent rights can be found in the PATENTS file in the same directory.
   <div class='content col-xs-12 col-md-4'>
     <div class='row'>
     <div class='col-sm-12'>
-        {% if user_profile.user.is_staff %}
+        {% if 'edit_network' in user_permission %}
         {% crispy network_balance_limit_form %}
         {% endif %}
        <p class='col-xs-12'>Network current maximum balance limit: {% currency network.max_balance %}</p>

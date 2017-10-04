@@ -15,7 +15,6 @@ import re
 import sqlite3
 import time
 
-
 from core import config_database
 from core import events
 from core import freeswitch_strings
@@ -24,10 +23,10 @@ from core.subscriber import subscriber
 from core.exceptions import SubscriberNotFound
 from core.denomination_store import DenominationStore
 
-
 config_db = config_database.ConfigDB()
 gt = gettext.translation("endaga", config_db['localedir'],
                          [config_db['locale'], "en_US"]).gettext
+ERROR_TRX = " error_transfer"
 
 def _init_pending_transfer_db():
     """Create the pending transfers table if it doesn't already exist."""
@@ -65,34 +64,74 @@ def process_transfer(from_imsi, to_imsi, amount):
       boolean indicating success
     """
     from_balance = int(subscriber.get_account_balance(from_imsi))
+    # Error when blocked or expired user tries to transfer credit
+    from_imsi_status = subscriber.status.get_account_status(
+        from_imsi)
+    if from_imsi_status != 'active':
+        if from_imsi_status == 'active*':
+            status = 'is blocked'
+        else:
+            status = 'has no validity'
+        return False, ("Your account %s!" % status)
     # Error when user tries to transfer more credit than they have.
     if not from_balance or from_balance < amount:
-        return False, gt("Your account doesn't have sufficient funds for"
-                         " the transfer.")
+        return False, ("Your account doesn't have sufficient funds for the "
+                       "transfer.")
     # Error when user tries to transfer to a non-existent user.
     #       Could be 0!  Need to check if doesn't exist.
     if not to_imsi or (subscriber.get_account_balance(to_imsi) == None):
-        return False, gt("The number you're sending to doesn't exist."
-                         " Try again.")
+        return False, ("The number you're sending to doesn't exist. Try again."
+                       )
     # Error when user tries to transfer more credit than network max balance
     network_max_balance = int(config_db['network_max_balance'])
     credit_limit = freeswitch_strings.humanize_credits(network_max_balance)
-    to_balance = int (subscriber.get_account_balance(to_imsi))
+    to_balance = int(subscriber.get_account_balance(to_imsi))
     max_transfer = network_max_balance - to_balance
     max_transfer_str = freeswitch_strings.humanize_credits(max_transfer)
+    from_num = subscriber.get_numbers_from_imsi(from_imsi)[0]
+    to_num = subscriber.get_numbers_from_imsi(to_imsi)[0]
+
+
+    max_attempts = config_db['network_mput']
     if to_balance > network_max_balance:
-        return  False, gt("Top-up not allowed. Maximum balance limit crossed"
-                         "%(credit)s.") % {'credit': credit_limit}
+        attempts = subscriber.status.get_invalid_count(from_imsi)
+        block_info = " Attempts left %(left)s !" % {
+            'left': int(max_attempts) - (int(attempts) + 1)
+        }
+        reason = ("Top-up not allowed. Maximum balance "
+                  "limit crossed %(credit)s."
+                  ) % {'credit': credit_limit}
+        # For cloud
+        events.create_transfer_event(from_imsi, from_balance, from_balance,
+                                     reason + ERROR_TRX , from_num, to_num)
 
+        return False, reason + block_info + ERROR_TRX
     elif (amount + to_balance) > network_max_balance:
-
-        return False, gt("Top-up not allowed.Maximum balance limit crossed."
-                         "%(credit)s.You can transfer upto %(transfer)s.") % \
-               {'credit': credit_limit,'transfer' :max_transfer_str}
+        # Mark this event for blocking
+        attempts = subscriber.status.get_invalid_count(from_imsi)
+        block_info = " Attempts left %(left)s !" % {
+            'left': int(max_attempts) - (int(attempts) + 1)
+        }
+        reason = ("Top-up not allowed. Maximum balance "
+                  "limit crossed %(credit)s. You can transfer upto "
+                  "%(transfer)s."
+                  ) % {'credit': credit_limit, 'transfer': max_transfer_str}
+        # For cloud
+        events.create_transfer_event(from_imsi, from_balance, from_balance,
+                                     reason + ERROR_TRX , from_num, to_num)
+        return False, reason + block_info + ERROR_TRX
     # check top-up amount in denomination bracket
     validity_days = get_validity_days(amount)
     if validity_days is None:
-        return False, gt("Top-up not under denomination range.")
+        attempts = subscriber.status.get_invalid_count(from_imsi)
+        block_info = " Attempts left %(left)s !" % {
+            'left': int(max_attempts) - (int(attempts) + 1)
+        }
+        reason = "Top-up not under denomination range."
+        # For cloud
+        events.create_transfer_event(from_imsi, from_balance, from_balance,
+                                     reason + ERROR_TRX , from_num, to_num)
+        return False, reason + block_info + ERROR_TRX
     # Add the pending transfer.
     code = ''
     for _ in range(int(config_db['code_length'])):
@@ -104,10 +143,11 @@ def process_transfer(from_imsi, to_imsi, amount):
     db.close()
     to_num = subscriber.get_numbers_from_imsi(to_imsi)[0]
     amount_str = freeswitch_strings.humanize_credits(amount)
-    response = gt("Reply to this message with %(code)s to confirm your"
-                  " transfer of %(amount)s to %(to_num)s. Code expires in ten"
-                  " minutes.") % {'code': code, 'amount': amount_str,
-                                  'to_num': to_num}
+    response = ("Reply to this message with %(code)s to confirm your transfer"
+                " of %(amount)s to %(to_num)s. Code expires in ten minutes."
+                ) % {
+        'code': code, 'amount': amount_str, 'to_num': to_num
+    }
     return True, response
 
 
@@ -146,8 +186,8 @@ def process_confirm(from_imsi, code):
         events.create_transfer_event(to_imsi, to_imsi_old_credit,
                                      to_imsi_new_credit, reason,
                                      from_number=from_num, to_number=to_num)
-        top_up_validity = subscriber.subscriber_status.\
-            get_subscriber_validity( to_imsi, get_validity_days(amount))
+        top_up_validity = subscriber.status.get_subscriber_validity(
+            to_imsi, get_validity_days(amount))
         subscriber.add_credit(to_imsi, str(int(amount)))
         # Humanize credit strings
         amount_str = freeswitch_strings.humanize_credits(amount)
@@ -156,7 +196,6 @@ def process_confirm(from_imsi, code):
         from_balance_str = freeswitch_strings.humanize_credits(
                 from_imsi_new_credit)
         # Let the recipient know they got credit.
-
         message = gt("You've received %(amount)s credits from %(from_num)s!"
                      " Your new balance is %(new_balance)s.Your top-up "
                      "validity is %(validity)s days.") % {
@@ -172,6 +211,7 @@ def process_confirm(from_imsi, code):
                         "Your new balance is %(new_balance)s.") % {
                                 'amount': amount_str, 'to_num': to_num,
                                 'new_balance': from_balance_str}
+
     return False, gt("That transfer confirmation code doesn't exist"
                      " or has expired.")
 
@@ -198,17 +238,23 @@ def handle_incoming(from_imsi, request):
                                  int(config_db['code_length']))
     confirm = confirm_command.match(request)
     _init_pending_transfer_db()
-
+    max_attempts = config_db['network_mput']
     if transfer:
         to_number, amount = transfer.groups()
         amount = freeswitch_strings.parse_credits(amount).amount_raw
         # Translate everything into IMSIs.
         try:
             to_imsi = subscriber.get_imsi_from_number(to_number)
-            _, resp,= process_transfer(from_imsi, to_imsi, amount)
-
+            _, resp, = process_transfer(from_imsi, to_imsi, amount)
+            if not _ and ERROR_TRX in resp:
+                subscriber.status.set_invalid_count(from_imsi, max_attempts)
+                resp  = resp.replace(ERROR_TRX, '')
+            else:
+                subscriber.status.reset_invalid_count(from_imsi)
+            resp = gt(resp)
         except SubscriberNotFound:
-            resp = gt("Invalid phone number: %(number)s" % {'number': to_number})
+            resp = gt(
+                "Invalid phone number: %(number)s" % {'number': to_number})
     elif confirm:
         # The code is the whole request, so no need for groups.
         code = request.strip()

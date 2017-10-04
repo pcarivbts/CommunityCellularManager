@@ -141,16 +141,16 @@ class SubscriberTable(tables.Table):
 
     class Meta:
         model = models.Subscriber
-        fields = ('imsi','name_and_imsi_link', 'numbers', 'balance', 'status',
-            'last_active','role')
+        fields = ('imsi', 'name_and_imsi_link', 'numbers', 'balance', 'status',
+                  'last_active', 'role')
         attrs = {'class': 'table'}
 
     imsi = tables.CheckBoxColumn(accessor="imsi", attrs={"th__input"
-                                                         :{"id"
-                                                           :"subscriber-select-all",
-                                                           "onclick": "toggle(this)",
-                                                           }},
-                                      orderable=False)
+                                                         : {"id"
+                                                            : "subscriber-select-all",
+                                                            "onclick": "toggle(this)",
+                                                            }},
+                                 orderable=False)
     name_and_imsi_link = tables.Column(
         empty_values=(), verbose_name='Name / IMSI', order_by=('name', 'imsi'))
     status = tables.Column(empty_values=(), order_by=('last_camped'))
@@ -209,14 +209,16 @@ class SubscriberActivityTable(tables.Table):
         """
         if record.oldamt < 0 and record.kind != 'add_money':
             return humanize_credits(0,
-                    CURRENCIES[record.network.subscriber_currency])
+                                    CURRENCIES[
+                                        record.network.subscriber_currency])
         else:
             return humanize_credits(record.change,
-                    CURRENCIES[record.network.subscriber_currency])
+                                    CURRENCIES[
+                                        record.network.subscriber_currency])
 
     def render_newamt(self, record):
         return humanize_credits(record.newamt,
-                CURRENCIES[record.network.subscriber_currency])
+                                CURRENCIES[record.network.subscriber_currency])
 
 
 class TowerTable(tables.Table):
@@ -255,7 +257,6 @@ class TowerTable(tables.Table):
 
     def render_uptime(self, record):
         return render_uptime(record)
-
 
 
 class StaffTowerTable(tables.Table):
@@ -355,27 +356,6 @@ class NumberTable(tables.Table):
         return safestring.mark_safe(element)
 
 
-class DenominationListTable(tables.Table):
-    """A django-tables2 Table definition for the table list."""
-
-    class Meta:
-        model = models.NetworkDenomination
-        fields = ('start_amount', 'end_amount', 'validity_days')
-        attrs = {'class': 'table table-hover'}
-
-    start_amount = tables.Column(empty_values=(), verbose_name='Start Amount')
-    end_amount = tables.Column(empty_values=(), verbose_name='End Amount')
-    validity_days = tables.Column(empty_values=(), verbose_name='Validity(Days)')
-
-    def render_start_amount(self, record):
-        return humanize_credits(record.start_amount,
-                                CURRENCIES[record.network.subscriber_currency])
-
-    def render_end_amount(self, record):
-        return humanize_credits(record.end_amount,
-                                CURRENCIES[record.network.subscriber_currency])
-
-
 class DenominationTable(tables.Table):
     """A django-tables2 Table definition for the table list."""
 
@@ -384,11 +364,13 @@ class DenominationTable(tables.Table):
         fields = ('id', 'start_amount', 'end_amount', 'validity_days')
         attrs = {'class': 'table table-hover'}
 
-    id = tables.CheckBoxColumn(
-        accessor="pk", attrs={"th__input": {"onclick": "toggle(this)"}})
+    id = tables.CheckBoxColumn(accessor="pk", attrs={"th__input": {
+            "onclick": "toggle(this)"}}
+    )
     start_amount = tables.Column(empty_values=(), verbose_name='Start Amount')
     end_amount = tables.Column(empty_values=(), verbose_name='End Amount')
-    validity_days = tables.Column(empty_values=(), verbose_name='Validity(Days)')
+    validity_days = tables.Column(empty_values=(),
+                                  verbose_name='Validity(Days)')
 
     def render_start_amount(self, record):
         return humanize_credits(record.start_amount,
@@ -400,10 +382,16 @@ class DenominationTable(tables.Table):
 
     def render_action(self, record):
         """Shows the edit and delete button."""
-        element = "<a href='javascript:void(0)' id='denom_%s' onclick='doAction(\"edit\", \"%s\");' " \
-                   "class='btn btn-xs btn-info'>Edit</a> &nbsp; " % (record.id, record.id)
-        element += "<a href='javascript:void(0)' onclick='doAction(\"delete\",\"%s\");' class='btn btn-xs btn-danger'" \
-                   "data-target='#delete-denom-modal' data-toggle='modal'>Delete</a>" % (record.id)
+        element = "<a href='javascript:void(0)' id='denom_%s' " \
+                  "onclick='doAction(\"edit\", \"%s\");' " \
+                  "class='btn btn-xs btn-info'>Edit</a> &nbsp; " % (
+                      record.id, record.id)
+        element += "<a href='javascript:void(0)' " \
+                   "onclick='doAction(\"delete\",\"%s\");' " \
+                   "class='btn btn-xs btn-danger'" \
+                   "data-target='#delete-denom-modal' " \
+                   "data-toggle='modal'>Delete</a>" % (
+                       record.id)
         return safestring.mark_safe(element)
 
 
@@ -423,7 +411,7 @@ def render_is_active(record):
               "data-on='Active' %s><span id='toggle-%d' hidden>&nbsp;&nbsp;" \
               "<span class='glyphicon glyphicon-ok'></span>"" \
               ""</span>" % (
-        user, status, is_superuser, user)
+                  user, status, is_superuser, user)
 
     return safestring.mark_safe(element)
 
@@ -441,7 +429,8 @@ class UserTable(tables.Table):
                                attrs={
                                    "th__input": {"onclick": "toggle(this)"}})
     # Get user role from userprofile
-    role = tables.Column(accessor='userprofile.role', verbose_name='Role', orderable=True)
+    role = tables.Column(accessor='userprofile.role', verbose_name='Role',
+                         orderable=True)
     # username = tables.Column(verbose_name='Username', orderable=True)
     email = tables.Column(verbose_name='Email', orderable=True)
     is_active = tables.BooleanColumn(verbose_name='Status', orderable=True)
@@ -459,6 +448,7 @@ class UserTable(tables.Table):
             element = '<span class = "label label-info">%s</span>' % role
 
         return safestring.mark_safe(element)
+
 
 def render_imsi(record):
     element = "<input type = 'checkbox' class ='imsi_id' name='imsi[]' " \
@@ -498,11 +488,12 @@ class NotificationTable(tables.Table):
 
     class Meta:
         model = models.Notification
-        fields = ('id','type', 'event', 'number', 'message')
+        fields = ('id', 'type', 'event', 'number', 'message')
         attrs = {'class': 'table'}
 
     id = tables.CheckBoxColumn(accessor="pk",
-                attrs={"th__input":{"onclick": "toggle(this)"}})
+                               attrs={
+                                   "th__input": {"onclick": "toggle(this)"}})
     type = tables.Column(verbose_name='Type')
     event = tables.Column(verbose_name='Event')
     number = tables.Column(verbose_name='Number')
@@ -511,5 +502,5 @@ class NotificationTable(tables.Table):
     def render_message(self, record):
         message = record.message
         if len(record.message) > 60:
-            message = message[:60]+'...(truncated)'
+            message = message[:60] + '...(truncated)'
         return message

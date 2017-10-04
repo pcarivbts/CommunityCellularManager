@@ -59,6 +59,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 {% csrf_token %}
                 {% if records > 0 %}
                 {% render_table notification_table %}
+                {% if 'edit_notification' in user_permission %}
                 <div class="dropdown actions">
                     <button class="btn btn-primary dropdown-toggle"
                             type="button" data-toggle="dropdown">Action(s)
@@ -74,6 +75,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                                                 href="#">Edit</a></li>
                     </ul>
                 </div>
+                {% endif %}
             </div>
             {% else %}
             <p>No notifications in the current network </p>

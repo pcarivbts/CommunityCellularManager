@@ -140,8 +140,9 @@ of patent rights can be found in the PATENTS file in the same directory.
 <header class="navbar navbar-inverse normal" role="banner">
     {% endblock %}
     {% block content %}
+    {% get_obj_perms request.user for network as 'user_permission' %}
+    {% if 'user_management' in user_permission %}
     <div class="row">
-
         <div class="col-xs-12 col-sm-12 page-header">
             <div class="page-title col-xs-4">
                 <h3>
@@ -157,8 +158,6 @@ of patent rights can be found in the PATENTS file in the same directory.
                 </div>
             </div>
         </div>
-
-        {% get_obj_perms request.user for network as 'user_permission' %}
         <div class="container col-sm-12">
             {% for message in messages %}
             <div class="col-sm-8 message alert alert-{{message.tags}}">
@@ -166,7 +165,6 @@ of patent rights can be found in the PATENTS file in the same directory.
                 {{message}}
             </div>
             {% endfor %}
-            {% if 'user_management' in user_permission %}
             <div class="col-sm-8">
                 {% if total_users_found == 0 %}
                 <h4>No user found on {{ network.name }}!</h4>
