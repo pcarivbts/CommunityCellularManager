@@ -34,8 +34,6 @@ class BaseSubscriber(KVStore):
         super(BaseSubscriber, self).__init__('subscribers', connector,
                                              key_name='imsi',
                                              val_name='balance')
-        # Create Subscriber Status Table
-        self.status = BaseSubscriberStatus()
 
     def get_subscriber_states(self, imsis=None):
         """
@@ -490,6 +488,12 @@ class BaseSubscriber(KVStore):
                 logger.error("Balance sync fail! IMSI: %s, %s Error: %s" %
                                 (imsi, sub['balance'], e))
 
+    def status(self, update=None):
+        status = BaseSubscriberStatus
+        if update is not None:
+            status.process_update(update)
+            return
+        return status
 
 class BaseSubscriberStatus(KVStore):
     """
@@ -561,7 +565,6 @@ class BaseSubscriberStatus(KVStore):
     def process_update(self, net_subs):
         bts_imsis = self.get_subscriber_imsis()
         net_imsis = set(net_subs.keys())
-
         subs_to_add = net_imsis.difference(bts_imsis)
         subs_to_delete = bts_imsis.difference(net_imsis)
         subs_to_update = bts_imsis.intersection(net_imsis)

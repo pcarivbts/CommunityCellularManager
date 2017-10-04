@@ -172,7 +172,8 @@ class endaga_ic(object):
         status['subscribers'] = subscriber.get_subscriber_states(
             imsis=events.EventStore().modified_subs())
         # Add subscriber status and validity sync data
-        status['subscriber_status'] = subscriber.status.get_subscriber_status(
+        sub_status = subscriber.status()
+        status['subscriber_status'] = sub_status.get_subscriber_status(
             imsis=events.EventStore().modified_subs())
         # Add delta protocol context (if available) to let server know,
         # client supports delta optimization & has a prior delta state

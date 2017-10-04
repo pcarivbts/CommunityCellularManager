@@ -65,7 +65,7 @@ def process_transfer(from_imsi, to_imsi, amount):
     """
     from_balance = int(subscriber.get_account_balance(from_imsi))
     # Error when blocked or expired user tries to transfer credit
-    from_imsi_status = subscriber.status.get_account_status(
+    from_imsi_status = subscriber.status().get_account_status(
         from_imsi)
     if from_imsi_status != 'active':
         if from_imsi_status == 'active*':
@@ -94,7 +94,7 @@ def process_transfer(from_imsi, to_imsi, amount):
 
     max_attempts = config_db['network_mput']
     if to_balance > network_max_balance:
-        attempts = subscriber.status.get_invalid_count(from_imsi)
+        attempts = subscriber.status().get_invalid_count(from_imsi)
         block_info = " Attempts left %(left)s !" % {
             'left': int(max_attempts) - (int(attempts) + 1)
         }
@@ -108,7 +108,7 @@ def process_transfer(from_imsi, to_imsi, amount):
         return False, reason + block_info + ERROR_TRX
     elif (amount + to_balance) > network_max_balance:
         # Mark this event for blocking
-        attempts = subscriber.status.get_invalid_count(from_imsi)
+        attempts = subscriber.status().get_invalid_count(from_imsi)
         block_info = " Attempts left %(left)s !" % {
             'left': int(max_attempts) - (int(attempts) + 1)
         }
@@ -123,7 +123,7 @@ def process_transfer(from_imsi, to_imsi, amount):
     # check top-up amount in denomination bracket
     validity_days = get_validity_days(amount)
     if validity_days is None:
-        attempts = subscriber.status.get_invalid_count(from_imsi)
+        attempts = subscriber.status().get_invalid_count(from_imsi)
         block_info = " Attempts left %(left)s !" % {
             'left': int(max_attempts) - (int(attempts) + 1)
         }
@@ -186,7 +186,7 @@ def process_confirm(from_imsi, code):
         events.create_transfer_event(to_imsi, to_imsi_old_credit,
                                      to_imsi_new_credit, reason,
                                      from_number=from_num, to_number=to_num)
-        top_up_validity = subscriber.status.get_subscriber_validity(
+        top_up_validity = subscriber.status().get_subscriber_validity(
             to_imsi, get_validity_days(amount))
         subscriber.add_credit(to_imsi, str(int(amount)))
         # Humanize credit strings
@@ -247,10 +247,10 @@ def handle_incoming(from_imsi, request):
             to_imsi = subscriber.get_imsi_from_number(to_number)
             _, resp, = process_transfer(from_imsi, to_imsi, amount)
             if not _ and ERROR_TRX in resp:
-                subscriber.status.set_invalid_count(from_imsi, max_attempts)
-                resp  = resp.replace(ERROR_TRX, '')
+                subscriber.status().set_invalid_count(from_imsi, max_attempts)
+                resp = resp.replace(ERROR_TRX, '')
             else:
-                subscriber.status.reset_invalid_count(from_imsi)
+                subscriber.status().reset_invalid_count(from_imsi)
             resp = gt(resp)
         except SubscriberNotFound:
             resp = gt(
