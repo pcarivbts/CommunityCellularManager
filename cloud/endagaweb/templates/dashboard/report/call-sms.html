@@ -33,7 +33,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% get_obj_perms request.user for network as 'user_permission' %}
 <div class='row'>
     {% include "dashboard/report/nav.html" with active_tab='call_sms' %}
-    {% if 'view_graph' in user_permission %}
+    {% if 'view_report' in user_permission %}
     <div class='content col-xs-12 col-sm-10 col-md-10'>
         {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/calls' %}
         {% if network_has_activity %}
