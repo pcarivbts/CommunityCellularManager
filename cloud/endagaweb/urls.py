@@ -151,6 +151,9 @@ urlpatterns = [
     url(r'^dashboard/user/management/checkuser',
         endagaweb.views.user.check_user),
 
+    url(r'^dashboard/network/notification/translate',
+        endagaweb.views.user.gettranslation),
+
     url(r'^dashboard/user/management/permissions',
         endagaweb.views.user.role_default_permissions),
 
@@ -201,6 +204,7 @@ urlpatterns = [
     url(r'^dashboard/network/notification$',
         endagaweb.views.network.NetworkNotifications.as_view(),
         name='network-notifications'),
+
     url(r'^dashboard/network/notification/manage$',
         endagaweb.views.network.NetworkNotificationsEdit.as_view(),
         name='network-notifications-manage'),
@@ -226,7 +230,6 @@ urlpatterns = [
     url(r'^dashboard/broadcast',
         endagaweb.views.dashboard.BroadcastView.as_view(),
         name='sms-brosdcast'),
-
     # Raise a server error on-demand to test the 500 template.
     url(r'^insta-five-hundred$',
         endagaweb.views.static.InstaFiveHundred.as_view()),

@@ -10,6 +10,8 @@ of patent rights can be found in the PATENTS file in the same directory.
 """
 
 from endagaweb import models
+from googletrans import Translator
+
 
 def get_network_from_user(user):
     """The API can be called from the dashboard using a Django
@@ -24,3 +26,14 @@ def get_network_from_user(user):
         return up.network
 
 
+def translate(message, to_lang='tl', from_lang='auto'):
+    """
+    translates messages to desired language default is Phillipines(tl)
+    :param message: message that needs to be translated
+    :param to_lang: language message to be translated to.
+    :param from_lang: current language of the message.
+    :return:
+    """
+    #Todo(sagar): handle the exceptions
+    translator = Translator()
+    return translator.translate(message, dest=to_lang, src=from_lang).text

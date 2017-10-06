@@ -13,7 +13,7 @@ import datetime
 import pytz
 from crispy_forms.bootstrap import StrictButton, FieldWithButtons
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, Field
+from crispy_forms.layout import Layout, Submit, Field, Button, Hidden
 from django import forms
 from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm
 from django.contrib.auth.models import User
@@ -25,7 +25,7 @@ from ccm.common.currency import CURRENCIES
 from endagaweb import models
 from endagaweb.templatetags import apptags
 from django.contrib.auth import password_validation
-
+from django.utils import html
 
 class UpdateContactForm(forms.Form):
     email = forms.EmailField(required=False, label="Email")
@@ -478,6 +478,112 @@ class NetworkBalanceLimit(forms.Form):
         return cleaned_data
 
 
+LANGUAGES = (
+    ('af', 'afrikaans'),
+    ('sq', 'albanian'),
+    ('am', 'amharic'),
+    ('ar', 'arabic'),
+    ('hy', 'armenian'),
+    ('az', 'azerbaijani'),
+    ('eu', 'basque'),
+    ('be', 'belarusian'),
+    ('bn', 'bengali'),
+    ('bs', 'bosnian'),
+    ('bg', 'bulgarian'),
+    ('ca', 'catalan'),
+    ('ce,', 'cebuano'),
+    ('ny', 'chichewa'),
+    # ('zh-n', 'chinese (simplified)'),
+    # ('zh-w', 'chinese (traditional)'),
+    ('co', 'corsican'),
+    ('hr', 'croatian'),
+    ('cs', 'czech'),
+    ('da', 'danish'),
+    ('nl', 'dutch'),
+    ('en', 'english'),
+    ('eo', 'esperanto'),
+    ('et', 'estonian'),
+    ('tl', 'filipino'),
+    ('fi', 'finnish'),
+    ('fr', 'french'),
+    ('fy', 'frisian'),
+    ('gl', 'galician'),
+    ('ka', 'georgian'),
+    ('de', 'german'),
+    ('el', 'greek'),
+    ('gu', 'gujarati'),
+    ('ht', 'haitian creole'),
+    ('ha', 'hausa'),
+    ('ha', 'hawaiian'),
+    ('iw', 'hebrew'),
+    ('hi', 'hindi'),
+    ('hm', 'hmong'),
+    ('hu', 'hungarian'),
+    ('is', 'icelandic'),
+    ('ig', 'igbo'),
+    ('id', 'indonesian'),
+    ('ga', 'irish'),
+    ('it', 'italian'),
+    ('ja', 'japanese'),
+    ('jw', 'javanese'),
+    ('kn', 'kannada'),
+    ('kk', 'kazakh'),
+    ('km', 'khmer'),
+    ('ko', 'korean'),
+    ('ku', 'kurdish (kurmanji)'),
+    ('ky', 'kyrgyz'),
+    ('lo', 'lao'),
+    ('la', 'latin'),
+    ('lv', 'latvian'),
+    ('lt', 'lithuanian'),
+    ('lb', 'luxembourgish'),
+    ('mk', 'macedonian'),
+    ('mg', 'malagasy'),
+    ('ms', 'malay'),
+    ('ml', 'malayalam'),
+    ('mt', 'maltese'),
+    ('mi', 'maori'),
+    ('mr', 'marathi'),
+    ('mn', 'mongolian'),
+    ('my', 'myanmar (burmese)'),
+    ('ne', 'nepali'),
+    ('no', 'norwegian'),
+    ('ps', 'pashto'),
+    ('fa', 'persian'),
+    ('pl', 'polish'),
+    ('pt', 'portuguese'),
+    ('pa', 'punjabi'),
+    ('ro', 'romanian'),
+    ('ru', 'russian'),
+    ('sm', 'samoan'),
+    ('gd', 'scots gaelic'),
+    ('sr', 'serbian'),
+    ('st', 'sesotho'),
+    ('sn', 'shona'),
+    ('sd', 'sindhi'),
+    ('si', 'sinhala'),
+    ('sk', 'slovak'),
+    ('sl', 'slovenian'),
+    ('so', 'somali'),
+    ('es', 'spanish'),
+    ('su', 'sundanese'),
+    ('sw', 'swahili'),
+    ('sv', 'swedish'),
+    ('tg', 'tajik'),
+    ('ta', 'tamil'),
+    ('te', 'telugu'),
+    ('th', 'thai'),
+    ('tr', 'turkish'),
+    ('uk', 'ukrainian'),
+    ('ur', 'urdu'),
+    ('uz', 'uzbek'),
+    ('vi', 'vietnamese'),
+    ('cy', 'welsh'),
+    ('xh', 'xhosa'),
+    ('yi', 'yiddish'),
+    ('yo', 'yoruba'),
+    ('zu', 'zulu'),
+     )
 class NotificationForm(forms.Form):
     types = (
         ('automatic', 'Automatic'),
@@ -495,19 +601,31 @@ class NotificationForm(forms.Form):
     event = forms.CharField(widget=forms.TextInput(
         attrs={'title': 'Event Type', 'style': 'width:300px'}),
         required=True, label='Events')
-    message = forms.CharField(
-        label='Message', widget=forms.Textarea(
-            attrs={'title': 'Notification message',
-                   'placeholder': 'Enter Message...',
-                   'rows': '4'}), required=True,
-        min_length=20,
-        max_length=160)
+    message = forms.CharField(label='Message', widget=forms.Textarea(
+            attrs={
+                'title': 'Notification message',
+                'placeholder': 'Enter Message...',
+                'rows': '2',
+                'onchange': 'getTranslation(this)'
+            }
+        ),
+        required=True, min_length=20, max_length=160)
+    translated = forms.CharField(label='Translation', widget=forms.Textarea(
+            attrs={
+                'title': 'Translation of message',
+                'disabled':'disabled',
+                'hidden':'',
+                'rows': '2',
+            }
+        ),
+        required=True, min_length=20, max_length=160)
     number = forms.IntegerField(widget=forms.NumberInput(
         attrs={'class': 'form-control', 'pattern': '[0-9]{3}',
                'title': 'Notification number', 'style': 'width:200px',
                'oninvalid': "setCustomValidity('Enter number (max: 3 digits)')",
                'onchange': "try{"
-                           "setCustomValidity('')}catch(e){}"
+                           "setCustomValidity('')"
+                           "}catch(e){}"
                }),
         required=True, disabled=True, min_value=1, max_value=999)
     pk = forms.CharField(widget=forms.HiddenInput())
@@ -524,6 +642,8 @@ class NotificationForm(forms.Form):
             'number',
             'event',
             'message',
+            'translated',
             'pk',
             Submit('submit', 'Submit', css_class='invisible'),
+            Button('translate', 'Translate', css_class='invisible'),
         )

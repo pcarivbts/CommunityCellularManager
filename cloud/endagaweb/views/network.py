@@ -32,6 +32,7 @@ from endagaweb.views import django_tables
 from endagaweb.forms import dashboard_forms as dform
 from django.core import exceptions
 from endagaweb import tasks
+from endagaweb.util import api
 
 NUMBER_COUNTRIES = {
     'US': 'United States (+1)',
@@ -855,7 +856,8 @@ class NetworkNotifications(ProtectedView):
                                              klass=models.Network),
             'user_profile': user_profile,
             'notification': dashboard_forms.NotificationForm(
-                initial={'type': 'automatic'}),
+                initial={'type': 'automatic',
+                         }),
             'notification_table': notification_table,
             'records': len(list(notifications)),
             'network': network,
@@ -866,7 +868,7 @@ class NetworkNotifications(ProtectedView):
         html = template.render(context, request)
         return http.HttpResponse(html)
 
-
+from googletrans import Translator
 class NetworkNotificationsEdit(ProtectedView):
 
     permission_required = ['edit_notification', 'view_notification']
@@ -881,7 +883,9 @@ class NetworkNotificationsEdit(ProtectedView):
             network = user_profile.network
             type = request.POST.get('type')
             event = request.POST.get('event')
-            message = request.POST.get('message')
+            message = request.POST.get('translated')
+            if message is None:
+                message = api.translate(request.POST.get('message'))
             number = request.POST.get('number')
             pk = request.POST.get('pk') or 0
             if type == 'automatic':
@@ -898,21 +902,19 @@ class NetworkNotificationsEdit(ProtectedView):
                     try:
                         # Check for existing notification and update
                         notification = models.Notification.objects.get(id=pk)
-                        alert_message = 'Notification updated!'
                     except models.Notification.DoesNotExist:
                         # Create new notification
                         notification = models.Notification.objects.create(
                             network=network)
-                        alert_message = 'Notification does not exists!'
                     notification.type = type
                     notification.message = message
                     notification.event = event
                     notification.number = number
                     notification.save()
                     # Write message to template for parsing and translation
-                    tasks.translate(message)
-                    message = 'Notification added successfully!'
-                    messages.success(request, message)
+                    alert_message = 'Notification added successfully!'
+                    messages.success(request, alert_message)
+                    #TODO(sagar): Write this translated message and normal message to .po file or some custom file
             except IntegrityError:
                 alert_message = '{0} notification already exists!'.format(
                     str(type).title())

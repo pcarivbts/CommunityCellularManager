@@ -13,3 +13,13 @@ from django.utils.translation import ugettext_lazy as _
 
 # NOTE: Below translation messages are will be created by cloud application.
 
+ValidationError(_("Testing this message for test p"))
+
+ValidationError(_("Hi there this is again a test message"))
+
+ValidationError(_("This is a test message in phillipines"))
+
+ValidationError(_("This is a test message in phillipines"))
+
+ValidationError(_("Today is monday and September"))
+

@@ -37,6 +37,44 @@ of patent rights can be found in the PATENTS file in the same directory.
   font-size: 1.5em ;
 }
 
+    /* Rounded sliders */
+    .slider.round {
+      border-radius: 34px;
+    }
+
+    .slider.round:before {
+      border-radius: 50%;
+    }
+    .loader {
+      border: 16px solid lightgreen;
+      border-radius: 50%;
+      border-top: 16px solid white;
+      width: 60px;
+      height: 60px;
+      -webkit-animation: spin 2s linear infinite;
+      animation: spin 2s linear infinite;
+      position: fixed;
+      top: 80%;
+      left: 50%;
+      -webkit-transform: translate(-50%, -50%);
+      transform: translate(-50%, -50%);
+    }
+
+    @-webkit-keyframes spin {
+      0% { -webkit-transform: rotate(0deg); }
+      100% { -webkit-transform: rotate(360deg); }
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loader-text {
+        position: fixed;
+        top: 90%;
+        left: 49%;
+      }
+
 </style>
 {% endblock %}
 
@@ -138,6 +176,9 @@ of patent rights can be found in the PATENTS file in the same directory.
                     <input type="submit" id="add-notification-submit"
                            class="btn btn-primary pull-right" value="Add Notification"
                            onclick="document.getElementById('submit-id-submit').click()"/>
+                    <input type="submit" id="notification-translate"
+                           class="btn btn-primary pull-right" value="Translate"
+                           onclick="getTranslation()"/>
                     <button type='button' class='btn btn-default pull-right' data-dismiss='modal'>Cancel</button>
                 </form>
             </div>
@@ -146,16 +187,44 @@ of patent rights can be found in the PATENTS file in the same directory.
             </div>
         </div>
     </div>
+    <div id="loading" hidden="hidden">
+        <div class="loader"></div>
+        <h5 class="loader-text" id="translation_progress">Translating...</h5>
+    </div>
 </div>
 {% include "dashboard/subscriber_detail/broadcast.html" with target='network' %}
 {% endblock %}
 {% block js %}
 <script type="text/javascript">
 
+    function getTranslation() {
+        $("#loading").show();
+        $.ajax({
+            url: '/dashboard/network/notification/translate?message=' + $('#id_message').val(),
+            type: 'GET',
+            timeout: 5000,
+            success: function (response) {
+                //$('#id_translated').show();
+                $('#id_translated').removeAttr('disabled');
+                $("#id_translated").val(response.translation);
+                $("#lang").val(response.language);
+                $("#loading").hide();
+            },
+            error: function(xhr, status, message) {
+            if(status == "timeout") {
+                //alert("Request time out");
+                $("#loading").hide();
+                $('#id_translated').attr('placeholder', 'Cannot translate, Retry or Please enter manually');
+                $('#id_translated').removeAttr('disabled');
+                }
+            }
+        });
+    }
+
   $(function() {
     $('.actions').hide();
     $('input:checkbox').change(function() {
-        console.log("checkboxes = ", $('form input[name=id]:checked').length);
+        //console.log("checkboxes = ", $('form input[name=id]:checked').length);
         var num_records = $('form input[name=id]:checked').length;
         if(num_records==1) {
             $('.actions').show();
@@ -220,81 +289,10 @@ of patent rights can be found in the PATENTS file in the same directory.
     $('#id_type_1').prop('checked', true).change();
     $('#id_number').val('');
     $('#id_message').val('');
+    $('#id_translated').val('');
     $('#id_event').val('');
     $('#id_pk').val(0);
   }
 
-</script>
-<script type="text/javascript">
-
-$(document).ready(function() {
-
-  $('input[type=radio][name="send_to"]').change(function() {
-    if (this.value == 'network') {
-        $('#network_row').show();
-        $('#tower_row').hide();
-        $('#imsi_row').hide();
-    } else if (this.value == 'tower') {
-        $('#network_row').hide();
-        $('#tower_row').show();
-        $('#imsi_row').hide();
-    } else if (this.value == 'imsi') {
-        $('#network_row').hide();
-        $('#tower_row').hide();
-        $('#imsi_row').show();
-    } else {
-        $('#network_row').show();
-        $('#tower_row').show();
-    }
-  });
-  $('#broadcast-modal').on('shown.bs.modal', function() {
-    $('#broadcast-form')[0].reset();
-    $('#network_row').show();
-    $('#tower_row').hide();
-    $('#imsi_row').hide();
-  });
-
-});
-  function broadcastSms() {
-    var data = {
-      sendto: $('input[type=radio][name="send_to"]:checked').val(),
-      network_id: $('#network_id').val(),
-      tower_id: $('#bts_id').val(),
-      imsi: $('#imsi').val(),
-      message: $('#message').val(),
-      csrfmiddlewaretoken: '{{ csrf_token }}',
-    };
-    $.post('/dashboard/broadcast', data, function(response) {
-      if (response['status'] == 'ok') {
-        // Show that it was successful and then reload the page.
-        // Clear out any old messages and show the div again.
-        $('#messages-container').html();
-        $('#messages-container').css('opacity', 1);
-        var html = '';
-        response['messages'].map(function(message) {
-          html += '<div class="alert alert-success">' + message + '</div>';
-        });
-        $('#messages-container').html(html).show();
-        setTimeout(function() {
-          location.reload();
-        }, 800);
-      } else {
-        // Show the messages that were sent back.
-        // Clear out any old messages and show the div again.
-        $('#messages-container').html();
-        $('#messages-container').css('opacity', 1);
-        var html = '';
-        response['messages'].map(function(message) {
-          html += '<div class="alert alert-danger">' + message + '</div>';
-        });
-        $('#messages-container').html(html).show();
-        setTimeout(function() {
-          $('#messages-container').fadeTo(500, 0);
-          $('#messages-container').hide();
-        }, 4000);
-      }
-    });
-    return false;
-  }
 </script>
 {% endblock %}

@@ -1949,9 +1949,15 @@ class Notification(models.Model):
             ('mapped', 'Mapped')
         )
     network = models.ForeignKey('Network', on_delete=models.CASCADE)
-    event = models.CharField(max_length=100, null=True, unique=True)
-    number = models.CharField(max_length=3, null=True, default=None,
-                              unique=True)
+    event = models.CharField(max_length=100, null=True)
+    number = models.CharField(max_length=3, null=True)
     message = models.TextField(max_length=160, null=True)
     type = models.CharField(max_length=10, choices=notification_type,
                             default='automatic')
+
+    class Meta:
+        #Networks can have same notifications
+        unique_together = (
+            ('network', 'event'),
+            ('network', 'number'),
+        )
