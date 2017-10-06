@@ -501,7 +501,6 @@ def unblock_blocked_subscribers(self):
             celery_app.send_task('endagaweb.tasks.sms_notification',
                                  (body, num))
 
-
 @app.task(bind=True)
 def subscriber_validity_state(self):
     """ Updates the subscribers state to first_expired/expired/recycle

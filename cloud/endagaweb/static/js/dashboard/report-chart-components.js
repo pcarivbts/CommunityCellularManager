@@ -103,50 +103,39 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
         }
     },
 
-  handleDownloadClick: function(text) {
-    var queryParams = {
-      'start-time-epoch': this.state.startTimeEpoch,
-      'end-time-epoch': this.state.endTimeEpoch,
-      'stat-types': this.props.statTypes,
-      'level':this.props.level,
-      'level_id': this.props.levelID,
-      'report-type': this.props.title,
-
-    };
-    $.ajax({
-        url: '/report/downloadcsv',
-        data: queryParams,
-        success: function(data,response) {
-            var todayTime = new Date();
-            var month = (todayTime .getMonth() + 1);
-            var day = (todayTime .getDate());
-            var year = (todayTime .getFullYear());
+    handleDownloadClick: function(text) {
+        var queryParams = {
+            'start-time-epoch': this.state.startTimeEpoch,
+            'end-time-epoch': this.state.endTimeEpoch,
+            'stat-types': this.props.statTypes,
+            'level':this.props.level,
+            'level_id': this.props.levelID,
+            'report-type':this.props.title,
+        };
+        $.get('/report/downloadcsv', queryParams, function(data,response) {
+            var todayTime = new Date(); var month = (todayTime .getMonth() + 1); var day = (todayTime .getDate()); var year = (todayTime .getFullYear());
             var convertdate =  year+ "-" +  month + "-" +day;
-            var filename = queryParams['report-type']
+            this.setState({
+                isLoading: false,
+                data: data,
+                title:this.props.title
+            });
+            var filename = this.state.title
             var csvData = new Blob([data], {type: 'text/csv;charset=utf-8;'});
             var csvURL =  null;
             if (navigator.msSaveBlob) {
-                csvURL = navigator.msSaveBlob(csvData, filename+"-"+ convertdate +'.csv');
+                csvURL = navigator.msSaveBlob(csvData, filename+"-"+convertdate+'.csv');
             } else {
                 csvURL = window.URL.createObjectURL(csvData);
             }
             var tempLink = document.createElement('a');
             document.body.appendChild(tempLink);
             tempLink.href = csvURL;
-            tempLink.setAttribute('download', filename+"-"+ convertdate +'.csv');
+            tempLink.setAttribute('download', filename+"-"+convertdate+'.csv');
             tempLink.target="_self"
             tempLink.click();
-        },
-        error(response){
-            // If no download permission for graph
-            // response.status is 403
-            BootstrapDialog.show({
-            title: '403! Permission Denied',
-            message: 'Permission Denied to download graph. Please, contact your administrator.'
-            });
-        }
-    });
-  },
+        }.bind(this));
+    },
 
     // Datepicker handlers, one each for changing the start and end times.
     startTimeChange: function(newTime) {

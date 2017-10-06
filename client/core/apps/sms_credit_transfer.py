@@ -90,8 +90,6 @@ def process_transfer(from_imsi, to_imsi, amount):
     max_transfer_str = freeswitch_strings.humanize_credits(max_transfer)
     from_num = subscriber.get_numbers_from_imsi(from_imsi)[0]
     to_num = subscriber.get_numbers_from_imsi(to_imsi)[0]
-
-
     max_attempts = config_db['network_mput']
     if to_balance > network_max_balance:
         attempts = subscriber.status().get_invalid_count(from_imsi)
@@ -132,6 +130,29 @@ def process_transfer(from_imsi, to_imsi, amount):
         events.create_transfer_event(from_imsi, from_balance, from_balance,
                                      reason + ERROR_TRX , from_num, to_num)
         return False, reason + block_info + ERROR_TRX
+    error_kind = " error_transfer"
+    if to_balance > network_max_balance:
+        reason = ("Top-up not allowed. Maximum balance "
+                  "limit crossed %(credit)s.") % {'credit': credit_limit}
+        events.create_transfer_event(from_imsi, from_balance, from_balance,
+                                     reason + error_kind, from_num, to_num)
+        return False, gt(reason)
+    elif (amount + to_balance) > network_max_balance:
+        # Create error_transfer event
+        reason = ("Top-up not allowed. Maximum balance "
+                  "limit crossed %(credit)s. You can transfer upto "
+                  "%(transfer)s.") % {'credit': credit_limit,
+                                      'transfer': max_transfer_str}
+        events.create_transfer_event(from_imsi, from_balance, from_balance,
+                                     reason + error_kind, from_num, to_num)
+        return False, gt(reason)
+    # check top-up amount in denomination bracket
+    validity_days = get_validity_days(amount)
+    if validity_days is None:
+        reason = "Top-up not under denomination range. "
+        events.create_transfer_event(from_imsi, from_balance, from_balance,
+                                     reason + error_kind, from_num, to_num)
+        return False, gt(reason)
     # Add the pending transfer.
     code = ''
     for _ in range(int(config_db['code_length'])):
