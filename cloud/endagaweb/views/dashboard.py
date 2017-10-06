@@ -56,6 +56,7 @@ from endagaweb.models import (UserProfile, Subscriber, UsageEvent,
 from endagaweb.util.currency import cents2mc
 from endagaweb.views import django_tables
 import json
+import django.utils.timezone
 
 
 class ProtectedView(PermissionRequiredMixin, View):
@@ -343,14 +344,29 @@ class SubscriberUpdateRole(ProtectedView):
 
     def post(self, request, *args, **kwargs):
         subscriber_imsi_list = request.POST.getlist('imsi_val[]')
-        subscriber_role = request.POST.get('category')
+        new_role = request.POST.get('category')
         try:
-            update_imsi = Subscriber.objects.filter(imsi__in=subscriber_imsi_list)
-            update_imsi.update(role=subscriber_role)
-            response_message = "Subscriber role updated successfully."
+            subscribers = Subscriber.objects.filter(imsi__in=
+                                                    subscriber_imsi_list)
+            max_vald = django.utils.timezone.now() + datetime.timedelta(
+                days=(50 * 365))
+            min_vald = django.utils.timezone.now() + datetime.timedelta(
+                days=1)
+            if str(new_role).lower() == 'retailer':
+                subscribers.update(valid_through=max_vald, role=new_role)
+            else:
+                for subscriber in subscribers:
+                    # if last role was retailer set the min validity.
+                    if str(subscriber.role).lower() == 'retailer':
+                        subscriber.valid_through = min_vald
+                    subscriber.role = new_role
+                    subscriber.save()
+            message = "Subscriber role updated successfully."
         except Exception as e:
-            response_message = "Subscriber role update fail."
-        return HttpResponse(response_message)
+            if hasattr(e, 'message'):
+                e = (e.message)
+            message = "Subscriber role update fail due to %s " % e
+        return HttpResponse(message)
 
 
 class SubscriberInfo(ProtectedView):

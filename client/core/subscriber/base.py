@@ -609,27 +609,27 @@ class BaseSubscriberStatus(KVStore):
         status = json.loads(self.get(imsi))
         return str(status['state'])
 
-    def get_subscriber_validity(self, imsis, days):
-            sub_info = json.loads(self.get(imsis))
-            validity = str(sub_info['validity'])
-            delta_validity = datetime.utcnow() + timedelta(days=days)
-            if validity is None:
-                sub_info['state'] = 'active'
+    def get_subscriber_validity(self, imsi, days):
+        sub_info = json.loads(self.get(imsi))
+        validity = str(sub_info['validity'])
+        delta_validity = datetime.utcnow() + timedelta(days=days)
+        if validity is None:
+            sub_info["validity"] = str(delta_validity.date())
+            date = delta_validity
+        else:
+            validity_date = dateparser.parse(validity).date()
+            if validity_date < delta_validity.date():
                 sub_info["validity"] = str(delta_validity.date())
                 date = delta_validity
             else:
-                validity_date = dateparser.parse(validity).date()
-                if validity_date < delta_validity.date():
-                    sub_info['state'] = 'active'
-                    sub_info["validity"] = str(delta_validity.date())
-                    date = delta_validity
-                else:
-                    sub_info['state'] = 'active'
-                    sub_info["validity"] = str(validity_date)
-                    date = validity_date
-
-            self.update_status(imsis, json.dumps(sub_info))
-            return str(datetime.combine(date, datetime.min.time()))
+                sub_info["validity"] = str(validity_date)
+                date = validity_date
+        sub_info['state'] = 'active'
+        # '*' represents block, keep it blocked if already blocked.
+        if '*' in self.get_account_status(imsi):
+            sub_info['state'] += '*'
+        self.update_status(imsi, json.dumps(sub_info))
+        return str(datetime.combine(date, datetime.min.time()))
 
     def get_invalid_count(self, imsi):
         subscriber = json.loads(self.get(imsi))
