@@ -34,8 +34,6 @@ class BaseSubscriber(KVStore):
         super(BaseSubscriber, self).__init__('subscribers', connector,
                                              key_name='imsi',
                                              val_name='balance')
-        # Create Subscriber Status Table
-        self.status = BaseSubscriberStatus()
 
     def get_subscriber_states(self, imsis=None):
         """
@@ -59,7 +57,6 @@ class BaseSubscriber(KVStore):
             subs = list(self.items())
         else:
             return {}  # empty list - return an empty dict
-
 
         res = {}
         for (imsi, balance) in subs:
@@ -262,6 +259,7 @@ class BaseSubscriber(KVStore):
         return delta
 
     def subtract_credit(self, imsi, amount):
+        # type: (object, object) -> object
         """
         Deducts a subscriber's balance by a scalar delta
 
@@ -490,6 +488,12 @@ class BaseSubscriber(KVStore):
                 logger.error("Balance sync fail! IMSI: %s, %s Error: %s" %
                                 (imsi, sub['balance'], e))
 
+    def status(self, update=None):
+        status = BaseSubscriberStatus
+        if update is not None:
+            status.process_update(update)
+            return
+        return status
 
 class BaseSubscriberStatus(KVStore):
     """
@@ -531,6 +535,7 @@ class BaseSubscriberStatus(KVStore):
         res = {}
         for (imsi, state) in subs:
             res[imsi] = {}
+            # state = {'state': 'active', 'valid_through': '01-09-2100'}
             res[imsi]['state'] = state
         return res
 
@@ -559,12 +564,13 @@ class BaseSubscriberStatus(KVStore):
         return {key for key in self.get_subscriber_status().keys()}
 
     def process_update(self, net_subs):
+        from core import events
         bts_imsis = self.get_subscriber_imsis()
         net_imsis = set(net_subs.keys())
-
         subs_to_add = net_imsis.difference(bts_imsis)
         subs_to_delete = bts_imsis.difference(net_imsis)
         subs_to_update = bts_imsis.intersection(net_imsis)
+        subscriber = BaseSubscriber()
 
         for imsi in subs_to_delete:
             self.delete_subscriber(imsi)
@@ -573,6 +579,7 @@ class BaseSubscriberStatus(KVStore):
             sub = net_subs[imsi]
             sub_state = sub['state']
             sub_validity = sub['validity']
+            sub_info = {"state": sub_state, "validity": sub_validity}
             # Error Transfer Count this won't sync to cloud
             if 'ie_count' not in sub:
                 sub['ie_count'] = 0
@@ -580,6 +587,14 @@ class BaseSubscriberStatus(KVStore):
             sub_info = {"state": sub_state, "validity": sub_validity,
                         "ie_count": sub['ie_count']}
             try:
+                if str(sub_state).lower() not in ['active','active*']:
+                    old_balance = subscriber.get_account_balance(imsi)
+                    if old_balance > 0:
+                        subscriber.subtract_credit(imsi, str(old_balance))
+                        reason = 'Subscriber expired: Setting balance zero' \
+                                 ' (deduct_money)'
+                        events.create_add_money_event(imsi, old_balance, 0,
+                                                      reason)
                 self.update_status(imsi, json.dumps(sub_info))
             except SubscriberNotFound as e:
                 logger.warning(
@@ -595,9 +610,16 @@ class BaseSubscriberStatus(KVStore):
             sub_state = sub['state']
             sub_validity = sub['validity']
             sub_info = {"state": sub_state, "validity": sub_validity}
-            self.create_subscriber_status(imsi,json.dumps(sub_info))
             try:
-                self.update_status(imsi,json.dumps(sub_info))
+                if str(sub_state).lower() not in ['active', 'active*']:
+                    old_balance = subscriber.get_account_balance(imsi)
+                    if old_balance > 0:
+                        subscriber.subtract_credit(imsi, str(old_balance))
+                        reason = 'Subscriber expired:setting balance zero' \
+                                 ' (deduct_money)'
+                        events.create_add_money_event(imsi, old_balance, 0,
+                                                      reason)
+                self.create_subscriber_status(imsi, json.dumps(sub_info))
             except (SubscriberNotFound, ValueError) as e:
                 logger.error("State sync fail! IMSI: %s, %s Error: %s" %
                              (imsi, sub_info, e))
@@ -606,27 +628,27 @@ class BaseSubscriberStatus(KVStore):
         status = json.loads(self.get(imsi))
         return str(status['state'])
 
-    def get_subscriber_validity(self, imsis, days):
-            sub_info = json.loads(self.get(imsis))
-            validity = str(sub_info['validity'])
-            delta_validity = datetime.utcnow() + timedelta(days=days)
-            if validity is None:
-                sub_info['state'] = 'active'
+    def get_subscriber_validity(self, imsi, days):
+        sub_info = json.loads(self.get(imsi))
+        validity = str(sub_info['validity'])
+        delta_validity = datetime.utcnow() + timedelta(days=days)
+        if validity is None:
+            sub_info["validity"] = str(delta_validity.date())
+            date = delta_validity
+        else:
+            validity_date = dateparser.parse(validity).date()
+            if validity_date < delta_validity.date():
                 sub_info["validity"] = str(delta_validity.date())
                 date = delta_validity
             else:
-                validity_date = dateparser.parse(validity).date()
-                if validity_date < delta_validity.date():
-                    sub_info['state'] = 'active'
-                    sub_info["validity"] = str(delta_validity.date())
-                    date = delta_validity
-                else:
-                    sub_info['state'] = 'active'
-                    sub_info["validity"] = str(validity_date)
-                    date = validity_date
-
-            self.update_status(imsis, json.dumps(sub_info))
-            return str(datetime.combine(date, datetime.min.time()))
+                sub_info["validity"] = str(validity_date)
+                date = validity_date
+        sub_info['state'] = 'active'
+        # '*' represents block, keep it blocked if already blocked.
+        if '*' in self.get_account_status(imsi):
+            sub_info['state'] += '*'
+        self.update_status(imsi, json.dumps(sub_info))
+        return str(datetime.combine(date, datetime.min.time()))
 
     def get_invalid_count(self, imsi):
         subscriber = json.loads(self.get(imsi))
