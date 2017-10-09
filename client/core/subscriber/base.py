@@ -17,7 +17,9 @@ of patent rights can be found in the PATENTS file in the same directory.
 import json
 from datetime import datetime
 from datetime import timedelta
+
 import dateutil.parser as dateparser
+
 from ccm.common import crdt, logger
 from core.db.kvstore import KVStore
 from core.exceptions import SubscriberNotFound, EventNotFound
@@ -617,7 +619,6 @@ class BaseSubscriberStatus(KVStore):
             sub_state = sub['state']
             sub_validity = sub['validity']
             sub_info = {"state": sub_state, "validity": sub_validity}
-            self.create_subscriber_status(imsi, json.dumps(sub_info))
             try:
                 if str(sub_state).lower() not in ['active', 'active*']:
                     old_balance = subscriber.get_account_balance(imsi)
@@ -685,23 +686,21 @@ class BaseSubscriberStatus(KVStore):
 
 
 class BaseBTSNotification(KVStore):
-
     def __init__(self, connector=None):
         super(BaseBTSNotification, self).__init__('notification', connector,
-                                             key_name='event',
-                                             val_name='message')
+                                                  key_name='event',
+                                                  val_name='message')
 
     def get_notification(self, event=None):
-        if event:  # non-empty list, return requested subscribers
+        if event:  # non-empty list, return requested notifications
             events = self.get_multiple(event)
-        elif event is None:  # empty list, return all subscribers
+        elif event is None:  # empty list, return all
             events = list(self.items())
         else:
             return {}  # empty list - return an empty dict
         res = {}
         for (event, message) in events:
-            res['event'] = event
-            res['message'] = message
+            res[event] = message
         return res
 
     def _set_notification(self, cur, event, message):
@@ -711,7 +710,7 @@ class BaseBTSNotification(KVStore):
             raise EventNotFound(event)
 
     def get_events(self):
-        return {key for key in self.get_notification(None).keys()}
+        return {key for key in self.get_notification().keys()}
 
     def delete_notification(self, event):
         del self[event]
@@ -721,53 +720,49 @@ class BaseBTSNotification(KVStore):
             if self._get_option(cur, event):
                 raise ValueError(event)
             self._insert(cur, event, message)
+
         self._connector.with_cursor(_add_if_absent)
 
     def update_notification(self, event, message):
         def _update(cur):
             self._set_notification(cur, event, message)
-        self._connector.with_cursor(_update)
 
+        self._connector.with_cursor(_update)
 
     def process_update_notifcaiton(self, notifications):
         """
+        notifications: {event: some_event , message: some_translated_message}
         Update notification messages w.r.t current bts language
-        :param event: Number or Event (101,102..etc or String)
+        :param event: Number(int type) or Event(string type)
         """
-        # bts_imsis = self.get_subscriber_imsis()
-        # net_imsis = set(net_subs.keys())
-        # subs_to_add = net_imsis.difference(bts_imsis)
-        # subs_to_delete = bts_imsis.difference(net_imsis)
-        # subs_to_update = bts_imsis.intersection(net_imsis)
-
-        bts_notifications = self.get_notification()
-        events = set(notifications.keys())
-        events_to_add = events.difference(bts_notifications)
-        events_to_delete = events.difference(bts_notifications)
-        events_to_update = events.intersection(bts_notifications)
+        bts_notifications = self.get_events()
+        cloud_events = set(notifications.keys())
+        events_to_add = cloud_events.difference(bts_notifications)
+        events_to_delete = bts_notifications.difference(cloud_events)
+        events_to_update = bts_notifications.intersection(cloud_events)
 
         for event in events_to_delete:
             self.delete_notification(event)
 
-        for _ in events_to_update:
-            event = notifications['event']
-            message = notifications['message']
+        for event in events_to_update:
+            message = notifications[event]
             try:
                 self.update_notification(event, message)
             except EventNotFound as e:
                 logger.warning(
-                    "Notification sync fail! Event: %s is not found Error: %s" %
-                    (event, e))
+                    "Notification sync fail! Event: %s is not found Error: %s"
+                    % (event, e))
             except ValueError as e:
-                logger.error("Notification sync fail! IMSI: %s, %s Error: %s" %
-                             (event, message, e))
+                logger.error("Notification sync fail! IMSI: %s, %s Error: %s"
+                             % (event, message, e))
                 events_to_add.add(notifications)  # try to add it (again)
-        for _ in events_to_add:
-            event = notifications['event']
-            message = notifications['message']
+
+        for event in events_to_add:
+            message = notifications[event]
             self.create_notification(event, message)
             try:
                 self.update_notification(event, message)
             except (EventNotFound, ValueError) as e:
-                logger.error("Notification sync fail! Event: %s, %s Error: %s" %
-                             (event, message, e))
+                logger.error(
+                    "Notification sync fail! Event: %s, %s Error: %s" %
+                    (event, message, e))

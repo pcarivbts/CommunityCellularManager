@@ -868,6 +868,7 @@ class NetworkNotifications(ProtectedView):
         html = template.render(context, request)
         return http.HttpResponse(html)
 
+
 class NetworkNotificationsEdit(ProtectedView):
 
     permission_required = ['edit_notification', 'view_notification']
@@ -882,12 +883,12 @@ class NetworkNotificationsEdit(ProtectedView):
             network = user_profile.network
             type = request.POST.get('type')
             event = request.POST.get('event')
-            message = request.POST.get('translated')
-            if message is None:
-                message = api.translate(request.POST.get('message'))
+            message = request.POST.get('message')
+            translated = request.POST.get('translated')
+            if translated is None:
+                translated = api.translate(message)
             number = request.POST.get('number')
             pk = request.POST.get('pk') or 0
-
             if type == 'automatic':
                 type_detail, number = 'event: ' + event, None
             else:
@@ -909,6 +910,7 @@ class NetworkNotificationsEdit(ProtectedView):
                             network=network)
                     notification.type = type
                     notification.message = message
+                    notification.translated = translated
                     notification.event = event
                     notification.number = number
                     notification.language = request.POST.get('language')

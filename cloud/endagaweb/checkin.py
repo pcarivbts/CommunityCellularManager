@@ -342,10 +342,7 @@ class CheckinResponder(object):
                     event = notification.event
                 else:
                     event = notification.number
-                data = {'event': event,
-                        'message': notification.message,
-                        }
-                res.update(data)
+                res.update({event: notification.translation})
         return res
 
 

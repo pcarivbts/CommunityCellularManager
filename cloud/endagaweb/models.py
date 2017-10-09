@@ -1956,6 +1956,7 @@ class Notification(models.Model):
     event = models.CharField(max_length=100, null=True)
     number = models.CharField(max_length=3, null=True)
     message = models.TextField(max_length=160, null=True)
+    translation = models.TextField(max_length=160, null=True)
     type = models.CharField(max_length=10, choices=notification_type,
                             default='automatic')
 
