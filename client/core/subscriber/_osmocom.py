@@ -26,7 +26,7 @@ from osmocom.vty.subscribers import Subscribers
 
 from core import number_utilities
 from core.config_database import ConfigDB
-from core.subscriber.base import BaseSubscriber, SubscriberNotFound
+from core.subscriber.base import BaseSubscriber, SubscriberNotFound, BaseSubscriberStatus
 from core.exceptions import BSSError
 
 
