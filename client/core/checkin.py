@@ -32,6 +32,7 @@ class CheckinHandler(object):
     EVENTS_SECTION = "events"
     SUBSCRIBERS_SECTION = "subscribers"
     NETWORK_DENOMINATION = "network_denomination"
+    NOTIFICATION = "notification"
 
     # NOTE: Keys in section_ctx dictionary below must match the keys of
     # optimized checkin sections: "config", "events", "subscribers", etc.
@@ -64,6 +65,8 @@ class CheckinHandler(object):
                 self.process_subscribers(resp_dict[section])
             elif section == CheckinHandler.NETWORK_DENOMINATION:
                 self.process_denomination(resp_dict[section])
+            elif section == CheckinHandler.NOTIFICATION:
+                self.process_notification(resp_dict[section])
             elif section != 'status':
                 logger.error("Unexpected checkin section: %s" % section)
 
@@ -98,6 +101,9 @@ class CheckinHandler(object):
     def process_subscribers(self, data_dict):
         subscriber.process_update(data_dict)
         subscriber.status(update=data_dict)
+
+    def process_notification(self, data_dict):
+        subscriber.notif_status(update=data_dict)
 
     def process_denomination(self, data_dict):
         for data in data_dict:

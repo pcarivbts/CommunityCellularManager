@@ -26,7 +26,7 @@ from endagaweb.models import Subscriber
 from endagaweb.models import TimeseriesStat
 from endagaweb.models import UsageEvent
 from endagaweb.util.parse_destination import parse_destination
-from endagaweb.models import NetworkDenomination
+from endagaweb.models import NetworkDenomination, Notification
 import dateutil.parser as dateparser
 
 class CheckinResponder(object):
@@ -58,6 +58,7 @@ class CheckinResponder(object):
             'subscribers': self.subscribers_handler,
             'radio': self.radio_handler,  # needs location_handler -kurtis
             'subscriber_status': self.subscriber_status_handler,
+            'bts_locale': self.bts_locale,
             # TODO: (kheimerl) T13270418 Add location update information
         }
 
@@ -164,6 +165,7 @@ class CheckinResponder(object):
         resp['subscribers'] = self._optimize('subscribers',
                                              self.gen_subscribers())
         resp['network_denomination'] = self.get_network_denomination()
+        resp['notification'] = self.gen_notifications()
         resp['events'] = self.gen_events()
         resp['sas'] = self.gen_spectrum()
         self.bts.save()
@@ -217,7 +219,7 @@ class CheckinResponder(object):
             # The last seen timestamp is a little erred since its computed
             # from the current time
             last_seen_datetime = self.bts.last_active - \
-                datetime.timedelta(seconds=int(entry['last_seen_secs']))
+                                 datetime.timedelta(seconds=int(entry['last_seen_secs']))
 
             sub.mark_camped(last_seen_datetime, bts=self.bts)
 
@@ -291,6 +293,8 @@ class CheckinResponder(object):
                 logging.warn('[subscriber_status_handler] subscriber %s does not'
                              ' exist.' % imsi)
 
+    def bts_locale(self, bts_locale):
+        self.bts.locale = bts_locale
 
     def radio_handler(self, radio):
         if 'band' in radio and 'c0' in radio:
@@ -323,6 +327,25 @@ class CheckinResponder(object):
             data = {'id': s.id,'start_amount': s.start_amount,
                     'end_amount': s.end_amount, 'validity': str(s.validity_days)}
             res.append(data)
+        return res
+
+    def gen_notifications(self):
+        """
+        Returns a notifications for that bts.
+        """
+        res = {}
+        notifications = Notification.objects.filter(network=self.bts.network,
+                                                    language=self.bts.locale)
+        if notifications:
+            for notification in notifications:
+                if notification.type == 'automatic':
+                    event = notification.event
+                else:
+                    event = notification.number
+                data = {'event': event,
+                        'message': notification.message,
+                        }
+                res.update(data)
         return res
 
 
@@ -376,7 +399,7 @@ class CheckinResponder(object):
         config_set = [
             ConfigurationKey.objects.filter(bts=self.bts).order_by('key'),
             ConfigurationKey.objects.filter(network=self.bts.network)
-            .order_by('key')
+                .order_by('key')
         ]
 
         result = {}
@@ -475,7 +498,7 @@ class CheckinResponder(object):
                                       'band': band,
                                       'channel': chnl,
                                       'power_level': pwr_lvl,
-                })
+                                      })
             except Exception:
                 logging.error('SASON Acquire failed')
                 return None
@@ -488,7 +511,7 @@ class CheckinResponder(object):
                                       'long': self.bts.longitude,
                                       # self for now -kurtis
                                       'bands': self.bts.band,
-                })
+                                      })
             except Exception:
                 logging.error('SASON Request failed')
                 return None
@@ -503,13 +526,13 @@ class CheckinResponder(object):
             tries_left = settings.SASON_RETRY_COUNT
             acq = sas_acquire(band, channel, pwr_level)
             while (acq is not None and
-                   acq.status_code != requests.codes.ok and
-                   tries_left > 0):
+                           acq.status_code != requests.codes.ok and
+                           tries_left > 0):
                 tries_left -= 1
                 # get the list of available ones
                 req = sas_request()
                 if (req is None or
-                    req.status_code != requests.codes.ok):  # trouble
+                            req.status_code != requests.codes.ok):  # trouble
                     break
                 # ask for it
                 req = req.json()
@@ -518,7 +541,7 @@ class CheckinResponder(object):
                 acq = sas_acquire(band, channel, pwr_level)
             # if we got one, return it
             if (acq is not None and
-                acq.status_code == requests.codes.ok):
+                        acq.status_code == requests.codes.ok):
                 # this is interesting
                 # sason does the band and channel update already
                 # so technically this is redundant

@@ -868,7 +868,6 @@ class NetworkNotifications(ProtectedView):
         html = template.render(context, request)
         return http.HttpResponse(html)
 
-from googletrans import Translator
 class NetworkNotificationsEdit(ProtectedView):
 
     permission_required = ['edit_notification', 'view_notification']
@@ -888,10 +887,12 @@ class NetworkNotificationsEdit(ProtectedView):
                 message = api.translate(request.POST.get('message'))
             number = request.POST.get('number')
             pk = request.POST.get('pk') or 0
+
             if type == 'automatic':
-                number = None
+                type_detail, number = 'event: ' + event, None
             else:
-                event = None
+                type_detail, event = 'number: ' + number, None
+
                 # Format number to 3 digits
                 if int(number) < 10:
                     number = '00' + str(number)
@@ -910,14 +911,15 @@ class NetworkNotificationsEdit(ProtectedView):
                     notification.message = message
                     notification.event = event
                     notification.number = number
+                    notification.language = request.POST.get('language')
                     notification.save()
                     # Write message to template for parsing and translation
                     alert_message = 'Notification added successfully!'
                     messages.success(request, alert_message)
                     #TODO(sagar): Write this translated message and normal message to .po file or some custom file
             except IntegrityError:
-                alert_message = '{0} notification already exists!'.format(
-                    str(type).title())
+                alert_message = '{0} notification already exists against this {1}.'.format(
+                    str(type).title(), type_detail)
                 messages.error(request, alert_message,
                                extra_tags="alert alert-danger")
             return redirect(urlresolvers.reverse('network-notifications'))

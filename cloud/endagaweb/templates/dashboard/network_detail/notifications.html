@@ -54,7 +54,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       -webkit-animation: spin 2s linear infinite;
       animation: spin 2s linear infinite;
       position: fixed;
-      top: 80%;
+      top: 90%;
       left: 50%;
       -webkit-transform: translate(-50%, -50%);
       transform: translate(-50%, -50%);
@@ -71,7 +71,8 @@ of patent rights can be found in the PATENTS file in the same directory.
     }
     .loader-text {
         position: fixed;
-        top: 90%;
+        top: 96%;
+        font-size: 1.5em ;
         left: 49%;
       }
 
@@ -189,18 +190,20 @@ of patent rights can be found in the PATENTS file in the same directory.
     </div>
     <div id="loading" hidden="hidden">
         <div class="loader"></div>
-        <h5 class="loader-text" id="translation_progress">Translating...</h5>
+        <h5 class="loader-text">Processing...</h5>
     </div>
 </div>
 {% include "dashboard/subscriber_detail/broadcast.html" with target='network' %}
 {% endblock %}
 {% block js %}
 <script type="text/javascript">
-
+    function enableLanguage() {
+    $('#id_language').removeAttr('disabled');
+    }
     function getTranslation() {
         $("#loading").show();
         $.ajax({
-            url: '/dashboard/network/notification/translate?message=' + $('#id_message').val(),
+            url: '/dashboard/network/notification/translate?message=' + $('#id_message').val() + '&to_language='+$('#id_language').val(),
             type: 'GET',
             timeout: 5000,
             success: function (response) {
@@ -286,12 +289,14 @@ of patent rights can be found in the PATENTS file in the same directory.
     });
   }
   function resetForm() {
+  // Reset all fields
     $('#id_type_1').prop('checked', true).change();
     $('#id_number').val('');
     $('#id_message').val('');
     $('#id_translated').val('');
     $('#id_event').val('');
     $('#id_pk').val(0);
+    $('#id_language').attr({'disabled':'disabled'});
   }
 
 </script>

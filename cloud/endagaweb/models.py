@@ -342,6 +342,8 @@ class BTS(models.Model):
     #channel number used
     #none is unknown or invalid
     channel = models.IntegerField(null=True, blank=True)
+    # BTS Locale
+    locale = models.CharField(max_length=10, default='en')
 
     class Meta:
         default_permissions = ()
@@ -1949,6 +1951,8 @@ class Notification(models.Model):
             ('mapped', 'Mapped')
         )
     network = models.ForeignKey('Network', on_delete=models.CASCADE)
+    language = models.CharField(max_length=100, choices=settings.LANGUAGES,
+                                default='en')
     event = models.CharField(max_length=100, null=True)
     number = models.CharField(max_length=3, null=True)
     message = models.TextField(max_length=160, null=True)
@@ -1960,4 +1964,5 @@ class Notification(models.Model):
         unique_together = (
             ('network', 'event'),
             ('network', 'number'),
+            ('language', 'message'),
         )
