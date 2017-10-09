@@ -631,7 +631,7 @@ class WaterfallStatsClient(StatsClientBase):
 
             kwargs['start_time_epoch'] = int(stats_start_dt.strftime("%s"))
             kwargs['end_time_epoch'] = int(stats_end_dt.strftime("%s"))
-            kwargs['query'] = Q(subscriber__role='subscriber')
+            kwargs['query'] = Q(subscriber__role='Subscriber')
             kind_key = 'Provisioned'
             kwargs['report_view'] = 'value'
             subscribers = self.aggregate_timeseries(kind_key, **kwargs)
