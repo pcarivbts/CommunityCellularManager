@@ -14,21 +14,18 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 """
 
+import json
+from datetime import datetime
+from datetime import timedelta
 
-
-
-
+import dateutil.parser as dateparser
 
 from ccm.common import crdt, logger
 from core.db.kvstore import KVStore
 from core.exceptions import SubscriberNotFound
-import json
-from datetime import timedelta
-from datetime import datetime
-import dateutil.parser as dateparser
+
 
 class BaseSubscriber(KVStore):
-
     def __init__(self, connector=None):
 
         super(BaseSubscriber, self).__init__('subscribers', connector,
@@ -80,6 +77,7 @@ class BaseSubscriber(KVStore):
             BSSError if the HLR operation failed
             ValueError if the subscriber already exists in the HLR
         """
+
         def _add_if_absent(cur):
             if self._get_option(cur, imsi):
                 raise ValueError(imsi)
@@ -135,7 +133,7 @@ class BaseSubscriber(KVStore):
             self[imsi] = new_balance
         except TypeError:
             raise IOError('corrupt billing table: multiple records for %s' %
-                          (imsi, ))
+                          (imsi,))
         except IndexError:
             raise SubscriberNotFound(imsi)
 
@@ -486,14 +484,15 @@ class BaseSubscriber(KVStore):
                 self.update_balance(imsi, bal)
             except (SubscriberNotFound, ValueError) as e:
                 logger.error("Balance sync fail! IMSI: %s, %s Error: %s" %
-                                (imsi, sub['balance'], e))
+                             (imsi, sub['balance'], e))
 
     def status(self, update=None):
-        status = BaseSubscriberStatus
+        status = BaseSubscriberStatus()
         if update is not None:
             status.process_update(update)
             return
         return status
+
 
 class BaseSubscriberStatus(KVStore):
     """
@@ -504,6 +503,7 @@ class BaseSubscriberStatus(KVStore):
         First Expire : Subscriber has no validity (no call/sms)
         Expired: Grace period also expired after First Expire (no call/sms)
     """
+
     def __init__(self, connector=None):
         super(BaseSubscriberStatus, self).__init__('subscribers_status',
                                                    connector, key_name='imsi',
@@ -544,6 +544,7 @@ class BaseSubscriberStatus(KVStore):
             if self._get_option(cur, imsi):
                 raise ValueError(imsi)
             self._insert(cur, imsi, status)
+
         self._connector.with_cursor(_add_if_absent)
 
     def delete_subscriber(self, imsi):
@@ -558,6 +559,7 @@ class BaseSubscriberStatus(KVStore):
     def update_status(self, imsi, status):
         def _update(cur):
             self._set_status(cur, imsi, status)
+
         self._connector.with_cursor(_update)
 
     def get_subscriber_imsis(self):
@@ -587,7 +589,7 @@ class BaseSubscriberStatus(KVStore):
             sub_info = {"state": sub_state, "validity": sub_validity,
                         "ie_count": sub['ie_count']}
             try:
-                if str(sub_state).lower() not in ['active','active*']:
+                if str(sub_state).lower() not in ['active', 'active*']:
                     old_balance = subscriber.get_account_balance(imsi)
                     if old_balance > 0:
                         subscriber.subtract_credit(imsi, str(old_balance))
