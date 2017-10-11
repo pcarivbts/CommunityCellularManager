@@ -520,13 +520,13 @@ class ReportGraphDownload(ProtectedView):
             events = events.filter(network__id=level_id)
         if report_type in retailer_role_reports:
             qs = Q(kind='transfer')
-            qs1 = Q(subscriber__role='retailer')
+            qs1 = Q(subscriber__role='Retailer')
             events = events.filter(qs & qs1)
             return events
         if stats_type:
             if report_type == 'Retailer Recharge Report':
                 qs1 = Q(kind__icontains='add_money')
-                qs = Q(subscriber__role='retailer')
+                qs = Q(subscriber__role='Retailer')
                 events = events.filter(qs1 & qs)
                 return events
             qs = ([Q(kind__icontains=s) for s in stats_type])

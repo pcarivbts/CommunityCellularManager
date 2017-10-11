@@ -134,7 +134,10 @@ class StatsClientBase(object):
         elif param in INACTIVE_SUBSCRIBER:
             aggregation = 'valid_through'
             objects = models.Subscriber.objects
-            filters = Q(state=param)
+            if param =='blocked':
+                filters = Q(is_blocked='t')
+            else:
+                filters = Q(state=param, is_blocked='f')
         elif param in TIMESERIES_STAT_KEYS:
             objects = models.TimeseriesStat.objects
             filters = Q(key=param)
@@ -188,8 +191,6 @@ class StatsClientBase(object):
             # Change is negative value, set positive for charts
             if report_view == 'summary':
                 adjust = -10
-            elif param == 'add_money':
-                adjust = 0.00001
             elif param == 'transfer':
                 adjust = -0.00001
             else:
@@ -202,9 +203,9 @@ class StatsClientBase(object):
                 for qs in queryset_stats.qs.filter(
                     date__range=(str(start), str(end))):
                     if qs.subscriber.imsi in imsi:
-                        imsi[qs.subscriber.imsi] += round(qs.change * adjust, 2)
+                        imsi[qs.subscriber.imsi] += round(qs.change * 0.00001, 2)
                     else:
-                        imsi[qs.subscriber.imsi] = round(qs.change * adjust, 2)
+                        imsi[qs.subscriber.imsi] = round(qs.change * 0.00001, 2)
                 return imsi
 
             # if percentage is set for top top-up
@@ -241,12 +242,6 @@ class StatsClientBase(object):
         else:
             queryset_stats = qsstats.QuerySetStats(queryset, 'date')
 
-        if param =='bts down'or param=='bts up':
-            timeseries = queryset_stats.time_series(start, end, interval='minutes')
-        else:
-           timeseries = queryset_stats.time_series(start, end,
-                                                    interval=interval)
-
         # The timeseries results is a list of (datetime, value) pairs. We need
         # to convert the datetimes to timestamps with millisecond precision and
         # then zip the pairs back together.
@@ -260,6 +255,10 @@ class StatsClientBase(object):
                 # remove unwanted objects count
                 if val[1] == 0:
                     timeseries.pop(idx)
+        else:
+           timeseries = queryset_stats.time_series(start, end,
+                                                    interval=interval)
+
         datetimes, values = zip(*timeseries)
         if report_view == 'summary':
             # Return sum count for pie-chart and table view
@@ -286,10 +285,12 @@ class StatsClientBase(object):
                 rounded_values.append(val)
         else:
             for value in values:
-                if value <= 0:
+                if value < 0:
                     rounded_values.append(value * -0.00001)
                 elif round(value) != round(value, 2):
                     rounded_values.append(round(value, 2))
+                elif param =='add_money':
+                    rounded_values.append(round(value*0.0001, 2))
                 else:
                     rounded_values.append(value)
         return zip(timestamps, rounded_values)
@@ -529,7 +530,7 @@ class TransferStatsClient(StatsClientBase):
 
     def timeseries(self, kind=None, **kwargs):
         # Set queryset from subscriber role as retailer
-        kwargs['query'] = Q(subscriber__role='retailer')
+        kwargs['query'] = Q(subscriber__role='Retailer')
         return self.aggregate_timeseries(kind, **kwargs)
 
 
@@ -543,7 +544,7 @@ class TopUpStatsClient(StatsClientBase):
             raw_amount = [(float(denom) * -1) for denom in
                           kwargs['extras'].split('-')]
             kwargs['query'] = Q(change__gte=raw_amount[1]) & Q(
-                change__lte=raw_amount[0]) & Q(subscriber__role='retailer')
+                change__lte=raw_amount[0]) & Q(subscriber__role='Retailer')
             return self.aggregate_timeseries(kind, **kwargs)
         except ValueError:
             # If no denominations available in this network
@@ -631,7 +632,7 @@ class WaterfallStatsClient(StatsClientBase):
 
             kwargs['start_time_epoch'] = int(stats_start_dt.strftime("%s"))
             kwargs['end_time_epoch'] = int(stats_end_dt.strftime("%s"))
-            kwargs['query'] = Q(subscriber__role='subscriber')
+            kwargs['query'] = Q(subscriber__role='Subscriber')
             kind_key = 'Provisioned'
             kwargs['report_view'] = 'value'
             subscribers = self.aggregate_timeseries(kind_key, **kwargs)
@@ -724,13 +725,13 @@ class NonLoaderStatsClient(StatsClientBase):
             kwargs[
                 'start_time_epoch'] = start_time_epoch  # int(stats_start_dt.strftime("%s"))
             kwargs['end_time_epoch'] = int(stats_end_dt.strftime("%s"))
-            kwargs['query'] = Q(subscriber__role='retailer')
+            kwargs['query'] = Q(subscriber__role='Retailer')
             kwargs['report_view'] = 'value'
             subscribers = self.aggregate_timeseries('Provisioned', **kwargs)
 
             kwargs2['start_time_epoch'] = int(stats_start_dt.strftime("%s"))
             kwargs2['end_time_epoch'] = int(end_epoch.strftime("%s"))
-            kwargs2['query'] = Q(subscriber__role='retailer')
+            kwargs2['query'] = Q(subscriber__role='Retailer')
             kwargs2['aggregation'] = 'count'
             kwargs2['report_view'] = 'summary'
 
