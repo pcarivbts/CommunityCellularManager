@@ -67,12 +67,17 @@ def process_transfer(from_imsi, to_imsi, amount):
     # Error when blocked or expired user tries to transfer credit
     from_imsi_status = subscriber.status().get_account_status(
         from_imsi)
+    to_imsi_status = subscriber.status().get_account_status(
+        from_imsi)
     if from_imsi_status != 'active':
         if from_imsi_status == 'active*':
             status = 'is blocked'
         else:
             status = 'has no validity'
         return False, ("Your account %s!" % status)
+    #  rare scenario
+    if to_imsi_status in ['recycle', 'recycle*']:
+        return False, ("%s doesn't exists" % to_imsi)
     # Error when user tries to transfer more credit than they have.
     if not from_balance or from_balance < amount:
         return False, ("Your account doesn't have sufficient funds for the "

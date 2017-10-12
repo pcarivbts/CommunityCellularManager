@@ -285,6 +285,7 @@ def vacuum_inactive_subscribers(self):
             # BTS.
             time.sleep(2)
 
+
 @app.task(bind=True)
 def facebook_ods_checkin(self):
     """Pushes model information to ODS
@@ -341,6 +342,7 @@ def facebook_ods_checkin(self):
 
 
     requests.post(ods_url, data={'datapoints': json.dumps(datapoints)})
+
 
 @app.task(bind=True)
 def downtime_notify(self):
@@ -420,6 +422,7 @@ def downtime_notify(self):
                     type='bts down')
             down_event.save()
 
+
 @app.task(bind=True)
 def async_email(self, subject, body, from_, to_list):
     send_mail(subject, body, from_, to_list)
@@ -438,6 +441,7 @@ def sms_notification(self, body, to):
                        settings.ENDAGA['NEXMO_INBOUND_VOICE_HOST'])
 
     nexmo_provider.send(to, nexmo_number_out, body)
+
 
 @app.task(bind=True)
 def req_bts_log(self, obj, retry_delay=60*10, max_retries=432):
@@ -501,49 +505,61 @@ def unblock_blocked_subscribers(self):
             celery_app.send_task('endagaweb.tasks.sms_notification',
                                  (body, num))
 
+
 @app.task(bind=True)
 def subscriber_validity_state(self):
-    """ Updates the subscribers state to first_expired/expired/recycle
-    active state is set only when top-up is done.
+    """
+    Updates the subscribers state to first_expired/expired/recycle
+    state is set to 'Active' only when top-up.
+    Ignored for Retailers
     """
 
     today = django.utils.timezone.now().date()
-    subscribers = Subscriber.objects.filter(valid_through__lte=today)
-    for subscriber in subscribers:
-        try:
-            if subscriber.valid_through is None:
+    subscribers = Subscriber.objects.filter(
+        valid_through__lte=today).exclude(role='retailer')
+    if subscribers:
+        for subscriber in subscribers:
+            try:
+                if subscriber.valid_through is None:
+                    continue
+            except IndexError:
                 continue
-        except IndexError:
-            continue
-        subscriber_validity = subscriber.valid_through.date()
-        first_expire = subscriber_validity + datetime.timedelta(
-            days=subscriber.network.sub_vacuum_inactive_days)
-        recycle = first_expire + datetime.timedelta(
-            days=subscriber.network.sub_vacuum_grace_days)
-        current_state = str(subscriber.state)
 
-        if subscriber_validity < today:
-            if today <= first_expire:
-                # Do nothing if it's already first expired
-                if current_state != 'first_expired':
-                    subscriber.state = 'first_expired'
-                    subscriber.save()
-                    print "Updating subscriber(%s) state to 'First Expired'" % (
-                        subscriber.imsi,)
-            elif today > recycle:
-                # Let deactivation of subscriber be handled by
-                # vacuum_inactive_subscribers
-                if current_state != 'recycle':
-                    subscriber.state = 'recycle'
-                    subscriber.save()
-                    print "Updating subscriber(%s) state to 'Recycle'" % (
-                        subscriber.imsi,)
-            else:
-                if current_state != 'expired':
-                    subscriber.state = 'expired'
-                    subscriber.save()
-                    print "Updating subscriber(%s) state to 'Expired'" % (
-                        subscriber.imsi,)
+            subscriber_validity = subscriber.valid_through.date()
+            subscriber_state = str(subscriber.state)
+            first_expire = subscriber_validity + datetime.timedelta(
+                days=subscriber.network.sub_vacuum_inactive_days)
+            expired = first_expire + datetime.timedelta(
+                days=subscriber.network.sub_vacuum_grace_days)
+
+            if subscriber_validity < today:
+                if today <= first_expire:
+                    if subscriber_state.lower() != 'first_expired':
+                        subscriber.state = 'first_expired'
+                        subscriber.save()
+                elif today <= expired:
+                    if subscriber_state.lower() != 'expired':
+                        subscriber.state = 'expired'
+                        subscriber.save()
+                else:
+                    # Let deactivation of subscriber be handled by
+                    # vacuum_inactive_subscribers
+                    if subscriber_state.lower() != 'recycle':
+                        subscriber.state = 'recycle'
+                        subscriber.save()
+
+                print "Updating Subscriber: %s state to %s " \
+                      % (subscriber.imsi, subscriber.state)
+                # Create a Usage event
+                if subscriber.state in ['first_expired', 'expired', 'recycle']:
+                    now = django.utils.timezone.now()
+                    info = 'Validity expired setting state as %s' \
+                           % subscriber.state
+                    event = UsageEvent.objects.create(
+                        subscriber=subscriber, date=now, bts=subscriber.bts,
+                        reason=info, oldamt=subscriber.balance,
+                        newamt=subscriber.balance, change=0)
+                    event.save()
 
 
 @app.task(bind=True)
@@ -623,6 +639,7 @@ def validity_expiry_sms(self, days=7):
         else:
             return  # Do nothing
 
+
 @app.task(bind=True)
 def block_user(self):
     """ Block  User if User password is not updated
@@ -636,6 +653,7 @@ def block_user(self):
         user_profile.user.is_active = False
         print '%s user is Blocked!' % user_profile.user.username
         user_profile.user.save()
+
 
 @app.task(bind=True)
 def async_translation(self):
@@ -669,6 +687,7 @@ def async_translation(self):
     except Exception as exception:
         print "translate ERROR. '%s' exception: %s" % exception
         raise
+
 
 @app.task(bind=True)
 def translate(self, message, retry_delay=60 * 10, max_retries=432):
