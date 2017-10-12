@@ -48,8 +48,6 @@ from endagaweb.models import SystemEvent
 from endagaweb.models import NetworkDenomination
 from endagaweb.models import TimeseriesStat, UserProfile
 from endagaweb.ic_providers.nexmo import NexmoProvider
-from ccm.common import crdt
-from endagaweb.settings.prod import TEMPLATES_PATH, USE_I18N, LANGUAGES, LOCALE_PATHS
 
 
 @app.task(bind=True)
