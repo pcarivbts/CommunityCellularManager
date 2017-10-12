@@ -198,12 +198,6 @@ urlpatterns = [
     url(r'^dashboard/network/balance-limit',
         endagaweb.views.network.NetworkBalanceLimit.as_view(),
         name='network_balance_limit'),
-    url(r'^dashboard/network/notification$',
-        endagaweb.views.network.NetworkNotifications.as_view(),
-        name='network-notifications'),
-    url(r'^dashboard/network/notification/manage$',
-        endagaweb.views.network.NetworkNotificationsEdit.as_view(),
-        name='network-notifications-manage'),
     # The activity table.
     url(r'^dashboard/activity',
         endagaweb.views.dashboard.ActivityView.as_view(),
