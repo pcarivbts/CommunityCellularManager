@@ -1474,8 +1474,9 @@ class BroadcastView(ProtectedView):
                     'text': message,
                     'msgid': str(uuid.uuid4())
                 }
-                url = bts.inbound_url + "/endaga_sms"
-                tasks.async_post.delay(url, params)
+                if bts.inbound_url:
+                    url = bts.inbound_url + "/endaga_sms"
+                    tasks.async_post.delay(url, params)
         elif sendto == 'imsi':
             imsi_list = imsi_str.split(',')
             invalid_imsi = []
@@ -1511,8 +1512,9 @@ class BroadcastView(ProtectedView):
                         'text': message,
                         'msgid': str(uuid.uuid4())
                     }
-                    url = subscriber.bts.inbound_url + "/endaga_sms"
-                    tasks.async_post.delay(url, params)
+                    if subscriber.bts.inbound_url:
+                        url = subscriber.bts.inbound_url + "/endaga_sms"
+                        tasks.async_post.delay(url, params)
         else:
             response['messages'].append('Invalid request data.')
             return HttpResponse(json.dumps(response),
