@@ -16,7 +16,7 @@ from __future__ import unicode_literals
 import datetime as datetime2
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from random import randrange
 
 import pytz
@@ -26,7 +26,7 @@ from django.test import TestCase
 from ccm.common import crdt
 from endagaweb import models
 from endagaweb import tasks
-
+import time
 
 class TestBase(TestCase):
     @classmethod
@@ -39,9 +39,11 @@ class TestBase(TestCase):
     @classmethod
     def add_sub(cls, imsi,
                 ev_kind=None, ev_reason=None, ev_date=None,
-                balance=0, state='active'):
+                balance=0, state='active', valid_through=None,
+                is_blocked=False):
         sub = models.Subscriber.objects.create(
-            imsi=imsi, network=cls.network, balance=balance, state=state)
+            imsi=imsi, network=cls.network, balance=balance, state=state,
+            valid_through=valid_through, is_blocked=is_blocked)
         if ev_kind:
             if ev_date is None:
                 ev_date = datetime.now(pytz.utc)
@@ -155,14 +157,18 @@ class ActiveSubscriberTests(TestBase):
 class SubscriberValidityTests(TestBase):
     """
     We can change subscriber state depending on its validity and can deactivate
-    after completion of threshold 
+    after completion of threshold
     """
 
-    def setup_the_env(self, days=7):
+    def setup_the_env(self, days=None, blocked=False):
+        validity = datetime.now(pytz.utc)
+        if days:
+            validity = datetime.now(pytz.utc) - datetime2.timedelta(days=days)
         imsi = self.gen_imsi()
-        self.subscriber = self.add_sub(imsi, balance=100, state='active')
+        self.subscriber = self.add_sub(imsi, balance=100, state='active',
+                                       valid_through=validity,
+                                       is_blocked=blocked)
         # Set expired validity for the number
-        validity = datetime.now(pytz.utc) - datetime2.timedelta(days=days)
         self.bts = models.BTS(uuid="133222", nickname="test-bts-name!",
                               inbound_url="http://localhost/133222/test",
                               network=self.network)
@@ -182,8 +188,9 @@ class SubscriberValidityTests(TestBase):
         # Set subscriber's validity 7 days earlier then current date
         self.setup_the_env(days=7)
         tasks.subscriber_validity_state()
+
         subscriber = models.Subscriber.objects.get(id=self.subscriber.id)
-        self.assertEqual(subscriber.state, 'inactive')
+        self.assertEqual(subscriber.state, 'first_expired')
 
     def test_subscriber_expired(self):
         # Set subscriber's validity more than threshold days
@@ -191,12 +198,13 @@ class SubscriberValidityTests(TestBase):
         self.setup_the_env(days=days + 1)
         tasks.subscriber_validity_state()
         subscriber = models.Subscriber.objects.get(id=self.subscriber.id)
-        self.assertEqual(subscriber.state, 'first_expire')
+        self.assertEqual(subscriber.state, 'expired')
 
     def test_subscriber_recycle(self):
         # Set subscriber's validity days more than grace period and
         # threshold days
-        days = self.network.sub_vacuum_inactive_days + self.network.sub_vacuum_grace_days
+        days = self.network.sub_vacuum_inactive_days + \
+               self.network.sub_vacuum_grace_days
         self.setup_the_env(days=days + 1)
         tasks.subscriber_validity_state()
         subscriber = models.Subscriber.objects.get(id=self.subscriber.id)

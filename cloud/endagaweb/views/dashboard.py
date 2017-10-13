@@ -17,6 +17,7 @@ import time
 import urllib
 import uuid
 
+import django.utils.timezone
 import django_tables2 as tables
 import humanize
 import pytz
@@ -45,11 +46,8 @@ from guardian.shortcuts import assign_perm, get_perms, remove_perm, \
 from guardian.shortcuts import (get_objects_for_user)
 from rest_framework.authtoken.models import Token
 
-from ccm.common.currency import parse_credits, humanize_credits, \
-    CURRENCIES
 from endagaweb import tasks
 from endagaweb.forms import dashboard_forms as dform
-from endagaweb.models import NetworkDenomination
 from ccm.common.currency import parse_credits, humanize_credits, CURRENCIES
 from endagaweb.models import (UserProfile, Subscriber, UsageEvent,
                               Network, PendingCreditUpdate, Number, BTS)
@@ -344,7 +342,8 @@ class SubscriberUpdateRole(ProtectedView):
 
     def post(self, request, *args, **kwargs):
         subscriber_imsi_list = request.POST.getlist('imsi_val[]')
-        new_role = request.POST.get('category')
+        new_role = str(request.POST.get('category')).lower()
+
         try:
             subscribers = Subscriber.objects.filter(imsi__in=
                                                     subscriber_imsi_list)
@@ -1474,8 +1473,9 @@ class BroadcastView(ProtectedView):
                     'text': message,
                     'msgid': str(uuid.uuid4())
                 }
-                url = bts.inbound_url + "/endaga_sms"
-                tasks.async_post.delay(url, params)
+                if bts.inbound_url:
+                    url = bts.inbound_url + "/endaga_sms"
+                    tasks.async_post.delay(url, params)
         elif sendto == 'imsi':
             imsi_list = imsi_str.split(',')
             invalid_imsi = []
@@ -1511,8 +1511,9 @@ class BroadcastView(ProtectedView):
                         'text': message,
                         'msgid': str(uuid.uuid4())
                     }
-                    url = subscriber.bts.inbound_url + "/endaga_sms"
-                    tasks.async_post.delay(url, params)
+                    if subscriber.bts.inbound_url:
+                        url = subscriber.bts.inbound_url + "/endaga_sms"
+                        tasks.async_post.delay(url, params)
         else:
             response['messages'].append('Invalid request data.')
             return HttpResponse(json.dumps(response),

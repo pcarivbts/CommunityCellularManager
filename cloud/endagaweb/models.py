@@ -586,7 +586,7 @@ class Subscriber(models.Model):
     block_reason = models.TextField(default='N/A', max_length=255)
     last_blocked = models.DateTimeField(null=True, blank=True)
     # role of subscriber
-    role = models.TextField(null=True, blank=True, default="Subscriber")
+    role = models.TextField(null=True, blank=True, default="subscriber")
 
     class Meta:
         default_permissions = ()

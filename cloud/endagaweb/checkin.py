@@ -219,7 +219,7 @@ class CheckinResponder(object):
             # The last seen timestamp is a little erred since its computed
             # from the current time
             last_seen_datetime = self.bts.last_active - \
-                                 datetime.timedelta(seconds=int(entry['last_seen_secs']))
+                datetime.timedelta(seconds=int(entry['last_seen_secs']))
 
             sub.mark_camped(last_seen_datetime, bts=self.bts)
 
@@ -396,7 +396,7 @@ class CheckinResponder(object):
         config_set = [
             ConfigurationKey.objects.filter(bts=self.bts).order_by('key'),
             ConfigurationKey.objects.filter(network=self.bts.network)
-                .order_by('key')
+            .order_by('key')
         ]
 
         result = {}
@@ -495,7 +495,7 @@ class CheckinResponder(object):
                                       'band': band,
                                       'channel': chnl,
                                       'power_level': pwr_lvl,
-                                      })
+                })
             except Exception:
                 logging.error('SASON Acquire failed')
                 return None
@@ -508,7 +508,7 @@ class CheckinResponder(object):
                                       'long': self.bts.longitude,
                                       # self for now -kurtis
                                       'bands': self.bts.band,
-                                      })
+                })
             except Exception:
                 logging.error('SASON Request failed')
                 return None
@@ -523,13 +523,13 @@ class CheckinResponder(object):
             tries_left = settings.SASON_RETRY_COUNT
             acq = sas_acquire(band, channel, pwr_level)
             while (acq is not None and
-                           acq.status_code != requests.codes.ok and
-                           tries_left > 0):
+                   acq.status_code != requests.codes.ok and
+                   tries_left > 0):
                 tries_left -= 1
                 # get the list of available ones
                 req = sas_request()
                 if (req is None or
-                            req.status_code != requests.codes.ok):  # trouble
+                    req.status_code != requests.codes.ok):  # trouble
                     break
                 # ask for it
                 req = req.json()
@@ -538,7 +538,7 @@ class CheckinResponder(object):
                 acq = sas_acquire(band, channel, pwr_level)
             # if we got one, return it
             if (acq is not None and
-                        acq.status_code == requests.codes.ok):
+                acq.status_code == requests.codes.ok):
                 # this is interesting
                 # sason does the band and channel update already
                 # so technically this is redundant

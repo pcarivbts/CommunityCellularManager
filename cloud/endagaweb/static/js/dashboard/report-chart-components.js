@@ -364,7 +364,6 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
             'key': data[index]['key']
         };
         var retailer = data[index]['retailer_table_data']
-
         var newValues = [];
         if (typeof(data[index]['values']) === 'object') {
             for (var series_index in data[index]['values']) {
@@ -409,7 +408,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                 if (Object.keys(retailer).length >= 1) {
                     for (var series_index in data[index]['retailer_table_data']) {
                         var elements = data[index]['retailer_table_data'][series_index];
-                        tableData.push([series_index, elements])
+                        tableData.push([series_index, elements.toFixed(2)])
                     }
                 }
             } else {
