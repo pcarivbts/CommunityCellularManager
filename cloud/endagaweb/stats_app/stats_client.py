@@ -530,7 +530,7 @@ class TransferStatsClient(StatsClientBase):
 
     def timeseries(self, kind=None, **kwargs):
         # Set queryset from subscriber role as retailer
-        kwargs['query'] = Q(subscriber__role='Retailer')
+        kwargs['query'] = Q(subscriber__role='retailer')
         return self.aggregate_timeseries(kind, **kwargs)
 
 
@@ -544,7 +544,7 @@ class TopUpStatsClient(StatsClientBase):
             raw_amount = [(float(denom) * -1) for denom in
                           kwargs['extras'].split('-')]
             kwargs['query'] = Q(change__gte=raw_amount[1]) & Q(
-                change__lte=raw_amount[0]) & Q(subscriber__role='Retailer')
+                change__lte=raw_amount[0]) & Q(subscriber__role='retailer')
             return self.aggregate_timeseries(kind, **kwargs)
         except ValueError:
             # If no denominations available in this network
@@ -632,7 +632,7 @@ class WaterfallStatsClient(StatsClientBase):
 
             kwargs['start_time_epoch'] = int(stats_start_dt.strftime("%s"))
             kwargs['end_time_epoch'] = int(stats_end_dt.strftime("%s"))
-            kwargs['query'] = Q(subscriber__role='Subscriber')
+            kwargs['query'] = Q(subscriber__role='subscriber')
             kind_key = 'Provisioned'
             kwargs['report_view'] = 'value'
             subscribers = self.aggregate_timeseries(kind_key, **kwargs)
@@ -725,13 +725,13 @@ class NonLoaderStatsClient(StatsClientBase):
             kwargs[
                 'start_time_epoch'] = start_time_epoch  # int(stats_start_dt.strftime("%s"))
             kwargs['end_time_epoch'] = int(stats_end_dt.strftime("%s"))
-            kwargs['query'] = Q(subscriber__role='Retailer')
+            kwargs['query'] = Q(subscriber__role='retailer')
             kwargs['report_view'] = 'value'
             subscribers = self.aggregate_timeseries('Provisioned', **kwargs)
 
             kwargs2['start_time_epoch'] = int(stats_start_dt.strftime("%s"))
             kwargs2['end_time_epoch'] = int(end_epoch.strftime("%s"))
-            kwargs2['query'] = Q(subscriber__role='Retailer')
+            kwargs2['query'] = Q(subscriber__role='retailer')
             kwargs2['aggregation'] = 'count'
             kwargs2['report_view'] = 'summary'
 

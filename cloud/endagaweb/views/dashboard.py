@@ -344,7 +344,8 @@ class SubscriberUpdateRole(ProtectedView):
 
     def post(self, request, *args, **kwargs):
         subscriber_imsi_list = request.POST.getlist('imsi_val[]')
-        new_role = request.POST.get('category')
+        new_role = str(request.POST.get('category')).lower()
+
         try:
             subscribers = Subscriber.objects.filter(imsi__in=
                                                     subscriber_imsi_list)
