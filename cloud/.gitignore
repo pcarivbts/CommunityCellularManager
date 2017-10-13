@@ -61,6 +61,3 @@ ansible/*.retry
 
 # static uncompressed files
 /static/**
-
-# Locale translation files
-endagaweb/templates/translate.html

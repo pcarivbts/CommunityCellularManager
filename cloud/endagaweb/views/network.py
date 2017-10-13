@@ -910,7 +910,10 @@ class NetworkNotificationsEdit(ProtectedView):
                             network=network)
                     notification.type = type
                     notification.message = message
-                    notification.translated = translated
+                    notification.translation = translated
+                    print '_______________________________________'
+                    print translated
+                    print '_______________________________________'
                     notification.event = event
                     notification.number = number
                     notification.language = request.POST.get('language')

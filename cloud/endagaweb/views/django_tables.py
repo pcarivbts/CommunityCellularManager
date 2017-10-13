@@ -488,7 +488,7 @@ class NotificationTable(tables.Table):
 
     class Meta:
         model = models.Notification
-        fields = ('id', 'type', 'event', 'number', 'message')
+        fields = ('id', 'type', 'event', 'number', 'message', 'translation')
         attrs = {'class': 'table'}
 
     id = tables.CheckBoxColumn(accessor="pk",

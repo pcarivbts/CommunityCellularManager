@@ -42,8 +42,6 @@ from endagaweb import models
 from django.core import exceptions
 from endagaweb.util import api
 from googletrans.constants import LANGUAGES
-from yandex_translate import YandexTranslate
-# translate = YandexTranslate(settings.YANDEX_TRANSLATE_KEY)
 
 logger = logging.getLogger('endagaweb')
 
