@@ -16,9 +16,12 @@ of patent rights can be found in the PATENTS file in the same directory.
   </condition>
 </extension>
 
-
 <extension name="called_number_status">
   <condition field='${vbts_dest_account_status}' expression="False">
+    <action application="python" data="endaga_i18n Failed to deliver the message! The receiver account has expired."/>
+    <action application="python" data="VBTS_Send_SMS ${vbts_callerid}|103|${_localstr}"/>
+    <action application="set" data="service_type=error_sms"/>
+    <action application="system" data='curl --data "from_number=${vbts_callerid}&from_name=${from_imsi}&service_type=${service_type}&destination=${vbts_tp_dest_address}" http://127.0.0.1/smscdr'/>
     <action application="hangup"/>
   </condition>
 </extension>

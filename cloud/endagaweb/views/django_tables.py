@@ -162,6 +162,9 @@ class SubscriberTable(tables.Table):
     def render_imsi(self, record):
         return render_imsi(record)
 
+    def render_role(self, record):
+        return str(record.role).capitalize()
+
     def render_name_and_imsi_link(self, record):
         return render_name_and_imsi_link(record)
 
