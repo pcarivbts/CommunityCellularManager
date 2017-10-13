@@ -36,6 +36,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
     <!-- Get the IMSIs status -->
     <action inline="true" application="set" data='vbts_account_status=${python(VBTS_Get_Account_Status ${from_imsi})}'/>
+    <action inline="true" application="set" data='vbts_dest_account_status=${python(VBTS_Get_Account_Status ${vbts_destid}|True)}'/>
     <action inline="true" application="set" data='vbts_incoming_account_status=${python(VBTS_Get_Account_Status ${vbts_destid}|True)}'/>
 
     <!-- Determine if the dest number is local -->
