@@ -354,7 +354,8 @@ class SubscriberUpdateRole(ProtectedView):
             min_vald = django.utils.timezone.now() + datetime.timedelta(
                 days=1)
             if str(new_role).lower() == 'retailer':
-                subscribers.update(valid_through=max_vald, role=new_role)
+                subscribers.update(state='active', valid_through=max_vald,
+                                   role=new_role)
             else:
                 for subscriber in subscribers:
                     # if last role was retailer set the min validity.
