@@ -40,6 +40,8 @@ from guardian.shortcuts import get_objects_for_user
 from endagaweb.forms import dashboard_forms as dform
 from endagaweb import models
 from django.core import exceptions
+from endagaweb.util import api
+from googletrans.constants import LANGUAGES
 
 logger = logging.getLogger('endagaweb')
 
@@ -383,3 +385,25 @@ def validate_password_strength(value):
     regex = "(?=.*[a-zA-Z])(?=.*\\d)(?=.*[!@#$%&*()_+=|<>?{}\\[\\]~-]).{8}"
     pattern = re.compile(regex)
     return bool(pattern.match(value))
+
+@login_required(login_url='/login/')
+def gettranslation(request):
+    # For ajax call to translate on runtime
+    if request.method == 'GET':
+        context = {}
+        if 'message' in request.GET:
+            from_language = 'auto'
+            to_language = 'tl'
+            if 'from_language' in request.GET:
+                from_language = request.GET['from_language']
+            if 'to_language' in request.GET:
+                to_language = request.GET['to_language']
+            try:
+                message = api.translate(request.GET['message'], to_language,
+                                        from_language)
+                context['translation'] = message
+                context['language'] = LANGUAGES.get(to_language)
+                return JsonResponse(context)
+            except:
+                return HttpResponseBadRequest
+    return HttpResponseBadRequest()

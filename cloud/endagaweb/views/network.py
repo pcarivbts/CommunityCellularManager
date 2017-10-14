@@ -32,6 +32,7 @@ from endagaweb.views import django_tables
 from endagaweb.forms import dashboard_forms as dform
 from django.core import exceptions
 from endagaweb import tasks
+from endagaweb.util import api
 
 NUMBER_COUNTRIES = {
     'US': 'United States (+1)',
@@ -814,3 +815,125 @@ class NetworkBalanceLimit(ProtectedView):
             return redirect(urlresolvers.reverse('network_balance_limit'))
 
 
+class NetworkNotifications(ProtectedView):
+    """Manage event notifications for network. """
+
+    permission_required = 'view_notification'
+
+    def get(self, request):
+        """Handles GET requests.
+        Show event-notification listing page"""
+        user_profile = models.UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        notifications = models.Notification.objects.filter(network=network)
+        notification_table = django_tables.NotificationTable(
+            list(notifications))
+        tables.RequestConfig(request, paginate={'per_page': 10}).configure(
+            notification_table)
+
+        notification_id = request.GET.get('id', None)
+        if notification_id:
+            response = {
+                'status': 'ok',
+                'messages': [],
+                'data': {}
+            }
+            notification = models.Notification.objects.get(id=notification_id)
+            notification_data = {
+                'id': notification.id,
+                'number': notification.number,
+                'event': notification.event,
+                'message': notification.message,
+                'type': notification.type
+            }
+            response["data"] = notification_data
+            return http.HttpResponse(json.dumps(response),
+                                     content_type="application/json")
+
+        # Set the response context.
+        context = {
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=models.Network),
+            'user_profile': user_profile,
+            'notification': dashboard_forms.NotificationForm(
+                initial={'type': 'automatic',
+                         }),
+            'notification_table': notification_table,
+            'records': len(list(notifications)),
+            'network': network,
+        }
+        # Render template.
+        template = get_template(
+            'dashboard/network_detail/notifications.html')
+        html = template.render(context, request)
+        return http.HttpResponse(html)
+
+
+class NetworkNotificationsEdit(ProtectedView):
+
+    permission_required = ['edit_notification', 'view_notification']
+
+    def post(self, request):
+        """Handles POST requests.
+        Create/edit/edit notifications."""
+        delete_notification = request.POST.getlist('id') or None
+        if delete_notification is None:
+            # Create/Edit the notifications
+            user_profile = models.UserProfile.objects.get(user=request.user)
+            network = user_profile.network
+            type = request.POST.get('type')
+            event = request.POST.get('event')
+            message = request.POST.get('message')
+            translated = request.POST.get('translated')
+            if translated is None:
+                translated = api.translate(message)
+            number = request.POST.get('number')
+            pk = request.POST.get('pk') or 0
+            if type == 'automatic':
+                type_detail, number = 'event: ' + event, None
+            else:
+                type_detail, event = 'number: ' + number, None
+
+                # Format number to 3 digits
+                if int(number) < 10:
+                    number = '00' + str(number)
+                elif int(number) < 100:
+                    number = '0' + str(number)
+            try:
+                with transaction.atomic():
+                    try:
+                        # Check for existing notification and update
+                        notification = models.Notification.objects.get(id=pk)
+                    except models.Notification.DoesNotExist:
+                        # Create new notification
+                        notification = models.Notification.objects.create(
+                            network=network)
+                    notification.type = type
+                    notification.message = message
+                    notification.translation = translated
+                    print '_______________________________________'
+                    print translated
+                    print '_______________________________________'
+                    notification.event = event
+                    notification.number = number
+                    notification.language = request.POST.get('language')
+                    notification.save()
+                    # Write message to template for parsing and translation
+                    alert_message = 'Notification added successfully!'
+                    messages.success(request, alert_message)
+                    #TODO(sagar): Write this translated message and normal message to .po file or some custom file
+            except IntegrityError:
+                alert_message = '{0} notification already exists against this {1}.'.format(
+                    str(type).title(), type_detail)
+                messages.error(request, alert_message,
+                               extra_tags="alert alert-danger")
+            return redirect(urlresolvers.reverse('network-notifications'))
+        else:
+            # Delete the notifications
+            records = models.Notification.objects.filter(
+                id__in=delete_notification)
+            for notification in records:
+                notification.delete()
+            alert_message = 'Selected notification(s) deleted successfully.'
+        messages.success(request, alert_message)
+        return redirect(urlresolvers.reverse('network-notifications'))

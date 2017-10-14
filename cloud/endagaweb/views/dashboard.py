@@ -17,6 +17,7 @@ import time
 import urllib
 import uuid
 
+import django.utils.timezone
 import django_tables2 as tables
 import humanize
 import pytz
@@ -45,11 +46,8 @@ from guardian.shortcuts import assign_perm, get_perms, remove_perm, \
 from guardian.shortcuts import (get_objects_for_user)
 from rest_framework.authtoken.models import Token
 
-from ccm.common.currency import parse_credits, humanize_credits, \
-    CURRENCIES
 from endagaweb import tasks
 from endagaweb.forms import dashboard_forms as dform
-from endagaweb.models import NetworkDenomination
 from ccm.common.currency import parse_credits, humanize_credits, CURRENCIES
 from endagaweb.models import (UserProfile, Subscriber, UsageEvent,
                               Network, PendingCreditUpdate, Number, BTS)

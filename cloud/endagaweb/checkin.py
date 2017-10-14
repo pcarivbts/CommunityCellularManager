@@ -26,7 +26,7 @@ from endagaweb.models import Subscriber
 from endagaweb.models import TimeseriesStat
 from endagaweb.models import UsageEvent
 from endagaweb.util.parse_destination import parse_destination
-from endagaweb.models import NetworkDenomination
+from endagaweb.models import NetworkDenomination, Notification
 import dateutil.parser as dateparser
 
 class CheckinResponder(object):
@@ -58,6 +58,7 @@ class CheckinResponder(object):
             'subscribers': self.subscribers_handler,
             'radio': self.radio_handler,  # needs location_handler -kurtis
             'subscriber_status': self.subscriber_status_handler,
+            'bts_locale': self.bts_locale,
             # TODO: (kheimerl) T13270418 Add location update information
         }
 
@@ -164,6 +165,7 @@ class CheckinResponder(object):
         resp['subscribers'] = self._optimize('subscribers',
                                              self.gen_subscribers())
         resp['network_denomination'] = self.get_network_denomination()
+        resp['notification'] = self.gen_notifications()
         resp['events'] = self.gen_events()
         resp['sas'] = self.gen_spectrum()
         self.bts.save()
@@ -291,6 +293,8 @@ class CheckinResponder(object):
                 logging.warn('[subscriber_status_handler] subscriber %s does not'
                              ' exist.' % imsi)
 
+    def bts_locale(self, bts_locale):
+        self.bts.locale = bts_locale
 
     def radio_handler(self, radio):
         if 'band' in radio and 'c0' in radio:
@@ -323,6 +327,22 @@ class CheckinResponder(object):
             data = {'id': s.id,'start_amount': s.start_amount,
                     'end_amount': s.end_amount, 'validity': str(s.validity_days)}
             res.append(data)
+        return res
+
+    def gen_notifications(self):
+        """
+        Returns a notifications for that bts.
+        """
+        res = {}
+        notifications = Notification.objects.filter(network=self.bts.network,
+                                                    language=self.bts.locale)
+        if notifications:
+            for notification in notifications:
+                if notification.type == 'automatic':
+                    event = notification.event
+                else:
+                    event = notification.number
+                res.update({event: notification.translation})
         return res
 
 

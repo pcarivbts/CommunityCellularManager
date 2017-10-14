@@ -174,6 +174,8 @@ class endaga_ic(object):
         # Add subscriber status and validity sync data
         status['subscriber_status'] = subscriber.status().get_subscriber_status(
             imsis=events.EventStore().modified_subs())
+        # Add bts locale
+        status['bts_locale'] = self.conf['locale']
         # Add delta protocol context (if available) to let server know,
         # client supports delta optimization & has a prior delta state
         if delta.DeltaProtocol.CTX_KEY not in status:  # just a precaution

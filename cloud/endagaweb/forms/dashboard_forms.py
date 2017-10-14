@@ -13,7 +13,7 @@ import datetime
 import pytz
 from crispy_forms.bootstrap import StrictButton, FieldWithButtons
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, Field
+from crispy_forms.layout import Layout, Submit, Field, Button, Hidden
 from django import forms
 from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm
 from django.contrib.auth.models import User
@@ -25,7 +25,7 @@ from ccm.common.currency import CURRENCIES
 from endagaweb import models
 from endagaweb.templatetags import apptags
 from django.contrib.auth import password_validation
-
+from django.utils import html
 
 class UpdateContactForm(forms.Form):
     email = forms.EmailField(required=False, label="Email")
@@ -478,6 +478,21 @@ class NetworkBalanceLimit(forms.Form):
         return cleaned_data
 
 
+LANGUAGES = (
+    ('cs', 'Czech'),
+    ('da', 'Danish'),
+    ('nl', 'Dutch'),
+    ('en', 'English'),
+    ('tl', 'Filipino'),
+    ('fi', 'Finnish'),
+    ('fr', 'French'),
+    ('de', 'German'),
+    ('hi', 'Hindi'),
+    ('id', 'Indonesian'),
+    ('ko', 'Korean'),
+    ('pa', 'Punjabi'),
+    ('vi', 'Vietnamese'),
+)
 class NotificationForm(forms.Form):
     types = (
         ('automatic', 'Automatic'),
@@ -495,19 +510,40 @@ class NotificationForm(forms.Form):
     event = forms.CharField(widget=forms.TextInput(
         attrs={'title': 'Event Type', 'style': 'width:300px'}),
         required=True, label='Events')
-    message = forms.CharField(
-        label='Message', widget=forms.Textarea(
-            attrs={'title': 'Notification message',
-                   'placeholder': 'Enter Message...',
-                   'rows': '4'}), required=True,
-        min_length=20,
-        max_length=160)
+    message = forms.CharField(label='Message', widget=forms.Textarea(
+            attrs={
+                'title': 'Notification message',
+                'placeholder': 'Enter Message...',
+                'rows': '2',
+                'onchange': 'enableLanguage(this)',
+            }
+        ),
+        required=True, min_length=20, max_length=160)
+    translated = forms.CharField(label='Translation', widget=forms.Textarea(
+            attrs={
+                'title': 'Translation of message',
+                'disabled': 'disabled',
+                'rows': '2',
+            }
+        ),
+        required=True, min_length=20, max_length=160)
+    language = forms.MultipleChoiceField(label='language',
+                                         choices=LANGUAGES,
+                                         widget=forms.SelectMultiple(
+                                             attrs={
+                                                 'rows': '4',
+                                                 'disabled': 'disabled',
+                                                 'onchange':
+                                                     'getTranslation(this)'
+                                             }
+                                         ))
     number = forms.IntegerField(widget=forms.NumberInput(
         attrs={'class': 'form-control', 'pattern': '[0-9]{3}',
                'title': 'Notification number', 'style': 'width:200px',
                'oninvalid': "setCustomValidity('Enter number (max: 3 digits)')",
                'onchange': "try{"
-                           "setCustomValidity('')}catch(e){}"
+                           "setCustomValidity('')"
+                           "}catch(e){}"
                }),
         required=True, disabled=True, min_value=1, max_value=999)
     pk = forms.CharField(widget=forms.HiddenInput())
@@ -524,6 +560,9 @@ class NotificationForm(forms.Form):
             'number',
             'event',
             'message',
+            'language',
+            'translated',
             'pk',
             Submit('submit', 'Submit', css_class='invisible'),
+            Button('translate', 'Translate', css_class='invisible'),
         )

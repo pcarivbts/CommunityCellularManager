@@ -491,7 +491,7 @@ class NotificationTable(tables.Table):
 
     class Meta:
         model = models.Notification
-        fields = ('id', 'type', 'event', 'number', 'message')
+        fields = ('id', 'type', 'event', 'number', 'message', 'translation')
         attrs = {'class': 'table'}
 
     id = tables.CheckBoxColumn(accessor="pk",
@@ -501,6 +501,7 @@ class NotificationTable(tables.Table):
     event = tables.Column(verbose_name='Event')
     number = tables.Column(verbose_name='Number')
     message = tables.Column(verbose_name='Message', orderable=False)
+    translation = tables.Column(verbose_name='Translation', orderable=False)
 
     def render_message(self, record):
         message = record.message
