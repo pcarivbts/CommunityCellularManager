@@ -339,18 +339,18 @@ def role_default_permissions(request):
         # Default permissions on role selection
         business_analyst = (
             'view_activity', 'view_bts', 'view_denomination',
-            'view_graph', 'view_network',
+            'view_graph', 'view_network', 'view_notification',
             'view_report', 'view_subscriber',
         )
         loader = (
             'view_activity', 'view_bts', 'view_denomination',
-            'view_graph', 'view_network',
+            'view_graph', 'view_network', 'view_notification',
             'view_report', 'view_subscriber', 'adjust_credit',
             'send_sms', 'edit_subscriber',
         )
         partner = (
             'view_activity', 'view_bts', 'view_denomination',
-            'view_graph', 'view_network',
+            'view_graph', 'view_network', 'view_notification',
             'view_report', 'view_subscriber', 'send_sms',
             'edit_subscriber',
         )

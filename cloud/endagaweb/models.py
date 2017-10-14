@@ -80,6 +80,8 @@ PERMISSIONS = (
                 # Network
                 ('view_network', 'View Network'),
                 ('edit_network', 'Manage Network'),
+                ('view_notification', 'View Notification(Network)'),
+                ('edit_notification', 'Manage Notification(Network)'),
                 ('view_denomination', 'View Denomination(Network)'),
                 ('edit_denomination', 'Manage Denomination(Network)'),
 
