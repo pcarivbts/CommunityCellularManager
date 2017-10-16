@@ -1459,6 +1459,8 @@ class BroadcastView(ProtectedView):
         response = {
             'status': 'failed',
             'messages': [],
+            'imsi': [],
+            'sent': ''
         }
         if sendto in ['network', 'tower']:
             if (sendto == 'tower' and not tower_id) or sendto == 'network':
@@ -1489,17 +1491,6 @@ class BroadcastView(ProtectedView):
                     subscribers.append(sub)
                 except Subscriber.DoesNotExist:
                     invalid_imsi.append(imsi)
-            if not imsi_str:
-                message = "Enter Subscriber IMSI number."
-                response['messages'].append(message)
-                return HttpResponse(json.dumps(response),
-                                    content_type="application/json")
-            if len(invalid_imsi) > 0:
-                message = "%s does not exist in this network." % (','.join(
-                    invalid_imsi))
-                response['messages'].append(message)
-                return HttpResponse(json.dumps(response),
-                                    content_type="application/json")
             for subscriber in subscribers:
                 try:
                     # We send sms to the subscriber's first number.
@@ -1517,6 +1508,19 @@ class BroadcastView(ProtectedView):
                     if subscriber.bts.inbound_url:
                         url = subscriber.bts.inbound_url + "/endaga_sms"
                         tasks.async_post.delay(url, params)
+            if not imsi_str:
+                message = "Enter Subscriber IMSI number."
+                response['messages'].append(message)
+                return HttpResponse(json.dumps(response),
+                                    content_type="application/json")
+            if len(invalid_imsi) > 0:
+                message = "%s does not exist in this network." % (','.join(
+                    invalid_imsi))
+                response['messages'].append(message)
+                response['imsi'] = invalid_imsi
+                response['sent'] = len(subscribers)
+                return HttpResponse(json.dumps(response),
+                                    content_type="application/json")
         else:
             response['messages'].append('Invalid request data.')
             return HttpResponse(json.dumps(response),
