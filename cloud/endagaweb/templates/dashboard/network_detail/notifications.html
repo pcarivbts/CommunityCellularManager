@@ -92,9 +92,23 @@ of patent rights can be found in the PATENTS file in the same directory.
             {{ message }}
         </div>
         {% endfor %}
+        <!--<div class="block-container col-xs-12 col-sm-12">-->
+        <div class="block-container pull-right">
+            <select name="lang" id="lang" class="form-control col-sm-2" style="width: 10%" onchange="filterNotifications(this)" required>
+                <option label="Language"></option>
+                {% for key, language in languages.items %}
+                <option value="{{ key }}">
+                    {{ language }}
+                </option>
+                {% endfor %}
+            </select>
+            <div class="col-sm-4">
+                {% crispy search %}
+            </div>
+        </div>
         <form action="/dashboard/network/notification/manage" method="POST"
               name="notification_form" id="notification_form">
-            <div class="table-container">
+            <div class="table-container col-sm-12">
                 {% csrf_token %}
                 {% if records > 0 %}
                 {% render_table notification_table %}
@@ -123,7 +137,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     </div>
 
 </div>
-</div>
+
 <div class='modal fade' id='delete-event-modal'>
     <div class='modal-dialog'>
         <div class='modal-content'>
@@ -152,10 +166,10 @@ of patent rights can be found in the PATENTS file in the same directory.
         </div>
     </div>
 </div><!-- /.delete-user-modal -->
-
 <div class='modal fade' id='save-event-modal'>
     <div class='modal-dialog'>
-        <div class='modal-content'>
+        <!--MODAL BASE-->
+        <div class='modal-content' style="width: 200%; margin-left:-50%">
             <div class='modal-header'>
                 <button type="button" class="close" data-dismiss="modal"
                         aria-label="Close">
@@ -165,7 +179,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                     Notification
                 </h4>
             </div>
-            <div class='modal-body' style="height: 450px;">
+            <div class='modal-body' style="height: 700px;">
                 <form action="/dashboard/network/notification/manage"
                       id="add-notification-modal" name="notification"
                       method="POST"
@@ -184,6 +198,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 </form>
             </div>
             <div class='modal-footer'>
+
                 <!--<div id='user-messages-container'></div>-->
             </div>
         </div>
@@ -276,6 +291,10 @@ of patent rights can be found in the PATENTS file in the same directory.
             $('#id_number').val(response.data.number);
             $('#id_event').val(response.data.event);
             $('#id_message').val(response.data.message);
+            $('#id_translated').val(response.data.translation);
+            $('#id_translated').removeAttr('disabled');
+            $('#id_language').val(response.data.language);
+            $('#id_language').removeAttr('disabled');
             $('#id_pk').val(response.data.id);
         },
         error: function (response) {
@@ -298,6 +317,13 @@ of patent rights can be found in the PATENTS file in the same directory.
     $('#id_pk').val(0);
     $('#id_language').attr({'disabled':'disabled'});
   }
+  function filterNotifications(lang) {
+              $.ajax({
+                  url: "/dashboard/network/notification?lang=" + lang.value
 
+              }).done(function(response) {
+                window.location.href = '/dashboard/network/notification?lang=' + lang.value;
+         });
+  }
 </script>
 {% endblock %}

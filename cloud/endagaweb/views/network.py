@@ -9,30 +9,30 @@ of patent rights can be found in the PATENTS file in the same directory.
 """
 
 import datetime
-import time
 import json
+import time
 
+import django_tables2 as tables
 from django import http
 from django import template
+from django.conf import settings
 from django.contrib import messages
+from django.core import exceptions
 from django.core import urlresolvers
 from django.db import transaction, IntegrityError
-from django.shortcuts import redirect, render
-import django_tables2 as tables
+from django.shortcuts import redirect
 from django.template.loader import get_template
+from googletrans.constants import LANGUAGES
 from guardian.shortcuts import get_objects_for_user
-from django.conf import settings
 
 from ccm.common.currency import parse_credits, humanize_credits, \
     CURRENCIES, DEFAULT_CURRENCY
 from endagaweb import models
 from endagaweb.forms import dashboard_forms
-from endagaweb.views.dashboard import ProtectedView
-from endagaweb.views import django_tables
 from endagaweb.forms import dashboard_forms as dform
-from django.core import exceptions
-from endagaweb import tasks
 from endagaweb.util import api
+from endagaweb.views import django_tables
+from endagaweb.views.dashboard import ProtectedView
 
 NUMBER_COUNTRIES = {
     'US': 'United States (+1)',
@@ -826,11 +826,6 @@ class NetworkNotifications(ProtectedView):
         user_profile = models.UserProfile.objects.get(user=request.user)
         network = user_profile.network
         notifications = models.Notification.objects.filter(network=network)
-        notification_table = django_tables.NotificationTable(
-            list(notifications))
-        tables.RequestConfig(request, paginate={'per_page': 10}).configure(
-            notification_table)
-
         notification_id = request.GET.get('id', None)
         if notification_id:
             response = {
@@ -844,27 +839,44 @@ class NetworkNotifications(ProtectedView):
                 'number': notification.number,
                 'event': notification.event,
                 'message': notification.message,
-                'type': notification.type
+                'translation': notification.translation,
+                'type': notification.type,
             }
             response["data"] = notification_data
             return http.HttpResponse(json.dumps(response),
                                      content_type="application/json")
-
         # Set the response context.
+        languages = {}
+        for lg in notifications.order_by().values_list('language',
+                                                       flat=True).distinct():
+            languages[lg] = LANGUAGES[lg].capitalize()
+        query = request.GET.get('query', None)
+        language = request.GET.get('lang', None)
+        if query:
+            notifications = (notifications.filter(number__icontains=query) |
+                             notifications.filter(event__icontains=query) |
+                             notifications.filter(type__icontains=query) |
+                             notifications.filter(message__icontains=query))
+        if language:
+            notifications = notifications.filter(language=language)
+        notification_table = django_tables.NotificationTable(
+            list(notifications))
+        tables.RequestConfig(request, paginate={'per_page': 10}).configure(
+            notification_table)
         context = {
             'networks': get_objects_for_user(request.user, 'view_network',
                                              klass=models.Network),
             'user_profile': user_profile,
             'notification': dashboard_forms.NotificationForm(
-                initial={'type': 'automatic',
-                         }),
+                initial={'type': 'automatic',}),
             'notification_table': notification_table,
             'records': len(list(notifications)),
+            'languages': languages,
             'network': network,
+            'search': dform.NotificationSearchForm({'query': query}),
         }
         # Render template.
-        template = get_template(
-            'dashboard/network_detail/notifications.html')
+        template = get_template('dashboard/network_detail/notifications.html')
         html = template.render(context, request)
         return http.HttpResponse(html)
 
@@ -875,7 +887,8 @@ class NetworkNotificationsEdit(ProtectedView):
 
     def post(self, request):
         """Handles POST requests.
-        Create/edit/edit notifications."""
+        CRUD operations for notifications.
+        """
         delete_notification = request.POST.getlist('id') or None
         if delete_notification is None:
             # Create/Edit the notifications
@@ -883,6 +896,15 @@ class NetworkNotificationsEdit(ProtectedView):
             network = user_profile.network
             type = request.POST.get('type')
             event = request.POST.get('event')
+            if event:
+                try:
+                    int(event)
+                    alert_message = 'Event cannot be only numeric'
+                    messages.error(request, alert_message,
+                                   extra_tags="alert alert-danger")
+                    return redirect(urlresolvers.reverse('network-notifications'))
+                except ValueError:
+                    pass
             message = request.POST.get('message')
             translated = request.POST.get('translated')
             if translated is None:
@@ -904,27 +926,24 @@ class NetworkNotificationsEdit(ProtectedView):
                     try:
                         # Check for existing notification and update
                         notification = models.Notification.objects.get(id=pk)
+                        action = 'updated'
                     except models.Notification.DoesNotExist:
                         # Create new notification
                         notification = models.Notification.objects.create(
                             network=network)
+                        action = 'added'
                     notification.type = type
                     notification.message = message
                     notification.translation = translated
-                    print '_______________________________________'
-                    print translated
-                    print '_______________________________________'
                     notification.event = event
                     notification.number = number
                     notification.language = request.POST.get('language')
                     notification.save()
-                    # Write message to template for parsing and translation
-                    alert_message = 'Notification added successfully!'
+                    alert_message = 'Notification successfully %s!' % action
                     messages.success(request, alert_message)
-                    #TODO(sagar): Write this translated message and normal message to .po file or some custom file
             except IntegrityError:
-                alert_message = '{0} notification already exists against this {1}.'.format(
-                    str(type).title(), type_detail)
+                alert_message = '{0} notification already exists against ' \
+                                '{1}.'.format(str(type).title(), type_detail)
                 messages.error(request, alert_message,
                                extra_tags="alert alert-danger")
             return redirect(urlresolvers.reverse('network-notifications'))

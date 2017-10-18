@@ -20,7 +20,7 @@ import django_tables2 as tables
 
 from ccm.common.currency import humanize_credits, CURRENCIES
 from endagaweb import models
-
+from googletrans.constants import LANGUAGES
 
 def render_user_profile(record):
     """Show the linked UserProfile's email."""
@@ -487,7 +487,8 @@ class SubscriberManagementTable(tables.Table):
 
 
 class NotificationTable(tables.Table):
-    """Notification table """
+    """
+    Notification table for managing notification messages """
 
     class Meta:
         model = models.Notification
@@ -502,9 +503,13 @@ class NotificationTable(tables.Table):
     number = tables.Column(verbose_name='Number')
     message = tables.Column(verbose_name='Message', orderable=False)
     translation = tables.Column(verbose_name='Translation', orderable=False)
+    language = tables.Column(verbose_name='Language')
 
     def render_message(self, record):
         message = record.message
         if len(record.message) > 60:
             message = message[:60] + '...(truncated)'
         return message
+
+    def render_language(self, record):
+        return LANGUAGES[record.language].capitalize()

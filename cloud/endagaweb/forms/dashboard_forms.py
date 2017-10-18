@@ -13,7 +13,7 @@ import datetime
 import pytz
 from crispy_forms.bootstrap import StrictButton, FieldWithButtons
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, Field, Button, Hidden
+from crispy_forms.layout import Layout, Submit, Field, Button
 from django import forms
 from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm
 from django.contrib.auth.models import User
@@ -25,7 +25,9 @@ from ccm.common.currency import CURRENCIES
 from endagaweb import models
 from endagaweb.templatetags import apptags
 from django.contrib.auth import password_validation
-from django.utils import html
+import googletrans.constants as LANG
+
+LANGUAGES = (zip(LANG.LANGCODES.itervalues(), LANG.LANGCODES.iterkeys()))
 
 class UpdateContactForm(forms.Form):
     email = forms.EmailField(required=False, label="Email")
@@ -427,7 +429,6 @@ class UserSearchForm(forms.Form):
         super(UserSearchForm, self).__init__(*args, **kwargs)
 
 
-
 class PasswordResetRequestForm(PasswordResetForm):
     email = forms.CharField(label=("Email"), max_length=254)
     class Meta:
@@ -478,21 +479,6 @@ class NetworkBalanceLimit(forms.Form):
         return cleaned_data
 
 
-LANGUAGES = (
-    ('cs', 'Czech'),
-    ('da', 'Danish'),
-    ('nl', 'Dutch'),
-    ('en', 'English'),
-    ('tl', 'Filipino'),
-    ('fi', 'Finnish'),
-    ('fr', 'French'),
-    ('de', 'German'),
-    ('hi', 'Hindi'),
-    ('id', 'Indonesian'),
-    ('ko', 'Korean'),
-    ('pa', 'Punjabi'),
-    ('vi', 'Vietnamese'),
-)
 class NotificationForm(forms.Form):
     types = (
         ('automatic', 'Automatic'),
@@ -500,8 +486,8 @@ class NotificationForm(forms.Form):
     )
     help_text = (
         '<b>Automatic:</b> Sent to user automatically, <br>'
-        '<b>Mapped:</b> Notification will be sent to mapped '
-        'users.')
+        '<b>Mapped:</b> Notification will be sent to mapped users.'
+    )
     type = forms.ChoiceField(
         required=True,
         label='',
@@ -514,8 +500,9 @@ class NotificationForm(forms.Form):
             attrs={
                 'title': 'Notification message',
                 'placeholder': 'Enter Message...',
-                'rows': '2',
+                'rows': '4',
                 'onchange': 'enableLanguage(this)',
+                'style': 'resize:none;',
             }
         ),
         required=True, min_length=20, max_length=160)
@@ -523,15 +510,16 @@ class NotificationForm(forms.Form):
             attrs={
                 'title': 'Translation of message',
                 'disabled': 'disabled',
-                'rows': '2',
+                'rows': '4',
+                'style': 'resize:none;'
             }
         ),
         required=True, min_length=20, max_length=160)
-    language = forms.MultipleChoiceField(label='language',
+    language = forms.MultipleChoiceField(label='Language',
                                          choices=LANGUAGES,
                                          widget=forms.SelectMultiple(
                                              attrs={
-                                                 'rows': '4',
+                                                 'rows': '5',
                                                  'disabled': 'disabled',
                                                  'onchange':
                                                      'getTranslation(this)'
@@ -566,3 +554,21 @@ class NotificationForm(forms.Form):
             Submit('submit', 'Submit', css_class='invisible'),
             Button('translate', 'Translate', css_class='invisible'),
         )
+
+
+class NotificationSearchForm(forms.Form):
+    """Crispy search form for notifications under network"""
+    query = forms.CharField(required=False, label="",
+                            widget=forms.TextInput(
+                                attrs={'placeholder':
+                                           'Message, Event or Number'}))
+
+    def __init__(self, sender, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.form_id = 'id-NotificationSearchForm'
+        self.helper.form_method = 'get'
+        self.helper.form_action = '/dashboard/network/notification'
+        search_button = StrictButton('Filter', css_class='btn-default',
+                                     type='submit')
+        self.helper.layout = Layout(FieldWithButtons('query', search_button))
+        super(NotificationSearchForm, self).__init__(*args, **kwargs)

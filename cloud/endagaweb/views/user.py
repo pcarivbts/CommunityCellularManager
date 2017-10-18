@@ -371,7 +371,6 @@ def role_default_permissions(request):
         else:
             for i in permission:
                 role_permission.append(i)
-
         return JsonResponse({'permissions': list(role_permission)})
     return HttpResponseBadRequest()
 

@@ -45,6 +45,7 @@ from endagaweb.celery import app as celery_app
 from endagaweb.notifications import bts_up
 from endagaweb.util import currency as util_currency
 from endagaweb.util import dbutils as dbutils
+from googletrans.constants import LANGUAGES
 
 stripe.api_key = settings.STRIPE_API_KEY
 
@@ -1928,6 +1929,7 @@ class BTSLogfile(models.Model):
         if self.logfile:
             self.logfile.delete()
 
+
 class FileUpload(models.Model):
     name = models.CharField(max_length=255, primary_key=True)
     data = models.BinaryField(default='')  # a base64 encoded TextField
@@ -1938,7 +1940,9 @@ class FileUpload(models.Model):
 
 
 class SubscriberInvalidEvents(models.Model):
-    """ Invalid Events logs by Subscriber"""
+    """
+    Invalid Events logs by Subscriber
+    """
     subscriber = models.ForeignKey(Subscriber, on_delete=models.CASCADE)
     count = models.PositiveIntegerField()
     event_time = models.DateTimeField(auto_now_add=True)
@@ -1946,10 +1950,13 @@ class SubscriberInvalidEvents(models.Model):
 
 
 class Notification(models.Model):
-    notification_type = (
-            ('automatic', 'Automatic'),
-            ('mapped', 'Mapped')
-        )
+    """
+    Notification messages and their translations
+    """
+    Type = (
+        ('automatic', 'Automatic'),
+        ('mapped', 'Mapped')
+    )
     network = models.ForeignKey('Network', on_delete=models.CASCADE)
     language = models.CharField(max_length=100, choices=settings.LANGUAGES,
                                 default='en')
@@ -1957,11 +1964,10 @@ class Notification(models.Model):
     number = models.CharField(max_length=3, null=True)
     message = models.TextField(max_length=160, null=True)
     translation = models.TextField(max_length=160, null=True)
-    type = models.CharField(max_length=10, choices=notification_type,
-                            default='automatic')
+    type = models.CharField(max_length=10, choices=Type, default='automatic')
 
     class Meta:
-        #Networks can have same notifications
+        # Networks can have same notifications
         unique_together = (
             ('network', 'event'),
             ('network', 'number'),
