@@ -396,7 +396,8 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                 newSeries['total'] = newSeries['total']
                 tableData.push([newSeries['key'], newSeries['total']]);
             }}
-            else if (domTargetId == 'data-chart' || domTargetId == 'topupSubscriber-chart' || domTargetId == 'call-billing-chart' || domTargetId == 'sms-billing-chart' || domTargetId == 'call-sms-billing-chart'){
+            else if (domTargetId == 'data-chart' || domTargetId == 'topupSubscriber-chart' || domTargetId == 'call-billing-chart' || domTargetId == 'sms-billing-chart' || domTargetId == 'call-sms-billing-chart' ||
+                     domTargetId == 'channel-load-stats-chart' || domTargetId == 'system-utilization-stats-chart' || domTargetId == 'network-utilization-stats-chart'){
 
               if (newSeries['total'] != undefined) {
                 newSeries['total'] = newSeries['total'].toFixed(2);
