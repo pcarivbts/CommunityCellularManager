@@ -257,7 +257,7 @@ if 'django.contrib.admin' in settings.INSTALLED_APPS:
 urlpatterns += [
     # The dashboard 'home'.
     url(r'^dashboard', endagaweb.views.dashboard.DashboardView.as_view(),
-        name='dashboard-view'),
+        name='Call_Sms_Data_Usage'),
 
     # Old stats.
     url(r'^stats/numbers', endagaweb.views.stats.numbers),

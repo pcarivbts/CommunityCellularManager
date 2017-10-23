@@ -526,10 +526,15 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                     return d[0]
                 })
                 .y(function(d) {
-                if (d[1] > 0){
-                    return 1
+                if(domTarget =='#health-chart'){
+                    if (d[1] > 0){
+                        return 1
+                    } else {
+                        return 0
+                }
                 } else {
-                    return 0
+
+                     return d[1]
                 }
 
                 })
