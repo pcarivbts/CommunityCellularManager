@@ -180,10 +180,12 @@ class SubscriberTable(tables.Table):
             'not camped': 'label-default',
             'camped': 'label-success',
         }
-        status = 'camped' if record.is_camped else 'not camped'
-        if record.network.get_lowest_tower_version() < "00000.00003.00021":
+        if record.is_camped:
+            status ='camped'
+        elif record.network.get_lowest_tower_version() < "00000.00003.00021":
             status = 'unknown'
-
+        else:
+            status = 'not camped'
         span_class = 'label %s' % label_class_mapping[status]
         element = "<span class='%s'>%s</span>" % (span_class, status)
         return safestring.mark_safe(element)
