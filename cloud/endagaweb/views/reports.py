@@ -404,11 +404,8 @@ class DashboardView(ProtectedView):
         timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
             datetime.datetime.now()).total_seconds()
         level = request.session['level']
-        print ("check level", level)
         if request.session['level_id'] != None:
             level_id = int(request.session['level_id'])
-            if level_id != 1:
-                level = 'tower'
         else:
             level_id = network.id
             level = 'network'
@@ -637,13 +634,14 @@ class ReportGraphDownload(ProtectedView):
             qs = Q(kind='transfer')
             qs1 = Q(subscriber__role='retailer')
             events = events.filter(qs & qs1)
-            return events
-        if stats_type:
-            if report_type == 'Retailer Recharge Report':
-                qs1 = Q(kind__icontains='add_money')
-                qs = Q(subscriber__role='retailer')
-                events = events.filter(qs1 & qs)
-                return events
+        elif report_type == 'Retailer Recharge Report':
+              qs1 = Q(kind__icontains='add_money')
+              qs = Q(subscriber__role='retailer')
+              events = events.filter(qs1 & qs)
+        elif report_type == 'Data usage':
+               qs =Q(kind__icontains='gprs')
+               events = events.filter(qs)
+        else:
             qs = ([Q(kind__icontains=s) for s in stats_type])
             if report_type == 'Subscriber Activity':
                 qs.append((Q(oldamt__gt=0, newamt__lte=0)))

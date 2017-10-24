@@ -191,7 +191,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
         } else {
             newYAxisFormatter = '';
         }
-        if (this.props.chartID == 'data-chart') {
+        if (this.props.chartID == 'minutes-chart') {
             newYAxisFormatter = '.2f';
             tablesColumnValueName = [{
                 title: "Type"
@@ -219,6 +219,13 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
                 title: "Denomination Bracket"
             }, {
                 title: "Count"
+            }]
+        } else if (this.props.chartID == 'data-chart') {
+            newYAxisFormatter = '.2f';
+            tablesColumnValueName = [{
+                title: "Type"
+            }, {
+                title: "MB"
             }]
 
         } else if (this.props.chartID == 'load-transfer-chart') {
@@ -397,7 +404,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                 tableData.push([newSeries['key'], newSeries['total']]);
             }}
             else if (domTargetId == 'data-chart' || domTargetId == 'topupSubscriber-chart' || domTargetId == 'call-billing-chart' || domTargetId == 'sms-billing-chart' || domTargetId == 'call-sms-billing-chart' ||
-                     domTargetId == 'channel-load-stats-chart' || domTargetId == 'system-utilization-stats-chart' || domTargetId == 'network-utilization-stats-chart'){
+                     domTargetId == 'channel-load-stats-chart' || domTargetId == 'system-utilization-stats-chart' || domTargetId == 'network-utilization-stats-chart' || domTargetId == 'minutes-chart'){
 
               if (newSeries['total'] != undefined) {
                 newSeries['total'] = newSeries['total'].toFixed(2);
