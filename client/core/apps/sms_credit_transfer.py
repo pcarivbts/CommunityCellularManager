@@ -22,11 +22,14 @@ from core.sms import sms
 from core.subscriber import subscriber
 from core.exceptions import SubscriberNotFound
 from core.denomination_store import DenominationStore
+from core.subscriber.base import BaseBTSNotification
 
 config_db = config_database.ConfigDB()
 gt = gettext.translation("endaga", config_db['localedir'],
                          [config_db['locale'], "en_US"]).gettext
 ERROR_TRX = " error_transfer"
+notification = BaseBTSNotification()
+
 
 def _init_pending_transfer_db():
     """Create the pending transfers table if it doesn't already exist."""
@@ -199,11 +202,13 @@ def process_confirm(from_imsi, code):
         from_balance_str = freeswitch_strings.humanize_credits(
                 from_imsi_new_credit)
         # Let the recipient know they got credit.
-        message = gt("You've received %(amount)s credits from %(from_num)s!"
+        message = ("You've received %(amount)s credits from %(from_num)s!"
                      " Your new balance is %(new_balance)s.Your top-up "
                      "validity is %(validity)s days.") % {
                      'amount': amount_str, 'from_num': from_num,
                      'new_balance': to_balance_str, 'validity': top_up_validity}
+
+        message = gt(message)
         sms.send(str(to_num), str(config_db['app_number']), str(message))
         # Remove this particular the transfer as it's no longer pending.
         db.execute("DELETE FROM pending_transfers WHERE code=?"

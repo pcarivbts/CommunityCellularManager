@@ -28,6 +28,7 @@ from endagaweb.models import UsageEvent
 from endagaweb.util.parse_destination import parse_destination
 from endagaweb.models import NetworkDenomination, Notification
 import dateutil.parser as dateparser
+from util.api import multiple_translation
 
 class CheckinResponder(object):
 
@@ -59,6 +60,7 @@ class CheckinResponder(object):
             'radio': self.radio_handler,  # needs location_handler -kurtis
             'subscriber_status': self.subscriber_status_handler,
             'bts_locale': self.bts_locale,
+            'notifications': self.notification_handler,
             # TODO: (kheimerl) T13270418 Add location update information
         }
 
@@ -293,6 +295,33 @@ class CheckinResponder(object):
                 logging.warn('[subscriber_status_handler] subscriber %s does not'
                              ' exist.' % imsi)
 
+    def notification_handler(self, notifications):
+        """
+        Update the subscribers' state and validity info based on
+         what the client submits.
+        """
+        event=type=message=None
+        for notif in notifications:
+            # message with '*', translate it.
+            if str(notif.message)[-1] == '*':
+                event = notif.event
+                message = notif.message[:-1]
+                try:
+                    type = 'mapped'
+                    int(event)
+                except ValueError:
+                    type = 'automatic'
+            # TODO(sagar): set the actual language list to be translated in
+            lang_list = ['en', 'tl', 'es', 'id']
+            trans_dict = multiple_translation(message, lang_list)
+            for ln, trns in trans_dict.iteritems():
+                notification = Notification.objects.create(event=event,
+                                                           type=type,
+                                                           message=message,
+                                                           translation=trns,
+                                                           language=ln)
+                notification.save()
+
     def bts_locale(self, bts_locale):
         self.bts.locale = bts_locale
 
@@ -338,13 +367,8 @@ class CheckinResponder(object):
                                                     language=self.bts.locale)
         if notifications:
             for notification in notifications:
-                if notification.type == 'automatic':
-                    event = notification.event
-                else:
-                    event = notification.number
-                res.update({event: notification.translation})
+                res.update({notification.event: notification.translation})
         return res
-
 
     def gen_config(self):
         """Create a checkinresponse with Network and BTS config settings.

@@ -766,3 +766,12 @@ class BaseBTSNotification(KVStore):
                 logger.error(
                     "Notification sync fail! Event: %s, %s Error: %s" %
                     (event, message, e))
+
+    def get_or_create(self, key, message=None):
+        if message is not None:
+            # flag the message for translation,
+            # cloud to translate and revert back notification for next time
+            if self.get(key) is None:
+                message = str(message) + '*'
+                self.create_notification(event=key, message=message)
+        return self.get_notification(key)

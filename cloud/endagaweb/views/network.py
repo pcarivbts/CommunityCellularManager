@@ -827,6 +827,7 @@ class NetworkNotifications(ProtectedView):
         network = user_profile.network
         notifications = models.Notification.objects.filter(network=network)
         notification_id = request.GET.get('id', None)
+        languages = {}
         if notification_id:
             response = {
                 'status': 'ok',
@@ -834,27 +835,34 @@ class NetworkNotifications(ProtectedView):
                 'data': {}
             }
             notification = models.Notification.objects.get(id=notification_id)
+            number=event=None
+            try:
+                number = int(notification.event)
+            except ValueError:
+                event = notification.event
+            notifications = models.Notification.objects.filter(event=notification.event)
+            translations = {}
+            for notif in notifications:
+                translations[notif.language] = notif.translation
             notification_data = {
                 'id': notification.id,
-                'number': notification.number,
-                'event': notification.event,
+                'event': event,
+                'number': number,
                 'message': notification.message,
-                'translation': notification.translation,
+                'translations': translations,
                 'type': notification.type,
             }
             response["data"] = notification_data
             return http.HttpResponse(json.dumps(response),
                                      content_type="application/json")
         # Set the response context.
-        languages = {}
-        for lg in notifications.order_by().values_list('language',
-                                                       flat=True).distinct():
-            languages[lg] = LANGUAGES[lg].capitalize()
+        langs = notifications.values_list('language', flat=True).distinct()
+        for lg in langs:
+            languages[lg] = str(LANGUAGES[lg]).capitalize()
         query = request.GET.get('query', None)
         language = request.GET.get('lang', None)
         if query:
-            notifications = (notifications.filter(number__icontains=query) |
-                             notifications.filter(event__icontains=query) |
+            notifications = (notifications.filter(event__icontains=query) |
                              notifications.filter(type__icontains=query) |
                              notifications.filter(message__icontains=query))
         if language:
@@ -868,7 +876,8 @@ class NetworkNotifications(ProtectedView):
                                              klass=models.Network),
             'user_profile': user_profile,
             'notification': dashboard_forms.NotificationForm(
-                initial={'type': 'automatic',}),
+                language=languages,
+                initial={'type': 'automatic'},),
             'notification_table': notification_table,
             'records': len(list(notifications)),
             'languages': languages,
@@ -896,63 +905,65 @@ class NetworkNotificationsEdit(ProtectedView):
             network = user_profile.network
             type = request.POST.get('type')
             event = request.POST.get('event')
+            message = request.POST.get('message')
+            number = request.POST.get('number')
+            pk = request.POST.get('pk')
             if event:
                 try:
                     int(event)
-                    alert_message = 'Event cannot be only numeric'
+                    alert_message = 'Mapped events cannot be numeric only!'
                     messages.error(request, alert_message,
                                    extra_tags="alert alert-danger")
-                    return redirect(urlresolvers.reverse('network-notifications'))
+                    return redirect(urlresolvers.reverse(
+                        'network-notifications'))
                 except ValueError:
-                    pass
-            message = request.POST.get('message')
-            translated = request.POST.get('translated')
-            if translated is None:
-                translated = api.translate(message)
-            number = request.POST.get('number')
-            pk = request.POST.get('pk') or 0
-            if type == 'automatic':
-                type_detail, number = 'event: ' + event, None
-            else:
-                type_detail, event = 'number: ' + number, None
-
+                    # to use event as key on client
+                    event = str(event).lower().strip().replace(' ', '_')
+            if number:
                 # Format number to 3 digits
+                event = str(number)
                 if int(number) < 10:
-                    number = '00' + str(number)
+                    event = '00' + event
                 elif int(number) < 100:
-                    number = '0' + str(number)
-            try:
-                with transaction.atomic():
-                    try:
-                        # Check for existing notification and update
-                        notification = models.Notification.objects.get(id=pk)
-                        action = 'updated'
-                    except models.Notification.DoesNotExist:
-                        # Create new notification
-                        notification = models.Notification.objects.create(
-                            network=network)
-                        action = 'added'
+                    event = '0' + event
+            if int(pk) != 0:
+                # Check for existing notification and update
+                notification = models.Notification.objects.get(id=pk)
+                all_notifications = models.Notification.objects.filter(
+                    event=notification.event)
+                for msg in all_notifications:
+                    msg.type = type
+                    msg.message = message
+                    # fails in scenarios like 'id', adding lang_ for uniqueness
+                    msg.translation = request.POST.get('lang_' + msg.language)
+                    msg.event = event
+                    msg.save()
+                resp = 'Updated Successfully!'
+            else:
+                # Create new notifications
+                languages = settings.BTS_LANGUAGES
+                for language in languages:
+                    translation = request.POST.get('lang_' + language)
+                    notification = models.Notification.objects.create(
+                        network=network)
                     notification.type = type
                     notification.message = message
-                    notification.translation = translated
+                    notification.translation = translation
                     notification.event = event
-                    notification.number = number
-                    notification.language = request.POST.get('language')
+                    notification.language = language
                     notification.save()
-                    alert_message = 'Notification successfully %s!' % action
-                    messages.success(request, alert_message)
-            except IntegrityError:
-                alert_message = '{0} notification already exists against ' \
-                                '{1}.'.format(str(type).title(), type_detail)
-                messages.error(request, alert_message,
-                               extra_tags="alert alert-danger")
+                resp = 'Added Successfully!'
+            messages.success(request, resp)
             return redirect(urlresolvers.reverse('network-notifications'))
         else:
             # Delete the notifications
-            records = models.Notification.objects.filter(
+            # TODO(sagar): add functionality to delete w.r.t events
+            notifications = models.Notification.objects.filter(
                 id__in=delete_notification)
-            for notification in records:
+            events = notifications.values_list('event', flat=True).distinct()
+            to_delete = models.Notification.objects.filter(event__in=events)
+            for notification in to_delete:
                 notification.delete()
-            alert_message = 'Selected notification(s) deleted successfully.'
-        messages.success(request, alert_message)
+            resp = 'Selected notification(s) deleted successfully.'
+        messages.success(request, resp)
         return redirect(urlresolvers.reverse('network-notifications'))

@@ -101,12 +101,18 @@ def render_balance(record):
     return humanize_credits(record.balance,
                             CURRENCIES[record.network.subscriber_currency])
 
+
 def render_imsi(record):
     element = "<input type = 'checkbox' class ='imsi_id' name='imsi[]' " \
           "value='{0}'  id ='imsi_id_{0}' " \
           "onchange = 'imsiSelected(this)' / > ".format(record.imsi)
-
     return safestring.mark_safe(element)
+
+
+def render_text(text):
+    if len(text) > 80:
+        text = text[:60] + '...(truncated)'
+    return text
 
 
 # Changing Checkbox to Column Name
@@ -453,13 +459,6 @@ class UserTable(tables.Table):
         return safestring.mark_safe(element)
 
 
-def render_imsi(record):
-    element = "<input type = 'checkbox' class ='imsi_id' name='imsi[]' " \
-              "value='{0}'  id ='imsi_id_{0}' " \
-              "onchange = 'imsiSelected(this)' / > ".format(record.imsi)
-    return safestring.mark_safe(element)
-
-
 class SubscriberManagementTable(tables.Table):
     """A django-tables2 Table definition for managing the subscriber role."""
 
@@ -488,28 +487,28 @@ class SubscriberManagementTable(tables.Table):
 
 class NotificationTable(tables.Table):
     """
-    Notification table for managing notification messages """
-
+    Notification table for managing notification messages
+    """
     class Meta:
         model = models.Notification
-        fields = ('id', 'type', 'event', 'number', 'message', 'translation')
+        fields = ('id', 'type', 'language', 'message', 'event', 'translation')
         attrs = {'class': 'table'}
-
     id = tables.CheckBoxColumn(accessor="pk",
-                               attrs={
-                                   "th__input": {"onclick": "toggle(this)"}})
-    type = tables.Column(verbose_name='Type')
-    event = tables.Column(verbose_name='Event')
-    number = tables.Column(verbose_name='Number')
-    message = tables.Column(verbose_name='Message', orderable=False)
-    translation = tables.Column(verbose_name='Translation', orderable=False)
-    language = tables.Column(verbose_name='Language')
+                               attrs={"th__input":
+                                          {"onclick": "toggle(this)"}
+                                      }
+                               )
+    type = tables.Column()
+    language = tables.Column()
+    event = tables.Column(orderable=False)
+    message = tables.Column(orderable=False)
+    translation = tables.Column(verbose_name='Translated Message', orderable=False)
 
     def render_message(self, record):
-        message = record.message
-        if len(record.message) > 60:
-            message = message[:60] + '...(truncated)'
-        return message
+        return render_text(record.message)
+
+    def render_translation(self, record):
+        return render_text(record.translation)
 
     def render_language(self, record):
         return LANGUAGES[record.language].capitalize()

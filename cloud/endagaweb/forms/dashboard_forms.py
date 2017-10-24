@@ -13,21 +13,22 @@ import datetime
 import pytz
 from crispy_forms.bootstrap import StrictButton, FieldWithButtons
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, Field, Button
+from crispy_forms.layout import Layout, Submit, Field
 from django import forms
 from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm
 from django.contrib.auth.models import User
 from django.core import urlresolvers
 from django.db.models import Value
 from django.db.models.functions import Coalesce
+from django.utils import safestring
 
 from ccm.common.currency import CURRENCIES
 from endagaweb import models
 from endagaweb.templatetags import apptags
 from django.contrib.auth import password_validation
-import googletrans.constants as LANG
+from googletrans.constants import LANGUAGES
+from django.conf import settings
 
-LANGUAGES = (zip(LANG.LANGCODES.itervalues(), LANG.LANGCODES.iterkeys()))
 
 class UpdateContactForm(forms.Form):
     email = forms.EmailField(required=False, label="Email")
@@ -474,12 +475,16 @@ class NetworkBalanceLimit(forms.Form):
         if max_balance !="":
             if( float(max_balance) <= 0):
                 raise forms.ValidationError(
-                    'Error : enter positive and non-zero value ' \
-                    'for maximum balance Limit.')
+                    'Error : enter positive and non-zero value for maximum '
+                    'balance Limit.')
         return cleaned_data
 
+from django.utils.safestring import mark_safe
 
 class NotificationForm(forms.Form):
+    language_choices = []
+    for key in settings.BTS_LANGUAGES:
+        language_choices.append((key, LANGUAGES[key].capitalize()))
     types = (
         ('automatic', 'Automatic'),
         ('mapped', 'Mapped')
@@ -488,72 +493,78 @@ class NotificationForm(forms.Form):
         '<b>Automatic:</b> Sent to user automatically, <br>'
         '<b>Mapped:</b> Notification will be sent to mapped users.'
     )
-    type = forms.ChoiceField(
-        required=True,
-        label='',
-        help_text=help_text, choices=types,
-        widget=forms.RadioSelect(attrs={'title': 'Notification type'}),)
+    type = forms.ChoiceField(required=True, label='', help_text=help_text,
+                             choices=types,
+                             widget=forms.RadioSelect(
+                                 attrs={'title': 'Notification type'}),)
     event = forms.CharField(widget=forms.TextInput(
-        attrs={'title': 'Event Type', 'style': 'width:300px'}),
+        attrs={'title': 'alphabets or alphanumeric only',
+               'style': 'width:300px'}),
         required=True, label='Events')
-    message = forms.CharField(label='Message', widget=forms.Textarea(
-            attrs={
-                'title': 'Notification message',
-                'placeholder': 'Enter Message...',
-                'rows': '4',
-                'onchange': 'enableLanguage(this)',
-                'style': 'resize:none;',
-            }
-        ),
-        required=True, min_length=20, max_length=160)
-    translated = forms.CharField(label='Translation', widget=forms.Textarea(
-            attrs={
-                'title': 'Translation of message',
-                'disabled': 'disabled',
-                'rows': '4',
-                'style': 'resize:none;'
-            }
-        ),
-        required=True, min_length=20, max_length=160)
-    language = forms.MultipleChoiceField(label='Language',
-                                         choices=LANGUAGES,
-                                         widget=forms.SelectMultiple(
-                                             attrs={
-                                                 'rows': '5',
-                                                 'disabled': 'disabled',
-                                                 'onchange':
-                                                     'getTranslation(this)'
-                                             }
-                                         ))
-    number = forms.IntegerField(widget=forms.NumberInput(
-        attrs={'class': 'form-control', 'pattern': '[0-9]{3}',
-               'title': 'Notification number', 'style': 'width:200px',
-               'oninvalid': "setCustomValidity('Enter number (max: 3 digits)')",
-               'onchange': "try{"
-                           "setCustomValidity('')"
-                           "}catch(e){}"
+    message = forms.CharField(required=True, min_length=20, max_length=160,
+                              label='Message', widget=forms.Textarea(
+            attrs={'title': 'max 160 characters only',
+                   'placeholder': 'Enter Message...',
+                   'rows': '2',
+                   'onchange': 'getTranslation(this)',
+                   'style': 'resize:none;',
+                   }
+        ))
+    info = "Details on how to add message..."
+    number = forms.IntegerField(required=True, disabled=True, min_value=1,
+                                max_value=999, widget=forms.NumberInput(
+            attrs={'class': 'form-control', 'pattern': '[0-9]{3}',
+                   'title': 'numerical input only', 'style': 'width:100px',
+                   'oninvalid': "setCustomValidity('Enter number "
+                                "(max: 3 digits)')",
+                   'onchange': "try{setCustomValidity('')}catch(e){}"
                }),
-        required=True, disabled=True, min_value=1, max_value=999)
+        )
     pk = forms.CharField(widget=forms.HiddenInput())
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, language=None, *args, **kwargs):
         super(NotificationForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_id = 'network-notification-form'
         self.helper.form_method = 'POST'
         self.helper.form_action = '/dashboard/network/notification'
+        fields = []
+        fields.extend(['type', 'number', 'event', 'message', 'pk'])
+        if language:
+            languages = dict(language).keys()
+        else:
+            languages = settings.BTS_LANGUAGES
+        missing = ''
+        if len(languages) != len(settings.BTS_LANGUAGES):
+            missing = list(set(settings.BTS_LANGUAGES) - set(languages))
+        self.helper.add_input(
+            Submit('submit', 'Submit', css_class='invisible pull-right'))
+        # TODO(sagar): pass the value and get languages available in DB
+        for key in settings.BTS_LANGUAGES:
+            placeholder = 'Translation in %s ' % LANGUAGES[
+                key].capitalize()
+            readonly = False
+            label = LANGUAGES[key].capitalize()
+            if key in missing:
+                placeholder = 'Translation not added for %s' % LANGUAGES[
+                    key].capitalize()
+                readonly = True
 
-        self.helper.layout = Layout(
-            'type',
-            'number',
-            'event',
-            'message',
-            'language',
-            'translated',
-            'pk',
-            Submit('submit', 'Submit', css_class='invisible'),
-            Button('translate', 'Translate', css_class='invisible'),
-        )
+            self.fields['lang_%s' % key] = forms.CharField(
+                required=True, min_length=20, max_length=160,
+                label=label, widget=forms.Textarea(
+                    attrs={'id': 'lang_%s' % key,
+                           'title': 'Translation in %s' % LANGUAGES[
+                               key].capitalize(),
+                           'placeholder': placeholder,
+                           'readonly': readonly,
+                           'rows': '1',
+                           'style': 'resize:none;',
+                           }
+                ))
+            # Comment the below line to use each language edit from notifications.html
+            fields.append('lang_%s' % key)
+        self.helper.layout = Layout(*fields)
 
 
 class NotificationSearchForm(forms.Form):
@@ -561,7 +572,7 @@ class NotificationSearchForm(forms.Form):
     query = forms.CharField(required=False, label="",
                             widget=forms.TextInput(
                                 attrs={'placeholder':
-                                           'Message, Event or Number'}))
+                                           'Message or Event'}))
 
     def __init__(self, sender, *args, **kwargs):
         self.helper = FormHelper()

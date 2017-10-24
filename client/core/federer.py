@@ -27,7 +27,6 @@ urls = (
     "/config/(.*)", "core.federer_handlers.config.config",
     "/cdr", "core.federer_handlers.cdr.cdr",
     "/smscdr", "core.federer_handlers.sms_cdr.smscdr",
-    "/translate", "core.federer_handlers.translation.translate"
 )
 
 def handle_with_logging(self):

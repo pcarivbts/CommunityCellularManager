@@ -1950,26 +1950,20 @@ class SubscriberInvalidEvents(models.Model):
 
 
 class Notification(models.Model):
-    """
-    Notification messages and their translations
-    """
-    Type = (
+    # """
+    # Notification messages and their translations
+    # """
+    TYPE = (
         ('automatic', 'Automatic'),
         ('mapped', 'Mapped')
     )
+
     network = models.ForeignKey('Network', on_delete=models.CASCADE)
-    language = models.CharField(max_length=100, choices=settings.LANGUAGES,
-                                default='en')
     event = models.CharField(max_length=100, null=True)
-    number = models.CharField(max_length=3, null=True)
     message = models.TextField(max_length=160, null=True)
+    type = models.CharField(max_length=10, choices=TYPE, default='automatic')
+    language = models.CharField(max_length=6, default='en')
     translation = models.TextField(max_length=160, null=True)
-    type = models.CharField(max_length=10, choices=Type, default='automatic')
 
     class Meta:
-        # Networks can have same notifications
-        unique_together = (
-            ('network', 'event'),
-            ('network', 'number'),
-            ('language', 'message'),
-        )
+        unique_together = ('event', 'translation', 'network')

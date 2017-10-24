@@ -205,7 +205,7 @@ urlpatterns = [
     url(r'^dashboard/network/notification$',
         endagaweb.views.network.NetworkNotifications.as_view(),
         name='network-notifications'),
-    url(r'^dashboard/network/notification/manage$',
+    url(r'^dashboard/network/notification/update',
         endagaweb.views.network.NetworkNotificationsEdit.as_view(),
         name='network-notifications-manage'),
     # The activity table.

@@ -47,10 +47,10 @@ of patent rights can be found in the PATENTS file in the same directory.
     }
     .loader {
       border: 16px solid lightgreen;
-      border-radius: 50%;
+      border-radius: 70%;
       border-top: 16px solid white;
-      width: 60px;
-      height: 60px;
+      width: 30px;
+      height: 30px;
       -webkit-animation: spin 2s linear infinite;
       animation: spin 2s linear infinite;
       position: fixed;
@@ -71,9 +71,9 @@ of patent rights can be found in the PATENTS file in the same directory.
     }
     .loader-text {
         position: fixed;
-        top: 96%;
+        top: 94%;
         font-size: 1.5em ;
-        left: 49%;
+        left: 48%;
       }
 
 </style>
@@ -92,7 +92,6 @@ of patent rights can be found in the PATENTS file in the same directory.
             {{ message }}
         </div>
         {% endfor %}
-        <!--<div class="block-container col-xs-12 col-sm-12">-->
         <div class="block-container pull-right">
             <select name="lang" id="lang" class="form-control col-sm-2" style="width: 10%" onchange="filterNotifications(this)" required>
                 <option label="Language"></option>
@@ -106,7 +105,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 {% crispy search %}
             </div>
         </div>
-        <form action="/dashboard/network/notification/manage" method="POST"
+        <form action="/dashboard/network/notification/update" method="POST"
               name="notification_form" id="notification_form">
             <div class="table-container col-sm-12">
                 {% csrf_token %}
@@ -138,6 +137,10 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 </div>
 
+<div id="loading" hidden="hidden">
+    <div class="loader"></div>
+    <h5 class="loader-text">Translating...</h5>
+</div>
 <div class='modal fade' id='delete-event-modal'>
     <div class='modal-dialog'>
         <div class='modal-content'>
@@ -152,8 +155,9 @@ of patent rights can be found in the PATENTS file in the same directory.
             </div>
             <div class='modal-body'>
                 <h4>
-                    Are you sure you want to delete?
+                    Are you sure you want to delete?<br><br>
                 </h4>
+                <p><b>Note:</b> This action will delete event and all its translations!</p>
             </div>
             <div class='modal-footer'>
                 <button type='button' class='btn btn-default'
@@ -166,77 +170,119 @@ of patent rights can be found in the PATENTS file in the same directory.
         </div>
     </div>
 </div><!-- /.delete-user-modal -->
+
 <div class='modal fade' id='save-event-modal'>
     <div class='modal-dialog'>
         <!--MODAL BASE-->
-        <div class='modal-content' style="width: 200%; margin-left:-50%">
+        <div class='modal-content' style="width: 150%;  margin-left:-30%">
             <div class='modal-header'>
                 <button type="button" class="close" data-dismiss="modal"
-                        aria-label="Close">
+                        aria-label="Close" onchange='resetForm()'>
                     <span aria-hidden="true">&times;</span>
                 </button>
                 <h4 class='modal-title'>
-                    Notification
+                    <i class='fa fa-bell'></i>
+                    <span class="title">Notification</span>
                 </h4>
             </div>
-            <div class='modal-body' style="height: 700px;">
-                <form action="/dashboard/network/notification/manage"
+
+            <div class='modal-body' style="height: 380px;">
+                <form action="/dashboard/network/notification/update"
                       id="add-notification-modal" name="notification"
                       method="POST"
-                      data-toggle="validator" class="form-horizontal">
+                      data-toggle="validator">
                     {% csrf_token %}
                     <div class="col-md-12">
                         {% crispy notification %}
                     </div>
-                    <input type="submit" id="add-notification-submit"
-                           class="btn btn-primary pull-right" value="Add Notification"
-                           onclick="document.getElementById('submit-id-submit').click()"/>
-                    <input type="submit" id="notification-translate"
-                           class="btn btn-primary pull-right" value="Translate"
-                           onclick="getTranslation()"/>
-                    <button type='button' class='btn btn-default pull-right' data-dismiss='modal'>Cancel</button>
                 </form>
             </div>
             <div class='modal-footer'>
+                <input type="submit" id="add-notification-submit"
+                           class="btn btn-primary pull-right" value="Add Notification"
+                           onclick="document.getElementById('submit-id-submit').click()" disabled="disabled">
+                    <input type="submit" id="notification-translate"
+                           class="btn btn-primary pull-right" value="Translate"
+                           onclick="getTranslation()" disabled="disabled">
+                    <!--<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#translatedModal1" id="id_translations" disabled="disabled">-->
+                        <!--See Translations-->
+                    <!--</button>-->
+                    <button type='button' class='btn btn-default pull-right'
+                            onclick='resetForm()'>
+                        Reset
+                    </button>
+                <div id="status" hidden="hidden">
+                    <h5>Connection seems slow... (To retry click: Translate )</h5>
+                </div>
 
-                <!--<div id='user-messages-container'></div>-->
             </div>
         </div>
     </div>
-    <div id="loading" hidden="hidden">
-        <div class="loader"></div>
-        <h5 class="loader-text">Processing...</h5>
-    </div>
 </div>
+<!--translated message modal for each language, to use this comment line 543 in dashboard_forms-->
+<!--{% for key, language in languages.items %}-->
+<!--<div class="modal fade" id="translatedModal{{ forloop.counter }}" tabindex="-1" role="dialog" aria-labelledby="translatedModalLabel" aria-hidden="true">-->
+    <!--<div class="modal-dialog">-->
+        <!--<div class="modal-content">-->
+            <!--<div class="modal-header">-->
+                <!--<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>-->
+                <!--<h4 class="modal-title" id="translatedModalLabel">{{ language }}</h4>-->
+            <!--</div>-->
+            <!--<div class="modal-body">-->
+                <!--<div class="form-group">-->
+                    <!--<textarea form="add-notification-modal" class="textarea form-control" cols="40" id="lang_{{ key }}"-->
+                              <!--maxlength="160" minlength="20" name="lang_{{ key }}"-->
+                              <!--placeholder="Enter Message..." rows="2"-->
+                              <!--style="resize:none;">-->
+                    <!--</textarea>-->
+                <!--</div>-->
+            <!--</div>-->
+            <!--<div class="modal-footer">-->
+                <!--<button type="button" class="btn btn-default btn-prev">Prev</button>-->
+                <!--<button type="button" class="btn btn-default btn-next">Next</button>-->
+                <!--<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>-->
+            <!--</div>-->
+        <!--</div>-->
+    <!--</div>-->
+<!--</div>-->
+<!--{% endfor %}-->
 {% include "dashboard/subscriber_detail/broadcast.html" with target='network' %}
 {% endblock %}
 {% block js %}
 <script type="text/javascript">
-    function enableLanguage() {
-    $('#id_language').removeAttr('disabled');
-    }
     function getTranslation() {
-        $("#loading").show();
+        if ($('#id_message').val().length > 0) {
+            $("#loading").show();
+            $('#notification-translate').removeAttr('disabled');
         $.ajax({
-            url: '/dashboard/network/notification/translate?message=' + $('#id_message').val() + '&to_language='+$('#id_language').val(),
+            url: '/dashboard/network/notification/translate?message=' + $('#id_message').val(),
             type: 'GET',
-            timeout: 5000,
+            timeout: 10000,
             success: function (response) {
-                //$('#id_translated').show();
-                $('#id_translated').removeAttr('disabled');
-                $("#id_translated").val(response.translation);
-                $("#lang").val(response.language);
+                $('#id_translations').removeAttr('disabled');
+                $('#add-notification-submit').removeAttr('disabled');
+                console.log(response.translation);
+                for (var key in response.translation) {
+                    $("#lang_"+key+"").val(response.translation[key]);
+                }
                 $("#loading").hide();
+                $("#status").hide();
             },
             error: function(xhr, status, message) {
             if(status == "timeout") {
-                //alert("Request time out");
                 $("#loading").hide();
-                $('#id_translated').attr('placeholder', 'Cannot translate, Retry or Please enter manually');
-                $('#id_translated').removeAttr('disabled');
+                $("#status").show();
                 }
             }
         });
+        } else {
+            $('#notification-translate').attr({'disabled':'disabled'});
+            $('#id_translations').attr({'disabled':'disabled'});
+            $('#add-notification-submit').attr({'disabled':'disabled'});
+            $("#loading").hide();
+            $("#status").hide();
+        }
+
     }
 
   $(function() {
@@ -291,11 +337,11 @@ of patent rights can be found in the PATENTS file in the same directory.
             $('#id_number').val(response.data.number);
             $('#id_event').val(response.data.event);
             $('#id_message').val(response.data.message);
-            $('#id_translated').val(response.data.translation);
-            $('#id_translated').removeAttr('disabled');
-            $('#id_language').val(response.data.language);
-            $('#id_language').removeAttr('disabled');
             $('#id_pk').val(response.data.id);
+            for (var key in response.data.translations) {
+                    $("#lang_"+key+"").val(response.data.translations[key]);
+                }
+            $('.title').html('Edit Notification');
         },
         error: function (response) {
             // Show an error message after a small delay.
@@ -312,10 +358,11 @@ of patent rights can be found in the PATENTS file in the same directory.
     $('#id_type_1').prop('checked', true).change();
     $('#id_number').val('');
     $('#id_message').val('');
-    $('#id_translated').val('');
+    // clear all translations
+    $('[id^="lang_"]').val('');
     $('#id_event').val('');
     $('#id_pk').val(0);
-    $('#id_language').attr({'disabled':'disabled'});
+    $("#status").hide();
   }
   function filterNotifications(lang) {
               $.ajax({
@@ -325,5 +372,24 @@ of patent rights can be found in the PATENTS file in the same directory.
                 window.location.href = '/dashboard/network/notification?lang=' + lang.value;
          });
   }
+  function destroyContent() {
+    window.location.href = '/dashboard/network/notification';
+  }
+
+  $("div[id^='translatedModal']").each(function(){
+  var currentModal = $(this);
+  //click next
+  currentModal.find('.btn-next').click(function(){
+    currentModal.modal('hide');
+    currentModal.closest("div[id^='translatedModal']").nextAll("div[id^='translatedModal']").first().modal('show');
+  });
+
+  //click prev
+  currentModal.find('.btn-prev').click(function(){
+    currentModal.modal('hide');
+    currentModal.closest("div[id^='translatedModal']").prevAll("div[id^='translatedModal']").first().modal('show');
+  });
+
+});
 </script>
 {% endblock %}
