@@ -23,7 +23,8 @@ import dateutil.parser as dateparser
 from ccm.common import crdt, logger
 from core.db.kvstore import KVStore
 from core.exceptions import SubscriberNotFound, EventNotFound
-
+from core.freeswitch_strings import BASE_MESSAGES
+from itertools import count
 
 class BaseSubscriber(KVStore):
     def __init__(self, connector=None):
@@ -257,7 +258,6 @@ class BaseSubscriber(KVStore):
         return delta
 
     def subtract_credit(self, imsi, amount):
-        # type: (object, object) -> object
         """
         Deducts a subscriber's balance by a scalar delta
 
@@ -496,7 +496,7 @@ class BaseSubscriber(KVStore):
     def notif_status(self, update=None):
         status = BaseBTSNotification()
         if update is not None:
-            status.process_update_notifcaiton(update)
+            status.process_notifcaiton(update)
             return
         return status
 
@@ -686,14 +686,21 @@ class BaseSubscriberStatus(KVStore):
 
 
 class BaseBTSNotification(KVStore):
+    _ids = count(0)
+
     def __init__(self, connector=None):
+        self.id = next(self._ids)
         super(BaseBTSNotification, self).__init__('notification', connector,
                                                   key_name='event',
                                                   val_name='message')
+        # add only once.
+        if 2 > self.id:
+            for message in BASE_MESSAGES:
+                self.get_or_create(message, BASE_MESSAGES[message])
 
     def get_notification(self, event=None):
         if event:  # non-empty list, return requested notifications
-            events = self.get_multiple(event)
+            return self.get(event)
         elif event is None:  # empty list, return all
             events = list(self.items())
         else:
@@ -719,6 +726,7 @@ class BaseBTSNotification(KVStore):
         def _add_if_absent(cur):
             if self._get_option(cur, event):
                 raise ValueError(event)
+
             self._insert(cur, event, message)
 
         self._connector.with_cursor(_add_if_absent)
@@ -729,17 +737,18 @@ class BaseBTSNotification(KVStore):
 
         self._connector.with_cursor(_update)
 
-    def process_update_notifcaiton(self, notifications):
+    def process_notifcaiton(self, notifications):
         """
         notifications: {event: some_event , message: some_translated_message}
         Update notification messages w.r.t current bts language
         :param event: Number(int type) or Event(string type)
         """
-        bts_notifications = self.get_events()
+        bts_events = self.get_events()
         cloud_events = set(notifications.keys())
-        events_to_add = cloud_events.difference(bts_notifications)
-        events_to_delete = bts_notifications.difference(cloud_events)
-        events_to_update = bts_notifications.intersection(cloud_events)
+
+        events_to_add = cloud_events.difference(bts_events)
+        events_to_delete = bts_events.difference(cloud_events)
+        events_to_update = bts_events.intersection(cloud_events)
 
         for event in events_to_delete:
             self.delete_notification(event)
@@ -774,4 +783,5 @@ class BaseBTSNotification(KVStore):
             if self.get(key) is None:
                 message = str(message) + '*'
                 self.create_notification(event=key, message=message)
-        return self.get_notification(key)
+                return
+        return self.get(key)

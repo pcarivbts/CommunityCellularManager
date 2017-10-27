@@ -11,6 +11,10 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 from endagaweb import models
 from googletrans import Translator, constants
+import re
+from requests.exceptions import ConnectionError
+import settings
+
 
 def get_network_from_user(user):
     """The API can be called from the dashboard using a Django
@@ -25,22 +29,24 @@ def get_network_from_user(user):
         return up.network
 
 
-def translate(message, to_lang='tl', from_lang='auto'):
+def translate(message, to_lang='en', from_lang='auto'):
     """
-    translates messages to desired language default is Phillipines(tl)
+    translates messages to desired language default is English(en)
     :param message: message that needs to be translated
     :param to_lang: language message to be translated to.
     :param from_lang: current language of the message.
     :return:
     """
-    #Todo(sagar): handle the exceptions
     translator = Translator()
-    return translator.translate(message, dest=to_lang, src=from_lang).text
+    try:
+        return translator.translate(message, dest=to_lang, src=from_lang).text
+    except ConnectionError:
+        print 'Connection Not found'
+        raise
 
 
-def multiple_translation(message, *to_lang):
+def multiple_translations(message, *to_lang):
     """
-
     :param message: message to be translated
     :param to_lang: list of languages to be converted in
     :return resp: a dictionary with lang as key translation as value
@@ -51,3 +57,31 @@ def multiple_translation(message, *to_lang):
         if lang in constants.LANGUAGES.keys():
             resp[lang] = translate(message, lang)
     return resp
+
+
+def format_and_translate(message, language=None):
+    if language is None:
+        language = settings.BTS_LANGUAGES
+    message = str(message)
+    regx = "\%\(\w+\)s"  # regex for '%(variables)s'
+    matches = re.findall(regx, message)
+    tampered_message = message.split()
+    if matches:  # if any variables
+        wildcards = {}
+        cnt = 1
+        for match in matches:
+            cnt += 1
+            # translation becomes better if replaced some number
+            replacement = str(cnt * cnt)
+            wildcards.update({str(match): replacement})
+        for index, string in enumerate(tampered_message):
+            if string in wildcards.keys():
+                tampered_message[index] = wildcards[string]
+        tampered_message = ' '.join(tampered_message)
+        translation = multiple_translations(tampered_message, *language)
+        for match in wildcards:
+            for lang in language:
+                translation[lang] = translation[lang].replace(
+                    wildcards[match], match)
+        return translation
+    return multiple_translations(message, *language)

@@ -387,23 +387,16 @@ def validate_password_strength(value):
 
 
 @login_required(login_url='/login/')
-def gettranslation(request):
+def get_translation(request):
     # For ajax call to translate on runtime
     if request.method == 'GET':
         context = {}
         if 'message' in request.GET:
-            from_language = 'auto'
-            to_language = settings.BTS_LANGUAGES
-            if 'from_language' in request.GET:
-                from_language = request.GET['from_language']
-            if 'to_language' in request.GET:
-                to_language = [request.GET['to_language']]
+            to_languages = settings.BTS_LANGUAGES
             try:
-                translations = {}
-                for language in to_language:
-                    translations[language] = api.translate(
-                        request.GET['message'], language, from_language)
-                context['translation'] = translations
+                message = request.GET['message']
+                context['translation'] = api.multiple_translations(
+                    message, *to_languages)
                 return JsonResponse(context)
             except:
                 return HttpResponseBadRequest

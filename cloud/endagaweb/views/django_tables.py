@@ -110,8 +110,8 @@ def render_imsi(record):
 
 
 def render_text(text):
-    if len(text) > 80:
-        text = text[:60] + '...(truncated)'
+    # if len(text) > 80:
+    #     text = text[:60] + '...(truncated)'
     return text
 
 
@@ -502,7 +502,8 @@ class NotificationTable(tables.Table):
     language = tables.Column()
     event = tables.Column(orderable=False)
     message = tables.Column(orderable=False)
-    translation = tables.Column(verbose_name='Translated Message', orderable=False)
+    translation = tables.Column(verbose_name='Translated Message',
+                                orderable=False)
 
     def render_message(self, record):
         return render_text(record.message)

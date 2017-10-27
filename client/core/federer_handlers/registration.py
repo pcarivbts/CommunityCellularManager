@@ -17,9 +17,10 @@ from ccm.common import logger
 from core import events
 from core import freeswitch_interconnect
 from core import interconnect
-from core.subscriber import subscriber
 from core.config_database import ConfigDB
 from core.federer_handlers.common import gt
+from core.subscriber import subscriber
+from core.freeswitch_strings import BASE_MESSAGES
 
 
 class registration:
@@ -40,12 +41,12 @@ class registration:
             number = self.ic.register_subscriber(imsi=from_name)['number']
             subscriber.create_subscriber(from_name, number, ip, port)
             self.fs_ic.send_to_number(number, ret_num,
-                    gt("Your number is %(number)s.") % {'number': number})
+                    gt(BASE_MESSAGES['number_check']) % {'from_number': number})
             reason = 'Provisioned user %s number %s' % (from_name, number)
             events.create_provision_event(from_name, reason)
         except Exception as e:
             self.fs_ic.send_to_imsi(from_name, ip, port, ret_num,
-                    gt("Failed to register your handset."))
+                    gt(BASE_MESSAGES['reg_failed']))
             logger.error("Failed to provision %s: %s" % (from_name,
                 traceback.format_exc(e)))
 

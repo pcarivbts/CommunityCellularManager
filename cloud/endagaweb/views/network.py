@@ -957,13 +957,29 @@ class NetworkNotificationsEdit(ProtectedView):
             return redirect(urlresolvers.reverse('network-notifications'))
         else:
             # Delete the notifications
-            # TODO(sagar): add functionality to delete w.r.t events
+            # TODO(sagar): donot delete these events also add these during initialization phase
+            superior_notifications = ['block_or_expired',
+                                      'receiver_block_or_expired',
+                                      'unprovisioned',
+                                      'invalid_address',
+                                      'no_money',
+                                      'no_money_sms',
+                                      'bal_check',
+                                      'number_info',
+                                      'number_already_registered',
+                                      'msg_sent ',
+                                      'number_exists'
+                                      ]
+
             notifications = models.Notification.objects.filter(
                 id__in=delete_notification)
             events = notifications.values_list('event', flat=True).distinct()
-            to_delete = models.Notification.objects.filter(event__in=events)
-            for notification in to_delete:
-                notification.delete()
+            # notifications = models.Notification.objects.filter(event__in=events)
+            notifications = models.Notification.objects.all()
+            # to_delete.delete()
+            # for notification in to_delete:
+                # if str(notification.event) not in superior_notifications:
+            notifications.delete()
             resp = 'Selected notification(s) deleted successfully.'
         messages.success(request, resp)
         return redirect(urlresolvers.reverse('network-notifications'))

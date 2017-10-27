@@ -9,6 +9,7 @@ import json
 
 from freeswitch import consoleLog
 
+from core.federer_handlers.registration import BASE_MESSAGES
 from core.subscriber.base import BaseBTSNotification
 
 notification = BaseBTSNotification()
@@ -36,17 +37,15 @@ def parse(args):
 
 def localize(args):
     event, params = parse(args)
-
-    # do the localization lookup
-    # res = freeswitch_strings.localize(event, params)
-    message = notification.get_notification(event)
     try:
-        res = str((message) % params)
-    except TypeError:
-        # If dynamic var not in table
-        res = str(message)
-    consoleLog('info', "Localizing %s: %s" % (args, res))
-    return res
+        message = str(notification.get_notification(event) % params)
+        consoleLog('info', "Localizing %s: %s" % (args, message))
+    except:
+        # Let's send english as default
+        message = str(BASE_MESSAGES[event] % params)
+        consoleLog('info', "translation missing for '%s'" % event)
+    consoleLog('info', 'message %s' % message)
+    return message
 
 
 def chat(message, args):
@@ -67,16 +66,3 @@ def fsapi(session, stream, env, args):
 def handler(session, args):
     res = localize(args)
     session.execute("set", "_localstr=%s" % res)
-
-# DB Entries Req for :
-# block_or_expired
-# receiver_block_or_expired
-# unprovisioned
-# invalid_address
-# no_money
-# no money sms
-# bal_check : your balance is <BALANCE>
-# number_info : your number is <NUM>
-# number_already_registered: Already registered with number <NUM>
-# msg_sent : Message is sent to <Num>
-# number_exists : Already reg. with number <Num>

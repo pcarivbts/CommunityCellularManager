@@ -34,6 +34,7 @@ from endagaweb.views.dashboard import ProtectedView
 from endagaweb.views import django_tables
 from django.template.loader import get_template
 from django.http import HttpResponse
+from googletrans.constants import LANGUAGES
 
 class PermissionRequired(PermissionRequiredMixin):
     """ A class-based view that sets permission mixin. """
@@ -166,7 +167,7 @@ class TowerInfo(ProtectedView):
             'tower_endaga_version': tower.printable_version(
                 versions['endaga_version']),
             'uptime': uptime,
-            'network': user_profile.network
+            'language': LANGUAGES.get(tower.locale) or None,
         }
         # Render template.
         info_template = template.loader.get_template(
@@ -393,7 +394,6 @@ class TowerEvents(drf_views.APIView, PermissionRequired):
             'tower': tower,
             'endaga_version': endaga_version,
             'events': events,
-            'network': user_profile.network
         }
         # Render template.
         edit_template = template.loader.get_template(

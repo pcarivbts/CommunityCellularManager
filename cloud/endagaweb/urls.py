@@ -152,7 +152,7 @@ urlpatterns = [
         endagaweb.views.user.check_user),
 
     url(r'^dashboard/network/notification/translate',
-        endagaweb.views.user.gettranslation),
+        endagaweb.views.user.get_translation),
 
     url(r'^dashboard/user/management/permissions',
         endagaweb.views.user.role_default_permissions),

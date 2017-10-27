@@ -24,57 +24,195 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% block pagestyle %}
 <style>
 
-    .btn{
-        margin-left: 5px;
-    }
-    .btn:last-child{
-        margin-left: 0;
-    }
-    table tbody tr.highlight td {
-        background-color: #ddd;
-    }
-    label.btn span {
+@-webkit-keyframes ring {
+  0% {
+    -webkit-transform: rotate(-15deg);
+    transform: rotate(-15deg);
+  }
+
+  2% {
+    -webkit-transform: rotate(15deg);
+    transform: rotate(15deg);
+  }
+
+  4% {
+    -webkit-transform: rotate(-18deg);
+    transform: rotate(-18deg);
+  }
+
+  6% {
+    -webkit-transform: rotate(18deg);
+    transform: rotate(18deg);
+  }
+
+  8% {
+    -webkit-transform: rotate(-22deg);
+    transform: rotate(-22deg);
+  }
+
+  10% {
+    -webkit-transform: rotate(22deg);
+    transform: rotate(22deg);
+  }
+
+  12% {
+    -webkit-transform: rotate(-18deg);
+    transform: rotate(-18deg);
+  }
+
+  14% {
+    -webkit-transform: rotate(18deg);
+    transform: rotate(18deg);
+  }
+
+  16% {
+    -webkit-transform: rotate(-12deg);
+    transform: rotate(-12deg);
+  }
+
+  18% {
+    -webkit-transform: rotate(12deg);
+    transform: rotate(12deg);
+  }
+
+  20% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes ring {
+  0% {
+    -webkit-transform: rotate(-15deg);
+    -ms-transform: rotate(-15deg);
+    transform: rotate(-15deg);
+  }
+
+  2% {
+    -webkit-transform: rotate(15deg);
+    -ms-transform: rotate(15deg);
+    transform: rotate(15deg);
+  }
+
+  4% {
+    -webkit-transform: rotate(-18deg);
+    -ms-transform: rotate(-18deg);
+    transform: rotate(-18deg);
+  }
+
+  6% {
+    -webkit-transform: rotate(18deg);
+    -ms-transform: rotate(18deg);
+    transform: rotate(18deg);
+  }
+
+  8% {
+    -webkit-transform: rotate(-22deg);
+    -ms-transform: rotate(-22deg);
+    transform: rotate(-22deg);
+  }
+
+  10% {
+    -webkit-transform: rotate(22deg);
+    -ms-transform: rotate(22deg);
+    transform: rotate(22deg);
+  }
+
+  12% {
+    -webkit-transform: rotate(-18deg);
+    -ms-transform: rotate(-18deg);
+    transform: rotate(-18deg);
+  }
+
+  14% {
+    -webkit-transform: rotate(18deg);
+    -ms-transform: rotate(18deg);
+    transform: rotate(18deg);
+  }
+
+  16% {
+    -webkit-transform: rotate(-12deg);
+    -ms-transform: rotate(-12deg);
+    transform: rotate(-12deg);
+  }
+
+  18% {
+    -webkit-transform: rotate(12deg);
+    -ms-transform: rotate(12deg);
+    transform: rotate(12deg);
+  }
+
+  20% {
+    -webkit-transform: rotate(0deg);
+    -ms-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+}
+
+.faa-ring.animated,
+.faa-ring.animated-hover:hover,
+.faa-parent.animated-hover:hover > .faa-ring {
+  -webkit-animation: ring 2s ease infinite;
+  animation: ring 2s ease infinite;
+  transform-origin-x: 50%;
+  transform-origin-y: 0px;
+  transform-origin-z: initial;
+}
+
+.loadinggif {
+    background:url('/static/img/loader.gif') no-repeat center center;
+}
+.btn{
+    margin-left: 5px;
+}
+.btn:last-child{
+    margin-left: 0;
+}
+table tbody tr.highlight td {
+    background-color: #ddd;
+}
+label.btn span {
   font-size: 1.5em ;
 }
 
-    /* Rounded sliders */
-    .slider.round {
-      border-radius: 34px;
-    }
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}
 
-    .slider.round:before {
-      border-radius: 50%;
-    }
-    .loader {
-      border: 16px solid lightgreen;
-      border-radius: 70%;
-      border-top: 16px solid white;
-      width: 30px;
-      height: 30px;
-      -webkit-animation: spin 2s linear infinite;
-      animation: spin 2s linear infinite;
-      position: fixed;
-      top: 90%;
-      left: 50%;
-      -webkit-transform: translate(-50%, -50%);
-      transform: translate(-50%, -50%);
-    }
+.loader {
+  border: 16px solid lightgreen;
+  border-radius: 70%;
+  border-top: 16px solid white;
+  width: 30px;
+  height: 30px;
+  -webkit-animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
+  position: fixed;
+  top: 95%;
+  left: 1%;
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+}
 
-    @-webkit-keyframes spin {
-      0% { -webkit-transform: rotate(0deg); }
-      100% { -webkit-transform: rotate(360deg); }
-    }
+@-webkit-keyframes spin {
+  0% { -webkit-transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); }
+}
 
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    .loader-text {
-        position: fixed;
-        top: 94%;
-        font-size: 1.5em ;
-        left: 48%;
-      }
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.loader-text {
+    position: fixed;
+    top: 96%;
+    font-size: 1.0em ;
+    left: 7%;
+  }
 
 </style>
 {% endblock %}
@@ -137,10 +275,57 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 </div>
 
-<div id="loading" hidden="hidden">
-    <div class="loader"></div>
-    <h5 class="loader-text">Translating...</h5>
+
+<div class="modal fade" id="save-event-modal" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" onchange='resetForm()'>
+                    <span aria-hidden="true">&times;</span></button>
+                 <h4 class='modal-title'>
+                    <i class='fa fa-bell faa-ring animated'></i>
+                    <span class="title">Notification</span>
+                </h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <form action="/dashboard/network/notification/update"
+                      id="add-notification-modal" name="notification"
+                      method="POST"
+                      data-toggle="validator">
+                        {% csrf_token %}
+                        {% crispy notification %}
+                </form>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <input type="submit" id="add-notification-submit"
+                           class="btn btn-primary pull-right" value="Add Notification"
+                           onclick="document.getElementById('submit-id-submit').click()" disabled="disabled">
+                    <input type="submit" id="notification-translate"
+                           class="btn btn-primary pull-right" value="Translate"
+                           onclick="getTranslation()" disabled="disabled">
+                    <button type='button' class='btn btn-default pull-right'
+                            onclick='resetForm()'>
+                        Reset
+                    </button>
+
+                <!--<div id="loading" hidden="hidden">-->
+                    <!--<div class="loader"></div>-->
+                    <!--<h5 class="loader-text">Translating...</h5>-->
+                <!--</div>-->
+
+                <div id="status" hidden="hidden">
+                    <h5>Connection seems slow... (To retry click: Translate )</h5>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+
+
 <div class='modal fade' id='delete-event-modal'>
     <div class='modal-dialog'>
         <div class='modal-content'>
@@ -171,54 +356,6 @@ of patent rights can be found in the PATENTS file in the same directory.
     </div>
 </div><!-- /.delete-user-modal -->
 
-<div class='modal fade' id='save-event-modal'>
-    <div class='modal-dialog'>
-        <!--MODAL BASE-->
-        <div class='modal-content' style="width: 150%;  margin-left:-30%">
-            <div class='modal-header'>
-                <button type="button" class="close" data-dismiss="modal"
-                        aria-label="Close" onchange='resetForm()'>
-                    <span aria-hidden="true">&times;</span>
-                </button>
-                <h4 class='modal-title'>
-                    <i class='fa fa-bell'></i>
-                    <span class="title">Notification</span>
-                </h4>
-            </div>
-
-            <div class='modal-body' style="height: 380px;">
-                <form action="/dashboard/network/notification/update"
-                      id="add-notification-modal" name="notification"
-                      method="POST"
-                      data-toggle="validator">
-                    {% csrf_token %}
-                    <div class="col-md-12">
-                        {% crispy notification %}
-                    </div>
-                </form>
-            </div>
-            <div class='modal-footer'>
-                <input type="submit" id="add-notification-submit"
-                           class="btn btn-primary pull-right" value="Add Notification"
-                           onclick="document.getElementById('submit-id-submit').click()" disabled="disabled">
-                    <input type="submit" id="notification-translate"
-                           class="btn btn-primary pull-right" value="Translate"
-                           onclick="getTranslation()" disabled="disabled">
-                    <!--<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#translatedModal1" id="id_translations" disabled="disabled">-->
-                        <!--See Translations-->
-                    <!--</button>-->
-                    <button type='button' class='btn btn-default pull-right'
-                            onclick='resetForm()'>
-                        Reset
-                    </button>
-                <div id="status" hidden="hidden">
-                    <h5>Connection seems slow... (To retry click: Translate )</h5>
-                </div>
-
-            </div>
-        </div>
-    </div>
-</div>
 <!--translated message modal for each language, to use this comment line 543 in dashboard_forms-->
 <!--{% for key, language in languages.items %}-->
 <!--<div class="modal fade" id="translatedModal{{ forloop.counter }}" tabindex="-1" role="dialog" aria-labelledby="translatedModalLabel" aria-hidden="true">-->
@@ -246,13 +383,18 @@ of patent rights can be found in the PATENTS file in the same directory.
     <!--</div>-->
 <!--</div>-->
 <!--{% endfor %}-->
+
 {% include "dashboard/subscriber_detail/broadcast.html" with target='network' %}
 {% endblock %}
 {% block js %}
 <script type="text/javascript">
+    function disableSubmit(){
+    $('#add-notification-submit').removeAttr('disabled');
+    }
     function getTranslation() {
         if ($('#id_message').val().length > 0) {
             $("#loading").show();
+            $('[id^="lang_"]').addClass('loadinggif');
             $('#notification-translate').removeAttr('disabled');
         $.ajax({
             url: '/dashboard/network/notification/translate?message=' + $('#id_message').val(),
@@ -261,10 +403,11 @@ of patent rights can be found in the PATENTS file in the same directory.
             success: function (response) {
                 $('#id_translations').removeAttr('disabled');
                 $('#add-notification-submit').removeAttr('disabled');
-                console.log(response.translation);
+                $('[id^="lang_"]').removeClass('loadinggif');
                 for (var key in response.translation) {
                     $("#lang_"+key+"").val(response.translation[key]);
                 }
+
                 $("#loading").hide();
                 $("#status").hide();
             },
@@ -358,9 +501,9 @@ of patent rights can be found in the PATENTS file in the same directory.
     $('#id_type_1').prop('checked', true).change();
     $('#id_number').val('');
     $('#id_message').val('');
+    $('#id_event').val('');
     // clear all translations
     $('[id^="lang_"]').val('');
-    $('#id_event').val('');
     $('#id_pk').val(0);
     $("#status").hide();
   }

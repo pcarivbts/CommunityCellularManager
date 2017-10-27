@@ -18,11 +18,12 @@ import time
 from core import config_database
 from core import events
 from core import freeswitch_strings
+from core.denomination_store import DenominationStore
+from core.exceptions import SubscriberNotFound
 from core.sms import sms
 from core.subscriber import subscriber
-from core.exceptions import SubscriberNotFound
-from core.denomination_store import DenominationStore
 from core.subscriber.base import BaseBTSNotification
+from core.freeswitch_strings import BASE_MESSAGES as CT_MESSAGE
 
 config_db = config_database.ConfigDB()
 gt = gettext.translation("endaga", config_db['localedir'],
@@ -47,6 +48,7 @@ def _init_pending_transfer_db():
         # Make the DB world-writable.
         os.chmod(config_db['pending_transfer_db_path'], 0o777)
 
+
 def get_validity_days(amount):
     denomination = DenominationStore()
     validity_days = denomination.get_validity_days(amount)
@@ -54,6 +56,7 @@ def get_validity_days(amount):
         return None
     else:
         return validity_days[0]
+
 
 def process_transfer(from_imsi, to_imsi, amount):
     """Process a transfer request.
@@ -74,21 +77,20 @@ def process_transfer(from_imsi, to_imsi, amount):
         from_imsi)
     if from_imsi_status != 'active':
         if from_imsi_status == 'active*':
-            status = 'is blocked'
+            status = CT_MESSAGE['account_blocked']
         else:
-            status = 'has no validity'
-        return False, ("Your account %s!" % status)
-    #  rare scenario
+            status = CT_MESSAGE['no_validity']
+        return False, status
+    # rare scenario
     if to_imsi_status in ['recycle', 'recycle*']:
-        return False, ("%s doesn't exists" % to_imsi)
+        return False, ("%s does not exists" % to_imsi)
     # Error when user tries to transfer more credit than they have.
     if not from_balance or from_balance < amount:
-        return False, ("Your account doesn't have sufficient funds for the "
-                       "transfer.")
+        return False, (CT_MESSAGE['low_credit'])
     # Error when user tries to transfer to a non-existent user.
     #       Could be 0!  Need to check if doesn't exist.
     if not to_imsi or (subscriber.get_account_balance(to_imsi) == None):
-        return False, ("The number you're sending to doesn't exist. Try again."
+        return False, (CT_MESSAGE['sender_dont_exists']
                        )
     # Error when user tries to transfer more credit than network max balance
     network_max_balance = int(config_db['network_max_balance'])
@@ -104,39 +106,36 @@ def process_transfer(from_imsi, to_imsi, amount):
         block_info = " Attempts left %(left)s !" % {
             'left': int(max_attempts) - (int(attempts) + 1)
         }
-        reason = ("Top-up not allowed. Maximum balance "
-                  "limit crossed %(credit)s."
-                  ) % {'credit': credit_limit}
+        reason = (CT_MESSAGE['top_up_not_allowed']) % {
+            'credit': credit_limit}
         # For cloud
         events.create_transfer_event(from_imsi, from_balance, from_balance,
-                                     reason + ERROR_TRX , from_num, to_num)
+                                     reason + ERROR_TRX, from_num, to_num)
 
         return False, reason + block_info + ERROR_TRX
     elif (amount + to_balance) > network_max_balance:
         # Mark this event for blocking
         attempts = subscriber.status().get_invalid_count(from_imsi)
-        block_info = " Attempts left %(left)s !" % {
-            'left': int(max_attempts) - (int(attempts) + 1)
+        block_info = CT_MESSAGE['transfer_attempts_left'] % {
+            'attempts': int(max_attempts) - (int(attempts) + 1)
         }
-        reason = ("Top-up not allowed. Maximum balance "
-                  "limit crossed %(credit)s. You can transfer upto "
-                  "%(transfer)s."
-                  ) % {'credit': credit_limit, 'transfer': max_transfer_str}
+        reason = CT_MESSAGE['top_up_not_allowed_detail'] % {
+            'credit': credit_limit, 'transfer': max_transfer_str}
         # For cloud
         events.create_transfer_event(from_imsi, from_balance, from_balance,
-                                     reason + ERROR_TRX , from_num, to_num)
+                                     reason + ERROR_TRX, from_num, to_num)
         return False, reason + block_info + ERROR_TRX
     # check top-up amount in denomination bracket
     validity_days = get_validity_days(amount)
     if validity_days is None:
         attempts = subscriber.status().get_invalid_count(from_imsi)
-        block_info = " Attempts left %(left)s !" % {
-            'left': int(max_attempts) - (int(attempts) + 1)
+        block_info = CT_MESSAGE['attempts_left'] % {
+            'attempts': int(max_attempts) - (int(attempts) + 1)
         }
-        reason = "Top-up not under denomination range."
+        reason = CT_MESSAGE['transfer_denomination_error']
         # For cloud
         events.create_transfer_event(from_imsi, from_balance, from_balance,
-                                     reason + ERROR_TRX , from_num, to_num)
+                                     reason + ERROR_TRX, from_num, to_num)
         return False, reason + block_info + ERROR_TRX
     # Add the pending transfer.
     code = ''
@@ -149,10 +148,8 @@ def process_transfer(from_imsi, to_imsi, amount):
     db.close()
     to_num = subscriber.get_numbers_from_imsi(to_imsi)[0]
     amount_str = freeswitch_strings.humanize_credits(amount)
-    response = ("Reply to this message with %(code)s to confirm your transfer"
-                " of %(amount)s to %(to_num)s. Code expires in ten minutes."
-                ) % {
-        'code': code, 'amount': amount_str, 'to_num': to_num
+    response = (CT_MESSAGE['transfer_confirm']) % {
+        'code': code, 'amount': amount_str, 'to_number': to_num
     }
     return True, response
 
@@ -178,7 +175,9 @@ def process_confirm(from_imsi, code):
         from_imsi, to_imsi, amount = res
         from_num = subscriber.get_numbers_from_imsi(from_imsi)[0]
         to_num = subscriber.get_numbers_from_imsi(to_imsi)[0]
-        reason = "SMS transfer from %s to %s" % (from_num, to_num)
+        reason = (CT_MESSAGE['sms_transfer_from_to']) % \
+                 {'from_number': from_num, 'to_number': to_num}
+
         # Deduct credit from the sender.
         from_imsi_old_credit = subscriber.get_account_balance(from_imsi)
         from_imsi_new_credit = int(from_imsi_old_credit) - int(amount)
@@ -198,15 +197,13 @@ def process_confirm(from_imsi, code):
         # Humanize credit strings
         amount_str = freeswitch_strings.humanize_credits(amount)
         to_balance_str = freeswitch_strings.humanize_credits(
-                to_imsi_new_credit)
+            to_imsi_new_credit)
         from_balance_str = freeswitch_strings.humanize_credits(
-                from_imsi_new_credit)
+            from_imsi_new_credit)
         # Let the recipient know they got credit.
-        message = ("You've received %(amount)s credits from %(from_num)s!"
-                     " Your new balance is %(new_balance)s.Your top-up "
-                     "validity is %(validity)s days.") % {
-                     'amount': amount_str, 'from_num': from_num,
-                     'new_balance': to_balance_str, 'validity': top_up_validity}
+        message = (CT_MESSAGE['transfer_details_recipient']) % {
+            'amount': amount_str, 'from_number': from_num,
+            'new_balance': to_balance_str, 'validity': top_up_validity}
 
         message = gt(message)
         sms.send(str(to_num), str(config_db['app_number']), str(message))
@@ -215,13 +212,11 @@ def process_confirm(from_imsi, code):
                    " AND from_acct=?", (code, from_imsi))
         db.commit()
         # Tell the sender that the operation succeeded.
-        return True, gt("You've transferred %(amount)s to %(to_num)s. "
-                        "Your new balance is %(new_balance)s.") % {
-                                'amount': amount_str, 'to_num': to_num,
-                                'new_balance': from_balance_str}
+        return True, gt(CT_MESSAGE['transfer_details_sender']) % {
+            'amount': amount_str, 'to_number': to_num,
+            'account_balance': from_balance_str}
 
-    return False, gt("That transfer confirmation code doesn't exist"
-                     " or has expired.")
+    return False, gt(CT_MESSAGE['transfer_expired'])
 
 
 def handle_incoming(from_imsi, request):
@@ -237,9 +232,9 @@ def handle_incoming(from_imsi, request):
     # be formatted using a comma for a thousands seperator and a period for
     # the decimal place
     transfer_command = re.compile(
-            r'^(?P<to_number>[0-9]+)'
-            r'\*'
-            r'(?P<amount>[0-9]*(?:,[0-9]{3})*(?:\.[0-9]*)?)$')
+        r'^(?P<to_number>[0-9]+)'
+        r'\*'
+        r'(?P<amount>[0-9]*(?:,[0-9]{3})*(?:\.[0-9]*)?)$')
     transfer = transfer_command.match(request)
 
     confirm_command = re.compile(r'^(?P<confirm_code>[0-9]{%d})$' %
@@ -261,8 +256,8 @@ def handle_incoming(from_imsi, request):
                 subscriber.status().reset_invalid_count(from_imsi)
             resp = gt(resp)
         except SubscriberNotFound:
-            resp = gt(
-                "Invalid phone number: %(number)s" % {'number': to_number})
+            resp = gt(CT_MESSAGE['invalid_number'] % {
+                'to_number': to_number})
     elif confirm:
         # The code is the whole request, so no need for groups.
         code = request.strip()
@@ -270,7 +265,6 @@ def handle_incoming(from_imsi, request):
     else:
         # NOTE: Sent when the user tries to transfer credit with the wrong
         #       format message.
-        resp = gt("To transfer credit, reply with a message in the"
-                            " format 'NUMBER*AMOUNT'.")
+        resp = gt(CT_MESSAGE['transfer_help'])
     from_number = subscriber.get_numbers_from_imsi(from_imsi)[0]
     sms.send(str(from_number), str(config_db['app_number']), str(resp))

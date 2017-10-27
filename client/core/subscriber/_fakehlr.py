@@ -135,6 +135,6 @@ class FakeSubscriberDB(BaseSubscriber):
     def notif_status(self, update=None):
         status = BaseBTSNotification()
         if update is not None:
-            status.process_update_notifcaiton(update)
+            status.process_notifcaiton(update)
             return
         return status

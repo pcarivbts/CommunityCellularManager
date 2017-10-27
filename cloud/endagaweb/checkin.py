@@ -28,7 +28,8 @@ from endagaweb.models import UsageEvent
 from endagaweb.util.parse_destination import parse_destination
 from endagaweb.models import NetworkDenomination, Notification
 import dateutil.parser as dateparser
-from util.api import multiple_translation
+from util.api import format_and_translate
+from django.db import IntegrityError
 
 class CheckinResponder(object):
 
@@ -300,30 +301,44 @@ class CheckinResponder(object):
         Update the subscribers' state and validity info based on
          what the client submits.
         """
-        event=type=message=None
-        for notif in notifications:
-            # message with '*', translate it.
-            if str(notif.message)[-1] == '*':
-                event = notif.event
-                message = notif.message[:-1]
+        bts_events = list(dict(notifications).iterkeys())
+        events_exists = Notification.objects.filter(event__in=bts_events,
+                                                    network=self.bts.network).values_list('event', flat=True)
+
+        new_events = list(set(bts_events)-set(events_exists))
+        for key in new_events:
+            event = key
+            message = notifications[key]
+            if message[-1] == '*':  # Base Messages by BTS
+                message = message[:-1]  # msg received flag down.
                 try:
                     type = 'mapped'
                     int(event)
                 except ValueError:
                     type = 'automatic'
-            # TODO(sagar): set the actual language list to be translated in
-            lang_list = ['en', 'tl', 'es', 'id']
-            trans_dict = multiple_translation(message, lang_list)
-            for ln, trns in trans_dict.iteritems():
-                notification = Notification.objects.create(event=event,
-                                                           type=type,
-                                                           message=message,
-                                                           translation=trns,
-                                                           language=ln)
-                notification.save()
+
+                languages = settings.BTS_LANGUAGES
+                # format message for %(variable)s if any.
+                trans_dict = format_and_translate(message, language=languages)
+                for ln, trns in trans_dict.iteritems():
+                    try:
+                        notification = Notification.objects.create(event=event,
+                                                                   type=type,
+                                                                   message=message,
+                                                                   translation=trns,
+                                                                   language=ln,
+                                                                   network=self.bts.network)
+                        notification.save()
+                    except IntegrityError:
+                        continue
 
     def bts_locale(self, bts_locale):
-        self.bts.locale = bts_locale
+        if bts_locale in settings.BTS_LANGUAGES:
+            self.bts.locale = bts_locale
+            self.bts.save()
+        else:
+            logging.error("client locale: '%s' does not exists in "
+                          "BTS LANGUAGES, " % bts_locale)
 
     def radio_handler(self, radio):
         if 'band' in radio and 'c0' in radio:

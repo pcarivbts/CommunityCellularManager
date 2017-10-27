@@ -479,7 +479,6 @@ class NetworkBalanceLimit(forms.Form):
                     'balance Limit.')
         return cleaned_data
 
-from django.utils.safestring import mark_safe
 
 class NotificationForm(forms.Form):
     language_choices = []
@@ -499,11 +498,11 @@ class NotificationForm(forms.Form):
                                  attrs={'title': 'Notification type'}),)
     event = forms.CharField(widget=forms.TextInput(
         attrs={'title': 'alphabets or alphanumeric only',
-               'style': 'width:300px'}),
+               'style': 'width:300px', 'onchange': 'disableSubmit()'}),
         required=True, label='Events')
     message = forms.CharField(required=True, min_length=20, max_length=160,
                               label='Message', widget=forms.Textarea(
-            attrs={'title': 'max 160 characters only',
+            attrs={'title': 'Message for translation (max characters: 160)',
                    'placeholder': 'Enter Message...',
                    'rows': '2',
                    'onchange': 'getTranslation(this)',
@@ -517,7 +516,9 @@ class NotificationForm(forms.Form):
                    'title': 'numerical input only', 'style': 'width:100px',
                    'oninvalid': "setCustomValidity('Enter number "
                                 "(max: 3 digits)')",
-                   'onchange': "try{setCustomValidity('')}catch(e){}"
+                   'onchange': "try{setCustomValidity('')}catch(e){}",
+                   # Need this one also
+                   'onchange' : 'disableSubmit()',
                }),
         )
     pk = forms.CharField(widget=forms.HiddenInput())
@@ -539,14 +540,13 @@ class NotificationForm(forms.Form):
             missing = list(set(settings.BTS_LANGUAGES) - set(languages))
         self.helper.add_input(
             Submit('submit', 'Submit', css_class='invisible pull-right'))
-        # TODO(sagar): pass the value and get languages available in DB
         for key in settings.BTS_LANGUAGES:
             placeholder = 'Translation in %s ' % LANGUAGES[
                 key].capitalize()
             readonly = False
             label = LANGUAGES[key].capitalize()
             if key in missing:
-                placeholder = 'Translation not added for %s' % LANGUAGES[
+                placeholder = 'New language %s' % LANGUAGES[
                     key].capitalize()
                 readonly = True
 
@@ -554,11 +554,12 @@ class NotificationForm(forms.Form):
                 required=True, min_length=20, max_length=160,
                 label=label, widget=forms.Textarea(
                     attrs={'id': 'lang_%s' % key,
-                           'title': 'Translation in %s' % LANGUAGES[
-                               key].capitalize(),
+                           'title': "For dynamic values you can add "
+                                    "%(account_balance)s for number "
+                                    "%(number)s etc..." ,
                            'placeholder': placeholder,
                            'readonly': readonly,
-                           'rows': '1',
+                           'rows': '2',
                            'style': 'resize:none;',
                            }
                 ))
