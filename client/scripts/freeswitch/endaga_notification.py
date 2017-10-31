@@ -9,7 +9,7 @@ import json
 
 from freeswitch import consoleLog
 
-from core.federer_handlers.registration import BASE_MESSAGES
+from core.freeswitch_strings import BASE_MESSAGES
 from core.subscriber.base import BaseBTSNotification
 
 notification = BaseBTSNotification()
@@ -36,15 +36,26 @@ def parse(args):
 
 
 def localize(args):
+
     event, params = parse(args)
-    try:
-        message = str(notification.get_notification(event) % params)
-        consoleLog('info', "Localizing %s: %s" % (args, message))
-    except:
-        # Let's send english as default
-        message = str(BASE_MESSAGES[event] % params)
-        consoleLog('info', "translation missing for '%s'" % event)
-    consoleLog('info', 'message %s' % message)
+    # For notifications by cloud
+    if 'EVENT' == event.split('_')[0]:
+        event = event.split('_')[1]
+        if notification.get_notification(event) and len(event) == 3:
+            # not handling params for events created by CLOUD
+            message = str(True)
+        else:
+            message = str(False)
+        consoleLog('info', 'message to check for event %s' % event)
+    else:
+        try:
+            message = str(notification.get_notification(event) % params)
+            consoleLog('info', "Localizing %s: %s" % (args, message))
+        except:
+            # Let's send english as default
+            message = str(BASE_MESSAGES[event] % params)
+            consoleLog('info', "translation missing for '%s'" % event)
+        consoleLog('info', 'message %s' % message)
     return message
 
 

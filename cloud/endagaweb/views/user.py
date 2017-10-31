@@ -212,7 +212,6 @@ def change_expired_password(request):
         'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
         'user_profile': user_profile,
         'network': network,
-        'user_profile': user_profile,
         'change_pass_form': dform.ChangePasswordForm(request.user),
 
     }
@@ -401,3 +400,26 @@ def get_translation(request):
             except:
                 return HttpResponseBadRequest
     return HttpResponseBadRequest()
+
+
+@login_required(login_url='/login/')
+def get_event(request):
+    # For ajax call to translate on runtime
+    if request.method == 'GET':
+        context = {'event': False}
+        network = UserProfile.objects.get(user=request.user).network
+        event = request.GET['event']
+        try:
+            number = int(event)  # Should Fail if event is automatic
+            if int(number) < 10:
+                event = '00' + event
+            elif int(number) < 100:
+                event = '0' + event
+        except ValueError:
+            event = str(event).lower().strip().replace(' ', '_')
+        if not models.Notification.objects.filter(event=event,
+                                                  network=network).exists():
+            context = {'event': True}
+        return JsonResponse(context)
+    return HttpResponseBadRequest()
+

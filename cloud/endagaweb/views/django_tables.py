@@ -22,16 +22,19 @@ from ccm.common.currency import humanize_credits, CURRENCIES
 from endagaweb import models
 from googletrans.constants import LANGUAGES
 
+
 def render_user_profile(record):
     """Show the linked UserProfile's email."""
     if not record.network:
         return None
     user_profiles = models.UserProfile.objects.filter(network=record.network)
-    network_names = [ user_profile.network.name+',' for user_profile in user_profiles ]
+    network_names = [user_profile.network.name + ',' for user_profile in
+                     user_profiles]
     limit_names = 2
     if len(network_names) > limit_names:
-        network_names = network_names[:limit_names]+['...']
+        network_names = network_names[:limit_names] + ['...']
     return ''.join(network_names)[:-1]
+
 
 def render_uptime(record):
     """Show the humanized tower uptime."""
@@ -104,15 +107,16 @@ def render_balance(record):
 
 def render_imsi(record):
     element = "<input type = 'checkbox' class ='imsi_id' name='imsi[]' " \
-          "value='{0}'  id ='imsi_id_{0}' " \
-          "onchange = 'imsiSelected(this)' / > ".format(record.imsi)
+              "value='{0}'  id ='imsi_id_{0}' " \
+              "onchange = 'imsiSelected(this)' / > ".format(record.imsi)
     return safestring.mark_safe(element)
 
 
-def render_text(text):
-    # if len(text) > 80:
-    #     text = text[:60] + '...(truncated)'
-    return text
+def render_as_label(message, record, ltype='info'):
+    element = "<label class='btn btn-xs btn-%s'  data-target='#all-translations' " \
+              "data-toggle='modal' onclick='getNotification(%s);'>%s </label> " % (
+                  ltype, record.id, message)
+    return safestring.mark_safe(element)
 
 
 # Changing Checkbox to Column Name
@@ -374,8 +378,8 @@ class DenominationTable(tables.Table):
         attrs = {'class': 'table table-hover'}
 
     id = tables.CheckBoxColumn(accessor="pk", attrs={"th__input": {
-            "onclick": "toggle(this)"}}
-    )
+        "onclick": "toggle(this)"}}
+                               )
     start_amount = tables.Column(empty_values=(), verbose_name='Start Amount')
     end_amount = tables.Column(empty_values=(), verbose_name='End Amount')
     validity_days = tables.Column(empty_values=(),
@@ -489,27 +493,53 @@ class NotificationTable(tables.Table):
     """
     Notification table for managing notification messages
     """
+
     class Meta:
         model = models.Notification
-        fields = ('id', 'type', 'language', 'message', 'event', 'translation')
+        fields = ('id', 'event', 'message', 'type')
         attrs = {'class': 'table'}
+
     id = tables.CheckBoxColumn(accessor="pk",
                                attrs={"th__input":
                                           {"onclick": "toggle(this)"}
                                       }
                                )
     type = tables.Column()
-    language = tables.Column()
     event = tables.Column(orderable=False)
     message = tables.Column(orderable=False)
-    translation = tables.Column(verbose_name='Translated Message',
-                                orderable=False)
 
-    def render_message(self, record):
-        return render_text(record.message)
+    def render_event(self, record):
+        event = str(record.event).replace('_', ' ').upper()
+        element = "<a href='#'" \
+                  "data-target='#all-translations' data-toggle='modal' " \
+                  "onclick='getNotification(%s);'>%s </a> " % (record.id,
+                                                               event)
+        return safestring.mark_safe(element)
 
-    def render_translation(self, record):
-        return render_text(record.translation)
 
-    def render_language(self, record):
-        return LANGUAGES[record.language].capitalize()
+class NotificationTableTranslated(tables.Table):
+    """
+    Notification table specific language message
+    """
+
+    class Meta:
+        model = models.Notification
+        fields = ('id', 'event', 'translation', 'type')
+        attrs = {'class': 'table'}
+
+    id = tables.CheckBoxColumn(accessor="pk",
+                               attrs={"th__input":
+                                          {"onclick": "toggle(this)"}
+                                      }
+                               )
+    type = tables.Column()
+    event = tables.Column(orderable=False)
+    translation = tables.Column(orderable=False, verbose_name='Message')
+
+    def render_event(self, record):
+        event = str(record.event).replace('_', ' ').upper()
+        element = "<a href='#'" \
+                  "data-target='#all-translations' data-toggle='modal' " \
+                  "onclick='getNotification(%s);'>%s </a> " % (record.id,
+                                                               event)
+        return safestring.mark_safe(element)

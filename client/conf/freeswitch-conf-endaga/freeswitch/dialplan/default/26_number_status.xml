@@ -12,7 +12,6 @@ of patent rights can be found in the PATENTS file in the same directory.
   <condition field='${vbts_account_status}' expression="False">
     <action application="set" data='service_type=error_call'/>
     <action application="export" data='service_type=error_call'/>
-    <!--<action application="python" data="endaga_i18n Failed to connect! Your account is blocked or expired, Please contact your provider."/>-->
     <action application="python" data="endaga_notification block_expired"/>
     <action application="set" data='res=${python(VBTS_Send_SMS ${vbts_callerid}|103|${_localstr})}'/>
     <action application="answer"/>

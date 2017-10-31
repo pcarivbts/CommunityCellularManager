@@ -9,7 +9,6 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 <extension name="number_status">
   <condition field='${vbts_account_status}' expression="False">
-    <!--<action application="python" data="endaga_i18n Failed to deliver the message! Your account is blocked or expired, Please contact your provider."/>-->
     <action application="python" data="endaga_notification block_expired"/>
     <action application="python" data="VBTS_Send_SMS ${vbts_callerid}|103|${_localstr}"/>
     <action application="set" data="service_type=error_sms"/>
@@ -19,7 +18,6 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 <extension name="called_number_status">
   <condition field='${vbts_dest_account_status}' expression="False">
-    <!--<action application="python" data="endaga_i18n Failed to deliver the message! The receiver account has expired."/>-->
     <action application="python" data="endaga_notification receiver_expired"/>
     <action application="python" data="VBTS_Send_SMS ${vbts_callerid}|103|${_localstr}"/>
     <action application="set" data="service_type=error_sms"/>

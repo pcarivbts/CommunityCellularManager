@@ -14,7 +14,8 @@ from googletrans import Translator, constants
 import re
 from requests.exceptions import ConnectionError
 import settings
-
+import logging
+log = logging.getLogger(__name__)
 
 def get_network_from_user(user):
     """The API can be called from the dashboard using a Django
@@ -41,9 +42,9 @@ def translate(message, to_lang='en', from_lang='auto'):
     try:
         return translator.translate(message, dest=to_lang, src=from_lang).text
     except ConnectionError:
-        print 'Connection Not found'
+        log.error('Translation failing due to connection error, '
+                  'please check network connectivity')
         raise
-
 
 def multiple_translations(message, *to_lang):
     """
@@ -62,8 +63,8 @@ def multiple_translations(message, *to_lang):
 def format_and_translate(message, language=None):
     if language is None:
         language = settings.BTS_LANGUAGES
-    message = str(message)
-    regx = "\%\(\w+\)s"  # regex for '%(variables)s'
+    message = str(message).replace(')s.', ')s ')
+    regx = "\%\(\w+\)s"  # regex for '%(params)s'
     matches = re.findall(regx, message)
     tampered_message = message.split()
     if matches:  # if any variables

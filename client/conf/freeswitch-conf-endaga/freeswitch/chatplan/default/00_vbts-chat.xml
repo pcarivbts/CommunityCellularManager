@@ -43,6 +43,9 @@ of patent rights can be found in the PATENTS file in the same directory.
     <action inline="true" application="python" data='endaga_camped ${vbts_canonical_tp_dest_address}'/>
     <action inline="true" application="set" data="endaga_islocal=${_openbts_ret}"/>
 
+    <!--Check if number is mapped and has cloud event -->
+    <action inline="true" application="python" data='endaga_notification EVENT_${vbts_tp_dest_address}'/>
+    <action inline="true" application="set" data="is_dest_mapped=${_localstr}"/>
     <!-- Indicate that default ('global') message forwarding should be
          ignored, i.e., message only gets delivered by whatever
          actions are taken in the chatplan. -->

@@ -10,7 +10,6 @@ of patent rights can be found in the PATENTS file in the same directory.
 <!-- local routing -->
 <extension name="address_check">
   <condition field="${vbts_tp_dest_address}" expression="^(.*)$">
-    <!--<action application="python" data="endaga_i18n Invalid Address"/>-->
     <action application="python" data="endaga_notification invalid_address"/>
     <action application="python" data="VBTS_Send_SMS ${vbts_callerid}|000|${_localstr}"/>
     <action application="set" data="service_type=error_sms"/>

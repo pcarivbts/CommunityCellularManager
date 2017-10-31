@@ -302,34 +302,31 @@ class CheckinResponder(object):
          what the client submits.
         """
         bts_events = list(dict(notifications).iterkeys())
-        events_exists = Notification.objects.filter(event__in=bts_events,
-                                                    network=self.bts.network).values_list('event', flat=True)
-
+        events_exists = Notification.objects.filter(
+            event__in=bts_events, network=self.bts.network).values_list(
+            'event', flat=True)
         new_events = list(set(bts_events)-set(events_exists))
         for key in new_events:
             event = key
             message = notifications[key]
-            if message[-1] == '*':  # Base Messages by BTS
+            if message and message[-1] == '*':  # Base Messages by BTS
                 message = message[:-1]  # msg received flag down.
                 try:
                     type = 'mapped'
                     int(event)
                 except ValueError:
                     type = 'automatic'
-
                 languages = settings.BTS_LANGUAGES
                 # format message for %(variable)s if any.
-                trans_dict = format_and_translate(message, language=languages)
-                for ln, trns in trans_dict.iteritems():
+                response = format_and_translate(message, language=languages)
+                for language in response:
                     try:
-                        notification = Notification.objects.create(event=event,
-                                                                   type=type,
-                                                                   message=message,
-                                                                   translation=trns,
-                                                                   language=ln,
-                                                                   network=self.bts.network)
+                        notification = Notification.objects.create(
+                            event=event, type=type, message=message,
+                            translation=response[language], language=language,
+                            network=self.bts.network)
                         notification.save()
-                    except IntegrityError:
+                    except IntegrityError:  # Don't break
                         continue
 
     def bts_locale(self, bts_locale):

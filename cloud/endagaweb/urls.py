@@ -154,6 +154,9 @@ urlpatterns = [
     url(r'^dashboard/network/notification/translate',
         endagaweb.views.user.get_translation),
 
+    url(r'^dashboard/network/notification/event',
+        endagaweb.views.user.get_event),
+
     url(r'^dashboard/user/management/permissions',
         endagaweb.views.user.role_default_permissions),
 

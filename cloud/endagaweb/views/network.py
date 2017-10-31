@@ -827,6 +827,7 @@ class NetworkNotifications(ProtectedView):
         network = user_profile.network
         notifications = models.Notification.objects.filter(network=network)
         notification_id = request.GET.get('id', None)
+        number = event = None
         languages = {}
         if notification_id:
             response = {
@@ -835,12 +836,12 @@ class NetworkNotifications(ProtectedView):
                 'data': {}
             }
             notification = models.Notification.objects.get(id=notification_id)
-            number=event=None
             try:
                 number = int(notification.event)
             except ValueError:
-                event = notification.event
-            notifications = models.Notification.objects.filter(event=notification.event)
+                event = str(notification.event).replace('_', ' ').upper()
+            notifications = models.Notification.objects.filter(
+                event=notification.event)
             translations = {}
             for notif in notifications:
                 translations[notif.language] = notif.translation
@@ -861,16 +862,27 @@ class NetworkNotifications(ProtectedView):
             languages[lg] = str(LANGUAGES[lg]).capitalize()
         query = request.GET.get('query', None)
         language = request.GET.get('lang', None)
+        notifications = notifications.distinct('event')
         if query:
-            notifications = (notifications.filter(event__icontains=query) |
+
+            notifications = (notifications.filter(event__icontains=str(
+                query).replace(' ', '_')) |
                              notifications.filter(type__icontains=query) |
                              notifications.filter(message__icontains=query))
-        if language:
+            notification_table = django_tables.NotificationTable(
+                list(notifications))
+        elif language:
             notifications = notifications.filter(language=language)
-        notification_table = django_tables.NotificationTable(
-            list(notifications))
+            # Show tables for selected language only
+            notification_table = django_tables.NotificationTableTranslated(
+                list(notifications))
+        else:
+            notification_table = django_tables.NotificationTable(
+                list(notifications))
+
         tables.RequestConfig(request, paginate={'per_page': 10}).configure(
             notification_table)
+
         context = {
             'networks': get_objects_for_user(request.user, 'view_network',
                                              klass=models.Network),
@@ -933,53 +945,47 @@ class NetworkNotificationsEdit(ProtectedView):
                     event=notification.event)
                 for msg in all_notifications:
                     msg.type = type
-                    msg.message = message
-                    # fails in scenarios like 'id', adding lang_ for uniqueness
+                    if message:
+                        msg.message = message
                     msg.translation = request.POST.get('lang_' + msg.language)
                     msg.event = event
                     msg.save()
                 resp = 'Updated Successfully!'
             else:
-                # Create new notifications
-                languages = settings.BTS_LANGUAGES
-                for language in languages:
-                    translation = request.POST.get('lang_' + language)
-                    notification = models.Notification.objects.create(
-                        network=network)
-                    notification.type = type
-                    notification.message = message
-                    notification.translation = translation
-                    notification.event = event
-                    notification.language = language
-                    notification.save()
-                resp = 'Added Successfully!'
-            messages.success(request, resp)
-            return redirect(urlresolvers.reverse('network-notifications'))
+                try:
+                    if not models.Notification.objects.filter(
+                            event=event,
+                            language__in=settings.BTS_LANGUAGES,
+                            network=network).exists():
+                        # Create new notifications
+                        languages = settings.BTS_LANGUAGES
+                        with transaction.atomic():
+                            for language in languages:
+                                translation = request.POST.get(
+                                    'lang_' + language)
+                                notification =\
+                                    models.Notification.objects.create(
+                                    network=network, language=language)
+                                notification.type = type
+                                notification.message = message
+                                notification.translation = translation
+                                notification.event = event
+                                notification.save()
+                        resp = 'Added Successfully!'
+                        messages.success(request, resp)
+                        return redirect(
+                            urlresolvers.reverse('network-notifications'))
+                except IntegrityError:
+                    resp = 'Notification Already Exists!'
+                    messages.warning(request, resp)
+                    return redirect(
+                        urlresolvers.reverse('network-notifications'))
         else:
-            # Delete the notifications
-            # TODO(sagar): donot delete these events also add these during initialization phase
-            superior_notifications = ['block_or_expired',
-                                      'receiver_block_or_expired',
-                                      'unprovisioned',
-                                      'invalid_address',
-                                      'no_money',
-                                      'no_money_sms',
-                                      'bal_check',
-                                      'number_info',
-                                      'number_already_registered',
-                                      'msg_sent ',
-                                      'number_exists'
-                                      ]
-
+            # Delete notifications
             notifications = models.Notification.objects.filter(
                 id__in=delete_notification)
             events = notifications.values_list('event', flat=True).distinct()
-            # notifications = models.Notification.objects.filter(event__in=events)
-            notifications = models.Notification.objects.all()
-            # to_delete.delete()
-            # for notification in to_delete:
-                # if str(notification.event) not in superior_notifications:
-            notifications.delete()
+            models.Notification.objects.filter(event__in=events).delete()
             resp = 'Selected notification(s) deleted successfully.'
         messages.success(request, resp)
         return redirect(urlresolvers.reverse('network-notifications'))
