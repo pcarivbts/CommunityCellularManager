@@ -626,12 +626,13 @@ class WaterfallStatsClient(StatsClientBase):
             response['header'].append({'label': key, 'name': key})
 
             # Get last/first date of month from selected month
-            next_month = mnth.replace(day=28) + timedelta(days=4)
-            stats_end_dt = next_month - timedelta(days=next_month.day)
+            next_month = mnth.replace(day=28) + timedelta(days=5)
+            stats_end_dt = next_month.replace(day=1)
             stats_start_dt = mnth
 
-            kwargs['start_time_epoch'] = int(stats_start_dt.strftime("%s"))
-            kwargs['end_time_epoch'] = int(stats_end_dt.strftime("%s"))
+            month_start_time_epoch = int(stats_start_dt.strftime("%s"))
+            kwargs['start_time_epoch'] = month_start_time_epoch
+            kwargs['end_time_epoch'] = int(stats_end_dt.strftime("%s"))-1
             kwargs['query'] = Q(subscriber__role='subscriber')
             kind_key = 'Provisioned'
             kwargs['report_view'] = 'value'
@@ -644,11 +645,17 @@ class WaterfallStatsClient(StatsClientBase):
                 month_start_dt = col_mnth
                 # Get last date of month from selected month
                 next_month = col_mnth.replace(day=28) + timedelta(days=4)
-                month_end_dt = next_month - timedelta(days=next_month.day)
+                month_end_dt = next_month.replace(day=1)
 
-                kwargs['start_time_epoch'] = int(month_start_dt.strftime("%s"))
-                kwargs['end_time_epoch'] = int(month_end_dt.strftime("%s"))
-                kwargs['query'] = Q(subscriber_id__in=subscribers)
+                sub_numbers = models.Number.objects.filter(
+                    subscriber__in=subscribers).values_list('number', flat=True)
+
+                start_time_epoch = int(month_start_dt.strftime("%s"))
+                kwargs['start_time_epoch'] = start_time_epoch
+                kwargs['end_time_epoch'] = int(month_end_dt.strftime("%s"))-1
+                kwargs['query'] = Q(subscriber_id__in=subscribers,
+                                    to_number__in=sub_numbers)
+
                 if kind in ['loader', 'reload_rate']:
                     kwargs['aggregation'] = 'loader'
                     kwargs['report_view'] = 'value'
@@ -659,9 +666,12 @@ class WaterfallStatsClient(StatsClientBase):
                     kwargs['aggregation'] = 'reload_transcation_sum'
                     kwargs['report_view'] = 'summary'
 
-                result = self.aggregate_timeseries('transfer', **kwargs)
-                if isinstance(result, (list, tuple)):
-                    result = len(result)
+                if start_time_epoch < month_start_time_epoch:
+                    result = 0
+                else:
+                    result = self.aggregate_timeseries('transfer', **kwargs)
+                    if isinstance(result, (list, tuple)):
+                        result = len(result)
 
                 if kind == 'reload_rate':
                     try:

@@ -38,6 +38,12 @@
         response['messages'].map(function(message) {
           html += '<div class="alert alert-danger">' + message + '</div>';
         });
+        if(response['imsi']) {
+          $('#imsi').val(response['imsi']);
+        }
+        if(response['sent']) {
+          html += '<div class="alert alert-success">SMS sent to ' + response['sent'] + ' IMSI(s).</div>';
+        }
         $('#messages-container').html(html).show();
         setTimeout(function() {
           $('#messages-container').fadeTo(500, 0);
