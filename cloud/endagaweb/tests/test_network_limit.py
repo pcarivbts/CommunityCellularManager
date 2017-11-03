@@ -23,7 +23,8 @@ class TestBase(TestCase):
     def setUpClass(cls):
         cls.username = 'testuser'
         cls.password = 'testpw'
-        cls.user = models.User(username=cls.username, email='y@l.com')
+        cls.user = models.User(username=cls.username, email='y@l.com',
+                               is_superuser=True)
         cls.user.set_password(cls.password)
         cls.user.save()
         cls.user_profile = models.UserProfile.objects.get(user=cls.user)

@@ -249,21 +249,7 @@ label.btn span {
             {{ message }}
         </div>
         {% endfor %}
-        <div class="block-container pull-right">
-            <select name="lang" id="lang" class="form-control col-sm-2"
-                    style="width: 10%" onchange="filterNotifications(this)">
-                <option label="Language"></option>
-                {% for key, language in languages.items %}
-                <option value="{{ key }}">
-                    {{ language }}
-
-                </option>
-                {% endfor %}
-            </select>
-            <div class="col-sm-4">
-                {% crispy search %}
-            </div>
-        </div>
+        {% crispy search %}
         <form action="/dashboard/network/notification/update" method="POST"
               name="notification_form" id="notification_form">
             <div class="table-container col-sm-12">
@@ -295,9 +281,7 @@ label.btn span {
             {% endif %}
         </form>
     </div>
-
 </div>
-
 
 <div class="modal fade right" id="save-event-modal" aria-hidden="true" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog">
@@ -332,7 +316,6 @@ label.btn span {
                             onclick='resetForm()'>
                         Reset
                     </button>
-
             </div>
         </div>
     </div>
@@ -354,7 +337,7 @@ label.btn span {
                 <h4>
                     Are you sure you want to delete?<br><br>
                 </h4>
-                <p><b>Note:</b> This action will delete event and all its translations!</p>
+                <p class="alert alert-danger">This action will delete event and all its translations!</p>
             </div>
             <div class='modal-footer'>
                 <button type='button' class='btn btn-default'
@@ -407,6 +390,7 @@ label.btn span {
     </div>
   </div>
 </div>
+
 {% include "dashboard/subscriber_detail/broadcast.html" with target='network' %}
 {% endblock %}
 {% block js %}
@@ -437,11 +421,9 @@ function getTranslation() {
             $('#add-notification-submit').removeAttr('disabled');
             for (var key in response.translation) {
                 $("#lang_"+key+"").removeClass('loadinggif').removeAttr('disabled').val(response.translation[key]);
-                //$("#lang_"+key+"").removeAttr('disabled');
-                //$("#lang_"+key+"").val(response.translation[key]);
             }
             $("#status").hide();
-            $('#notification-translate').vale('Translate');
+            $('#notification-translate').val('Translate');
         },
         error: function(xhr, status, message) {
         if(status == "timeout") {
@@ -456,7 +438,6 @@ function getTranslation() {
         $('#id_translations').attr({'disabled':'disabled'});
         $("#status").hide();
     }
-
 }
 $(function() {
   $('.actions').hide();
@@ -471,7 +452,6 @@ $(function() {
       } else {
           $('.actions').hide();
       }
-
   });
   $('input:radio').change(function() {
     var notification_type = $('form input[name=type]:checked').val();
@@ -483,10 +463,10 @@ $(function() {
       $('#id_number').prop('disabled', true);
       $('#id_event').prop('disabled', false);
       $('#id_number').val('');
-
     }
   });
 });
+
 $('#delete-confirm').click(function () {
   $('#notification_form').submit();
 });

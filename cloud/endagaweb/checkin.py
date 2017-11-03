@@ -309,7 +309,7 @@ class CheckinResponder(object):
         for key in new_events:
             event = key
             message = notifications[key]
-            if message and message[-1] == '*':  # Base Messages by BTS
+            if message[-1] == '*':  # Base Messages by BTS
                 message = message[:-1]  # msg received flag down.
                 try:
                     type = 'mapped'
@@ -334,8 +334,11 @@ class CheckinResponder(object):
             self.bts.locale = bts_locale
             self.bts.save()
         else:
+            self.bts.locale = 'en'
+            self.bts.save()
             logging.error("client locale: '%s' does not exists in "
-                          "BTS LANGUAGES, " % bts_locale)
+                          "BTS LANGUAGES setting default as English."
+                          % bts_locale)
 
     def radio_handler(self, radio):
         if 'band' in radio and 'c0' in radio:
@@ -377,9 +380,13 @@ class CheckinResponder(object):
         res = {}
         notifications = Notification.objects.filter(network=self.bts.network,
                                                     language=self.bts.locale)
+
         if notifications:
             for notification in notifications:
-                res.update({notification.event: notification.translation})
+                translation = notification.translation
+                if isinstance(notification.translation, str):
+                    translation = unicode(notification.translation, "utf-8")
+                res.update({notification.event: translation})
         return res
 
     def gen_config(self):

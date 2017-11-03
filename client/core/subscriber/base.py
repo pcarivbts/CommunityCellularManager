@@ -26,6 +26,7 @@ from core.exceptions import SubscriberNotFound, EventNotFound
 from core.freeswitch_strings import BASE_MESSAGES
 from itertools import count
 
+
 class BaseSubscriber(KVStore):
     def __init__(self, connector=None):
 
@@ -762,8 +763,8 @@ class BaseBTSNotification(KVStore):
                     "Notification sync fail! Event: %s is not found Error: %s"
                     % (event, e))
             except ValueError as e:
-                logger.error("Notification sync fail! IMSI: %s, %s Error: %s"
-                             % (event, message, e))
+                logger.error("Notification sync fail! Event: %s, Error: %s"
+                             % (event, e))
                 events_to_add.add(notifications)  # try to add it (again)
 
         for event in events_to_add:
@@ -773,8 +774,8 @@ class BaseBTSNotification(KVStore):
                 self.update_notification(event, message)
             except (EventNotFound, ValueError) as e:
                 logger.error(
-                    "Notification sync fail! Event: %s, %s Error: %s" %
-                    (event, message, e))
+                    "Notification sync fail! Event: %s Error: %s" %
+                    (event, e))
 
     def get_or_create(self, key, message=None):
         if message is not None:

@@ -18,10 +18,11 @@ from core import events
 from core import freeswitch_interconnect
 from core import interconnect
 from core.config_database import ConfigDB
-from core.federer_handlers.common import gt
 from core.subscriber import subscriber
 from core.subscriber.base import BaseBTSNotification
+import core.config_database
 
+configdb = core.config_database.ConfigDB()
 notification = BaseBTSNotification()
 
 class registration:
@@ -43,8 +44,8 @@ class registration:
             subscriber.create_subscriber(from_name, number, ip, port)
             self.fs_ic.send_to_number(number, ret_num,
                                       notification.get_notification(
-                                          'number_check') % {
-                                          'from_number': number})
+                                          configdb.get('number_check_number'))
+                                      % {'from_number': number})
             reason = 'Provisioned user %s number %s' % (from_name, number)
             events.create_provision_event(from_name, reason)
         except Exception as e:

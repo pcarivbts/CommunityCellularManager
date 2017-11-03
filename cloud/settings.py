@@ -63,5 +63,5 @@ STATICFILES_DIRS = ()
 WSGI_APPLICATION = 'endagaweb.wsgi.application'
 
 # BTS Notification Languages for translation.
-# refer LANGUAGES in googletrans.constants for keys
-BTS_LANGUAGES = ['es', 'id', 'tl']
+#TODO(sharma-sagar): currently supported for below languages only.
+BTS_LANGUAGES = ['id', 'tl', 'en']

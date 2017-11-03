@@ -104,9 +104,12 @@ def process_transfer(from_imsi, to_imsi, amount):
         }
         reason = (get_event('top_up_not_allowed')) % {
             'credit': credit_limit}
+
         # For cloud
+        event_msg = (BASE_MESSAGES['top_up_not_allowed']) % {
+            'credit': credit_limit}
         events.create_transfer_event(from_imsi, from_balance, from_balance,
-                                     reason + ERROR_TRX, from_num, to_num)
+                                     event_msg + ERROR_TRX, from_num, to_num)
 
         return False, reason + block_info + ERROR_TRX
     elif (amount + to_balance) > network_max_balance:
@@ -118,9 +121,13 @@ def process_transfer(from_imsi, to_imsi, amount):
                      }
         reason = get_event('top_up_not_allowed_detail') % {
             'credit': credit_limit, 'transfer': max_transfer_str}
+
         # For cloud
+        event_msg = (BASE_MESSAGES['top_up_not_allowed_detail']) % {
+            'credit': credit_limit, 'transfer': max_transfer_str}
         events.create_transfer_event(from_imsi, from_balance, from_balance,
-                                     reason + ERROR_TRX, from_num, to_num)
+                                     event_msg + ERROR_TRX, from_num, to_num)
+
         return False, reason + block_info + ERROR_TRX
     # check top-up amount in denomination bracket
     validity_days = get_validity_days(amount)
@@ -130,9 +137,11 @@ def process_transfer(from_imsi, to_imsi, amount):
             'transfer_attempts_left') % {
             'attempts': int(max_attempts) - (int(attempts) + 1)}
         reason = get_event('transfer_denomination_error')
+
         # For cloud
+        event_msg = (BASE_MESSAGES['transfer_denomination_error'])
         events.create_transfer_event(from_imsi, from_balance, from_balance,
-                                     reason + ERROR_TRX, from_num, to_num)
+                                     event_msg + ERROR_TRX, from_num, to_num)
         return False, reason + block_info + ERROR_TRX
     # Add the pending transfer.
     code = ''
@@ -172,25 +181,29 @@ def process_confirm(from_imsi, code):
         from_imsi, to_imsi, amount = res
         from_num = subscriber.get_numbers_from_imsi(from_imsi)[0]
         to_num = subscriber.get_numbers_from_imsi(to_imsi)[0]
-        reason = (get_event('sms_transfer_from_to')) % \
-                 {'from_number': from_num, 'to_number': to_num}
+        reason = (get_event('transfer_from_to')) % {
+            'from_number': from_num, 'to_number': to_num}
 
+        event_msg = (BASE_MESSAGES['transfer_from_to']) % {
+            'from_number': from_num, 'to_number': to_num}
         # Deduct credit from the sender.
         from_imsi_old_credit = subscriber.get_account_balance(from_imsi)
         from_imsi_new_credit = int(from_imsi_old_credit) - int(amount)
         events.create_transfer_event(from_imsi, from_imsi_old_credit,
-                                     from_imsi_new_credit, reason,
+                                     from_imsi_new_credit, event_msg,
                                      from_number=from_num, to_number=to_num)
         subscriber.subtract_credit(from_imsi, str(int(amount)))
+
         # Add credit to the recipient.
         to_imsi_old_credit = subscriber.get_account_balance(to_imsi)
         to_imsi_new_credit = int(to_imsi_old_credit) + int(amount)
         events.create_transfer_event(to_imsi, to_imsi_old_credit,
-                                     to_imsi_new_credit, reason,
+                                     to_imsi_new_credit, event_msg,
                                      from_number=from_num, to_number=to_num)
         top_up_validity = subscriber.status().get_subscriber_validity(
             to_imsi, get_validity_days(amount))
         subscriber.add_credit(to_imsi, str(int(amount)))
+
         # Humanize credit strings
         amount_str = freeswitch_strings.humanize_credits(amount)
         to_balance_str = freeswitch_strings.humanize_credits(
@@ -212,7 +225,7 @@ def process_confirm(from_imsi, code):
         return True, get_event(
             'transfer_details_sender') % {
                    'amount': amount_str, 'to_number': to_num,
-                   'account_balance': from_balance_str}
+                   'account_bal': from_balance_str}
 
     return False, get_event('transfer_expired')
 

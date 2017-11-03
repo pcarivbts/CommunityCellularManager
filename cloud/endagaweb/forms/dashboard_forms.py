@@ -13,7 +13,7 @@ import datetime
 import pytz
 from crispy_forms.bootstrap import StrictButton, FieldWithButtons
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, Field
+from crispy_forms.layout import Layout, Submit, Field, Fieldset, ButtonHolder
 from django import forms
 from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm
 from django.contrib.auth.models import User
@@ -26,7 +26,7 @@ from ccm.common.currency import CURRENCIES
 from endagaweb import models
 from endagaweb.templatetags import apptags
 from django.contrib.auth import password_validation
-from googletrans.constants import LANGUAGES
+from googletrans.constants import LANGUAGES, LANGCODES
 from django.conf import settings
 
 
@@ -584,31 +584,42 @@ class NotificationForm(forms.Form):
                            'title': "For dynamic values you can add "
                                     "%(account_balance)s for number "
                                     "%(number)s etc."
-                                    "Always give append a space with "
+                                    "Always add a space after"
                                     "wildcard(s)",
                            'placeholder': placeholder,
                            'rows': '2',
                            'onchange': 'enableUpdate()',
                            }
                 ))
-            # Comment the below line to use each language edit from notifications.html
             fields.append('lang_%s' % key)
         self.helper.layout = Layout(*fields)
 
 
 class NotificationSearchForm(forms.Form):
     """Crispy search form for notifications under network"""
+    choices = []
+    lang = settings.BTS_LANGUAGES
+    for lg in lang:
+        choices.append((lg, LANGUAGES[lg].capitalize()))
+
     query = forms.CharField(required=False, label="",
                             widget=forms.TextInput(
-                                attrs={'placeholder':
-                                           'Message or Type of event'}))
+                                attrs={'placeholder': 'Message or Type of'
+                                                      ' event'
+                                       }))
+    language = forms.ChoiceField(label="", choices=choices, required=False,
+                                 widget=forms.Select(
+                                     attrs={'onchange': 'form.submit();'}))
 
-    def __init__(self, sender, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super(NotificationSearchForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_id = 'id-NotificationSearchForm'
         self.helper.form_method = 'get'
         self.helper.form_action = '/dashboard/network/notification'
         search_button = StrictButton('Filter', css_class='btn-default',
                                      type='submit')
-        self.helper.layout = Layout(FieldWithButtons('query', search_button))
-        super(NotificationSearchForm, self).__init__(*args, **kwargs)
+        self.helper.form_class = 'col-sm-4'
+        self.helper.layout = Layout(FieldWithButtons('query', search_button),
+                                    'language')
+

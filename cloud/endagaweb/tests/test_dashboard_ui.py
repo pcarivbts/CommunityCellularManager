@@ -31,6 +31,7 @@ class TowerUITest(test.TestCase):
         cls.password = 'pw'
         cls.user = models.User(username=cls.username, email='y@l.com')
         cls.user.set_password(cls.password)
+        cls.user.is_superuser = True
         cls.user.save()
         cls.user_profile = models.UserProfile.objects.get(user=cls.user)
         cls.uuid = "59216199-d664-4b7a-a2db-6f26e9a5d208"

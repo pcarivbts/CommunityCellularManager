@@ -1,17 +1,10 @@
 """
-We have a few strings that are defined in our FS chatplan and dialplan which
-need internationalization support.
-
-The way we handle this is via the endaga_i18n script. It's used in a
+The way we handle this is via the endaga_notification script. It's used in a
 dialplan/chatplan like so:
 
-    <action application="python" data='endaga_i18n "Your number is %(number)s" % {"number": ${vbts_callerid}}'/>
-
-The result is saved into the $endaga_i18n FS variable for later use.
-
-Note what this does -- it's passing in a string to the script, which in turn
-needs to look it up and return some sensible result. This file is where we
-actually keep track of the various strings used in the dialplan/chatplan.
+    <action application="python" data='endaga_notification 'any key in Base_MESSAGES' % {"number": ${vbts_callerid}}'/>
+    ex:
+    <action application="python" data='endaga_notification sms_error % {"number": ${vbts_callerid}}'/>
 
 Copyright (c) 2016-present, Facebook, Inc.
 All rights reserved.
@@ -61,7 +54,7 @@ BASE_MESSAGES = {
                                   "%(validity)s.",
     'transfer_details_sender': "You've transferred %(amount)s to "
                                "%(to_number)s Your new balance is "
-                               "%(account_balance)s.",
+                               "%(account_bal)s.",
     'transfer_expired': "That transfer confirmation code doesn't exist or has "
                         "expired .",
     'transfer_help': "To transfer credit, reply with a message in the format "

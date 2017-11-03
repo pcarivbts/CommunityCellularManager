@@ -816,7 +816,7 @@ class NetworkBalanceLimit(ProtectedView):
 
 
 class NetworkNotifications(ProtectedView):
-    """Manage event notifications for network. """
+    """View event notifications for current network. """
 
     permission_required = 'view_notification'
 
@@ -861,28 +861,29 @@ class NetworkNotifications(ProtectedView):
         for lg in langs:
             languages[lg] = str(LANGUAGES[lg]).capitalize()
         query = request.GET.get('query', None)
-        language = request.GET.get('lang', None)
+        language = request.GET.get('language', None)
         notifications = notifications.distinct('event')
-        if query:
-
+        if query or language:
             notifications = (notifications.filter(event__icontains=str(
                 query).replace(' ', '_')) |
                              notifications.filter(type__icontains=query) |
+                             notifications.filter(language=LANGUAGES[language])|
+                             notifications.filter(translation__icontains=query)|
                              notifications.filter(message__icontains=query))
-            notification_table = django_tables.NotificationTable(
-                list(notifications))
-        elif language:
-            notifications = notifications.filter(language=language)
-            # Show tables for selected language only
-            notification_table = django_tables.NotificationTableTranslated(
-                list(notifications))
+            if language == 'en':
+                notification_table = django_tables.NotificationTable(
+                    list(notifications))
+            else:
+                notification_table = django_tables.NotificationTableTranslated(
+                    list(notifications))
         else:
             notification_table = django_tables.NotificationTable(
                 list(notifications))
 
-        tables.RequestConfig(request, paginate={'per_page': 10}).configure(
+        tables.RequestConfig(request, paginate={'per_page': 8}).configure(
             notification_table)
-
+        if not language:
+            language = 'en'
         context = {
             'networks': get_objects_for_user(request.user, 'view_network',
                                              klass=models.Network),
@@ -894,7 +895,8 @@ class NetworkNotifications(ProtectedView):
             'records': len(list(notifications)),
             'languages': languages,
             'network': network,
-            'search': dform.NotificationSearchForm({'query': query}),
+            'search': dform.NotificationSearchForm({'query': query,
+                                                    'language': language}),
         }
         # Render template.
         template = get_template('dashboard/network_detail/notifications.html')
