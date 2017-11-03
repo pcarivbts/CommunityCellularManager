@@ -42,6 +42,8 @@ BASE_MESSAGES = {
     'reg_failed': "Failed to register your handset.",
 
     # SMS CREDIT TRANSFER (CT_MESSAGES)
+    'transfer_self_fail': "Transaction Failed. Sharing load to your own "
+                            "account is not allowed.",
     'transfer_attempts_left': "Your left attempts %(attempts)s",
     'transfer_denomination_error': "Top-up not under denomination range.",
     'transfer_confirm': "Reply to this message with %(code)s to confirm your "
