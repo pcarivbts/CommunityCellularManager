@@ -42,7 +42,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 <div class = 'row'>
   {% include "dashboard/tower_detail/nav.html" with uuid=tower.uuid active_tab='monitor'%}
 
-  {% if endaga_version <= '00000.00003.00026' %}
+  {% if endaga_version >= '00000.00003.00026' %}
     {% if tower_has_monitoring_stats %}
       <div class='col-xs-12 col-sm-10'>
         <div id='channel-load-stats-chart-container'></div>
