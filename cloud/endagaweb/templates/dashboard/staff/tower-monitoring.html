@@ -14,6 +14,8 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% block pagestyle %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap3-dialog/1.34.7/css/bootstrap-dialog.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css" type="text/css"/>
 <style>
   .timezone-notice {
     display: none;
@@ -81,27 +83,34 @@ of patent rights can be found in the PATENTS file in the same directory.
     }, 800);
   });
 </script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap3-dialog/1.34.7/js/bootstrap-dialog.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/react.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/JSXTransformer.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.1.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
+<script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+<script src="/static/js/dashboard/saveSvgAsPng.js"></script>
 
-<script type="text/jsx" src="/static/js/dashboard/chart-components.js"></script>
+<script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
+<script src="/static/js/dashboard/sms-broadcast.js"></script>
 <script type="text/jsx">
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Channel Load'
       chartID='channel-load-stats-chart'
       statTypes='sdcch_load,sdcch_available,tchf_load,tchf_available,pch_active,pch_total,agch_active,agch_pending,gprs_current_pdchs,ccch_sdcch4_load,tch_f_max,tch_f_load,sdcch8_max,tch_f_pdch_load,tch_f_pdch_max,tch_h_load,tch_h_max,sdcch8_load,ccch_sdcch4_max'
+      level='tower'
       levelID='{{ tower.id }} '
       aggregation='average_value'
       yAxisLabel=''
       currentTimeEpoch='{{ current_time_epoch }}'
       timezoneOffset='{{ timezone_offset }}'
-      endpoint='/api/v1/stats/tower'
       defaultButtonText='day'
+      chartType='line-chart'
+      info='This graph shows total capacity, availibility and usage of GSM signalling and traffic channels for selected time window.'
+
     />,
     document.getElementById('channel-load-stats-chart-container')
   );
@@ -110,13 +119,15 @@ of patent rights can be found in the PATENTS file in the same directory.
       title='Noise'
       chartID='noise-stats-chart'
       statTypes='noise_rssi_db,noise_ms_rssi_target_db'
+      level='tower'
       levelID='{{ tower.id }} '
       aggregation='average_value'
       yAxisLabel=''
       currentTimeEpoch='{{ current_time_epoch }}'
       timezoneOffset='{{ timezone_offset }}'
-      endpoint='/api/v1/stats/tower'
       defaultButtonText='day'
+      chartType='line-chart'
+      info='This graph shows noise signal strength and Target mobile signal strength to receive error free signal.'
     />,
     document.getElementById('noise-stats-chart-container')
   );
@@ -125,13 +136,15 @@ of patent rights can be found in the PATENTS file in the same directory.
       title='System Utilization'
       chartID='system-utilization-stats-chart'
       statTypes='cpu_percent,memory_percent,disk_percent,gprs_utilization_percentage'
+      level='tower'
       levelID='{{ tower.id }} '
       aggregation='average_value'
       yAxisLabel=''
       currentTimeEpoch='{{ current_time_epoch }}'
       timezoneOffset='{{ timezone_offset }}'
-      endpoint='/api/v1/stats/tower'
       defaultButtonText='day'
+      chartType='line-chart'
+      info='This graph shows total system utlization in terms of memory, disk and cpu for selected time window.'
     />,
     document.getElementById('system-utilization-stats-chart-container')
   );
@@ -140,13 +153,15 @@ of patent rights can be found in the PATENTS file in the same directory.
       title='Network Utilization'
       chartID='network-utilization-stats-chart'
       statTypes='bytes_sent_delta,bytes_received_delta'
+      level='tower'
       levelID='{{ tower.id }} '
       aggregation='average_value'
       yAxisLabel=''
       currentTimeEpoch='{{ current_time_epoch }}'
       timezoneOffset='{{ timezone_offset }}'
-      endpoint='/api/v1/stats/tower'
       defaultButtonText='day'
+      chartType='line-chart'
+      info='This graph shows total data ( uplink and downlink) used by network for selected time window.'
     />,
     document.getElementById('network-utilization-stats-chart-container')
   );
