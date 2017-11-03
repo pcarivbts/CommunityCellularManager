@@ -44,8 +44,9 @@ class registration:
             subscriber.create_subscriber(from_name, number, ip, port)
             self.fs_ic.send_to_number(number, ret_num,
                                       notification.get_notification(
-                                          configdb.get('number_check_number'))
-                                      % {'from_number': number})
+                                          str(configdb.get(
+                                              'number_check_number'))) %
+                                      {'from_number': number})
             reason = 'Provisioned user %s number %s' % (from_name, number)
             events.create_provision_event(from_name, reason)
         except Exception as e:
