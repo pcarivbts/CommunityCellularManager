@@ -164,6 +164,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
     updateChartData: function() {
         var interval, newXAxisFormatter, newYAxisFormatter, tablesColumnValueName;
         var delta = this.state.endTimeEpoch - this.state.startTimeEpoch;
+        var tower_monitoring_stats = ['channel-load-stats-chart','noise-stats-chart','system-utilization-stats-chart','network-utilization-stats-chart']
         if (delta <= 60) {
             interval = 'seconds';
             newXAxisFormatter = '%-H:%M:%S';
@@ -191,7 +192,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
         } else {
             newYAxisFormatter = '';
         }
-        if (this.props.chartID == 'data-chart') {
+        if (this.props.chartID == 'minutes-chart') {
             newYAxisFormatter = '.2f';
             tablesColumnValueName = [{
                 title: "Type"
@@ -204,6 +205,13 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
                 title: "Type"
             }, {
                 title: "Count"
+            }]
+        } else if (this.props.chartID == 'duration-chart') {
+
+            tablesColumnValueName = [{
+                title: "Type"
+            }, {
+                title: "Seconds"
             }]
         } else if (this.props.chartID == 'topupSubscriber-chart') {
             newYAxisFormatter = '.2f';
@@ -220,12 +228,30 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
             }, {
                 title: "Count"
             }]
+        } else if (this.props.chartID == 'data-chart') {
+            newYAxisFormatter = '.2f';
+            tablesColumnValueName = [{
+                title: "Type"
+            }, {
+                title: "MB"
+            }]
 
         } else if (this.props.chartID == 'load-transfer-chart') {
             newYAxisFormatter = '.2f';
         }
+         else if (tower_monitoring_stats.indexOf(this.props.chartID) >=0) {
+            tablesColumnValueName = [{
+                title: "Type"
+            }, {
+                title: "Average Value"
+            }]
+            if (this.props.chartID == 'noise-stats-chart'){
+               newYAxisFormatter = '.5f';
+            }
+        }
         else {
             tablesColumnValueName = [{
+
                 title: "Type"
             }, {
                 title: "Count"
@@ -357,7 +383,7 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
     var shiftedData = [];
     var changeAmount = [];
     var tableData = [];
-
+    var tower_monitoring_chart = ['channel-load-stats-chart' , 'system-utilization-stats-chart' ,'network-utilization-stats-chart' ,'minutes-chart']
 
     for (var index in data) {
         var newSeries = {
@@ -377,12 +403,17 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
             }
             // Get sum of the total charges
             var sumAmount = changeAmount.reduce(add, 0);
+            var avg = sumAmount/changeAmount.length;
             changeAmount = []
                 // sum can be of all negative values
             if (sumAmount < 0) {
                 newSeries['total'] = (sumAmount * -1);
             } else {
+                if (tower_monitoring_chart.indexOf(domTargetId) >= 0) {
+                    newSeries['total'] = avg
+                }else {
                 newSeries['total'] = (sumAmount);
+                }
             }
             newSeries['values'] = newValues;
         } else {
@@ -396,10 +427,17 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                 newSeries['total'] = newSeries['total']
                 tableData.push([newSeries['key'], newSeries['total']]);
             }}
-            else if (domTargetId == 'data-chart' || domTargetId == 'topupSubscriber-chart' || domTargetId == 'call-billing-chart' || domTargetId == 'sms-billing-chart' || domTargetId == 'call-sms-billing-chart'){
+            else if (domTargetId == 'data-chart' || domTargetId == 'topupSubscriber-chart' || domTargetId == 'call-billing-chart' || domTargetId == 'sms-billing-chart' || domTargetId == 'call-sms-billing-chart' ||
+                     tower_monitoring_chart.indexOf(domTargetId) >= 0){
 
               if (newSeries['total'] != undefined) {
                 newSeries['total'] = newSeries['total'].toFixed(2);
+                tableData.push([newSeries['key'], newSeries['total']]);
+            }
+            }
+            else if (domTargetId == 'noise-stats-chart'){
+                if (newSeries['total'] != undefined) {
+                newSeries['total'] = newSeries['total'].toFixed(4);
                 tableData.push([newSeries['key'], newSeries['total']]);
             }
             }
@@ -526,10 +564,15 @@ var updateChart = function(domTarget, data, xAxisFormatter, yAxisFormatter, yAxi
                     return d[0]
                 })
                 .y(function(d) {
-                if (d[1] > 0){
-                    return 1
+                if(domTarget =='#health-chart'){
+                    if (d[1] > 0){
+                        return 1
+                    } else {
+                        return 0
+                }
                 } else {
-                    return 0
+
+                     return d[1]
                 }
 
                 })

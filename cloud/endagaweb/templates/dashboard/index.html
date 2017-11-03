@@ -15,12 +15,18 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 
 {% block pagestyle %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap3-dialog/1.34.7/css/bootstrap-dialog.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css" type="text/css"/>
 
 <style>
   .timezone-notice {
     display: none;
+  }
+   div.tooltip-inner {
+    max-width: 350px;
+    background-color:#483D8B;
   }
 </style>
 <html lang="en">
@@ -78,15 +84,15 @@ $("#dialog").modal('show');
 
 {% block content %}
 {% get_obj_perms request.user for network as 'user_permission' %}
+{% include "dashboard/report/header.html" with header='Call Sms & Data Usage' %}
 
 
 <div class="row">
-  <div class="col-xs-12 page-header">
-    <h3>Graphs</h3>
-  </div>
-</div>
-{% if 'view_graph' in user_permission %}
-{% if network_has_activity %}
+ {% include "dashboard/report/nav.html" with active_tab='Call_Sms_Data_Usage' %}
+   <div class='content col-xs-12 col-sm-10 col-md-10'>
+     {% if 'view_graph' in user_permission %}
+     {% include "dashboard/report/cms-filter-action.html" with action_url='/dashboard' %}
+     {% if network_has_activity %}
   <div id='sms-usage-chart'></div>
   <div id='call-usage-chart'></div>
   <div id='data-usage-chart'></div>
@@ -98,6 +104,9 @@ $("#dialog").modal('show');
   {% include 'dashboard/permission_denied.html' %}
   {% endif %}
 {% endblock %}
+   </div>
+</div>
+
 
 
 {% block js %}
@@ -109,14 +118,16 @@ $("#dialog").modal('show');
     }, 800);
   });
 </script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap3-dialog/1.34.7/js/bootstrap-dialog.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/react.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/JSXTransformer.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.1.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
-
-<script type="text/jsx" src="/static/js/dashboard/chart-components.js"></script>
+<script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+<script src="/static/js/dashboard/saveSvgAsPng.js"></script>
+<script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
 <script type="text/jsx">
   var currentTimeEpoch = {{ current_time_epoch }};
   var timezoneOffset = {{ timezone_offset }};
@@ -125,26 +136,32 @@ $("#dialog").modal('show');
       title='SMS usage'
       chartID='sms-chart'
       statTypes='sms,local_sms,local_recv_sms,outside_sms,incoming_sms,free_sms'
-      levelID='{{ network_id }}'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
       aggregation='count'
       yAxisLabel='number of SMS'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       tooltipUnits=''
+      chartType='line-chart'
+      info='This report shows total number of SMS (sent or received) in a network for a selected time window.'
     />,
     document.getElementById('sms-usage-chart')
   );
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Call durations'
-      chartID='call-chart'
+      chartID='duration-chart'
       statTypes='call,local_call,local_recv_call,outside_call,incoming_call,free_call'
-      levelID='{{ network_id }}'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
       aggregation='duration'
       yAxisLabel='seconds of calls'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       tooltipUnits='s of'
+      chartType='line-chart'
+      info='This report shows total minutes of call (MO or MT) in a network for a selected time window.'
     />,
     document.getElementById('call-usage-chart')
   );
@@ -153,15 +170,20 @@ $("#dialog").modal('show');
       title='Data usage'
       chartID='data-chart'
       statTypes='total_data,uploaded_data,downloaded_data'
-      levelID='{{ network_id }}'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
+      aggregation='duration'
       aggregation=''
       yAxisLabel='MB'
       currentTimeEpoch={currentTimeEpoch}
       timezoneOffset={timezoneOffset}
       tooltipUnits='MB of'
+      chartType='line-chart'
+      info='This report shows total billing amount  charged to all the subscribers for all kind of outbound Calls ( Local & Outside).'
     />,
     document.getElementById('data-usage-chart')
   );
 </script>
 {% endif %}
+
 {% endblock %}

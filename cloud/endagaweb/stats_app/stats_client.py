@@ -620,6 +620,9 @@ class WaterfallStatsClient(StatsClientBase):
                                 'name': 'activation', 'frozen': True}],
                     'data': []};
 
+        retailers_numbers = models.Number.objects.filter(
+            subscriber__role="retailer").values_list('number', flat=True)
+
         months = rrule(MONTHLY, dtstart=start, until=end)
         for mnth in months:
             key = mnth.strftime("%b") + "-" + mnth.strftime("%Y")
@@ -654,7 +657,8 @@ class WaterfallStatsClient(StatsClientBase):
                 kwargs['start_time_epoch'] = start_time_epoch
                 kwargs['end_time_epoch'] = int(month_end_dt.strftime("%s"))-1
                 kwargs['query'] = Q(subscriber_id__in=subscribers,
-                                    to_number__in=sub_numbers)
+                                    to_number__in=sub_numbers,
+                                    from_number__in=retailers_numbers)
 
                 if kind in ['loader', 'reload_rate']:
                     kwargs['aggregation'] = 'loader'
