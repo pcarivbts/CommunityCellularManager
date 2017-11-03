@@ -84,14 +84,15 @@ $("#dialog").modal('show');
 
 {% block content %}
 {% get_obj_perms request.user for network as 'user_permission' %}
-{% include "dashboard/report/header.html" with header='Call Sms Data Usage' %}
+{% include "dashboard/report/header.html" with header='Call Sms & Data Usage' %}
 
 
 <div class="row">
-
-{% if 'view_graph' in user_permission %}
- {% include "dashboard/report/cms-filter-action.html" with action_url='/dashboard' %}
-{% if network_has_activity %}
+ {% include "dashboard/report/nav.html" with active_tab='Call_Sms_Data_Usage' %}
+   <div class='content col-xs-12 col-sm-10 col-md-10'>
+     {% if 'view_graph' in user_permission %}
+     {% include "dashboard/report/cms-filter-action.html" with action_url='/dashboard' %}
+     {% if network_has_activity %}
   <div id='sms-usage-chart'></div>
   <div id='call-usage-chart'></div>
   <div id='data-usage-chart'></div>
@@ -103,6 +104,9 @@ $("#dialog").modal('show');
   {% include 'dashboard/permission_denied.html' %}
   {% endif %}
 {% endblock %}
+   </div>
+</div>
+
 
 
 {% block js %}
@@ -147,7 +151,7 @@ $("#dialog").modal('show');
   React.render(
     <TimeseriesChartWithButtonsAndDatePickers
       title='Call durations'
-      chartID='calls-chart'
+      chartID='duration-chart'
       statTypes='call,local_call,local_recv_call,outside_call,incoming_call,free_call'
       level='{{ level }}'
       levelID='{{ level_id }}'
@@ -157,7 +161,7 @@ $("#dialog").modal('show');
       timezoneOffset={timezoneOffset}
       tooltipUnits='s of'
       chartType='line-chart'
-      info='This report shows total billing amount  charged to all the subscribers for all kind of outbound Calls ( Local & Outside).'
+      info='This report shows total minutes of call (MO or MT) in a network for a selected time window.'
     />,
     document.getElementById('call-usage-chart')
   );
