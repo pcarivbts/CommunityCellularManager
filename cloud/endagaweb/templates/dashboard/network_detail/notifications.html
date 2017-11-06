@@ -488,11 +488,14 @@ function editNotification() {
   // edit from detail form
       var notif_id = $('#event_id').val();
   }
+
+
   // Post to the endagaweb API.
   $('#id_message').attr({'disabled':'disabled'});
   $('#add-notification-submit').val('Update');
   $('#edit').show();
   $('.title').html('Edit Notification');
+
   $.ajax({
       url: '/dashboard/network/notification?id=' + notif_id,
       type: 'GET',
@@ -549,7 +552,7 @@ function getNotification(id) {
           $('#id_pk').val(id);
           $('#is_protected').val(response.data.protected);
           if (response.data.number){
-              $('#event_title').text(response.data.number);
+              $('#id_event').text(response.data.number);
           }else{
               $('#event_title').text((response.data.event.toUpperCase()).replace('_', ' '));
           }
