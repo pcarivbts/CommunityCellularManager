@@ -1964,6 +1964,7 @@ class Notification(models.Model):
     type = models.CharField(max_length=10, choices=TYPE, default='automatic')
     language = models.CharField(max_length=6, default='en')
     translation = models.TextField(max_length=160, null=True)
+    protected = models.BooleanField(default=True)
 
     class Meta:
         unique_together = ('event', 'translation', 'network')

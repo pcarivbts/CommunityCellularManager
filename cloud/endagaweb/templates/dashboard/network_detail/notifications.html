@@ -320,6 +320,8 @@ label.btn span {
         </div>
     </div>
 </div>
+<!-- variable-->
+<input type="hidden" id="is_protected" name="is_protected" value="True"/>
 
 <div class='modal fade' id='delete-event-modal'>
     <div class='modal-dialog'>
@@ -478,7 +480,7 @@ function toggle(source) {
   }
 }
 function editNotification() {
-
+  $("#status").hide();
   if ($('form input[name=id]:checked').val()){
   // edit via checkbox
       var notif_id = $('form input[name=id]:checked').val();
@@ -486,11 +488,14 @@ function editNotification() {
   // edit from detail form
       var notif_id = $('#event_id').val();
   }
+
+
   // Post to the endagaweb API.
   $('#id_message').attr({'disabled':'disabled'});
   $('#add-notification-submit').val('Update');
   $('#edit').show();
   $('.title').html('Edit Notification');
+
   $.ajax({
       url: '/dashboard/network/notification?id=' + notif_id,
       type: 'GET',
@@ -508,6 +513,14 @@ function editNotification() {
           for (var key in response.data.translations) {
               $("#lang_"+key+"").val(response.data.translations[key]);
               $('#lang_'+key+'_get').val(response.data.translations[key]);
+          }
+          if (response.data.protected){
+             $('#id_event').attr({'disabled':'disabled'});
+             $('#id_number').attr({'disabled':'disabled'});
+             $('[id^="id_type"]').attr({'disabled':'disabled'});
+                }else{
+             $('#id_event').removeAttr('disabled');
+             $('#id_number').removeAttr('disabled');
           }
       },
       error: function (response) {
@@ -537,8 +550,9 @@ function getNotification(id) {
           // for specific language modal
           $('#event_id').val(id);
           $('#id_pk').val(id);
+          $('#is_protected').val(response.data.protected);
           if (response.data.number){
-              $('#event_title').text(response.data.number);
+              $('#id_event').text(response.data.number);
           }else{
               $('#event_title').text((response.data.event.toUpperCase()).replace('_', ' '));
           }
