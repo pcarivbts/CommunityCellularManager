@@ -850,6 +850,7 @@ class NetworkNotifications(ProtectedView):
                 'event': event,
                 'number': number,
                 'message': notification.message,
+                'protected': notification.protected,
                 'translations': translations,
                 'type': notification.type,
             }
@@ -956,7 +957,8 @@ class NetworkNotificationsEdit(ProtectedView):
                     if message:
                         msg.message = message
                     msg.translation = request.POST.get('lang_' + msg.language)
-                    msg.event = event
+                    if not msg.protected:
+                        msg.event = event
                     msg.save()
                 resp = 'Updated Successfully!'
             else:
