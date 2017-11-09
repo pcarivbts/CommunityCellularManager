@@ -850,6 +850,7 @@ class NetworkNotifications(ProtectedView):
                 'event': event,
                 'number': number,
                 'message': notification.message,
+                'protected': notification.protected,
                 'translations': translations,
                 'type': notification.type,
             }
@@ -863,25 +864,31 @@ class NetworkNotifications(ProtectedView):
         query = request.GET.get('query', None)
         language = request.GET.get('language', None)
         notifications = notifications.distinct('event')
-        if query or language:
-            notifications = (notifications.filter(event__icontains=str(
+        l_notifications = q_notifications = None
+        notification_table = django_tables.NotificationTable(
+            list(notifications))
+        if query and len(query) > 0:
+            q_notifications = (notifications.filter(event__icontains=str(
                 query).replace(' ', '_')) |
                              notifications.filter(type__icontains=query) |
-                             notifications.filter(language=LANGUAGES[language])|
-                             notifications.filter(translation__icontains=query)|
+                             notifications.filter(
+                                 translation__icontains=query) |
                              notifications.filter(message__icontains=query))
-            if language == 'en':
-                notification_table = django_tables.NotificationTable(
-                    list(notifications))
-            else:
-                notification_table = django_tables.NotificationTableTranslated(
-                    list(notifications))
-        else:
             notification_table = django_tables.NotificationTable(
+                list(q_notifications))
+        if language and len(language) > 0:
+            l_notifications = notifications.filter(
+                language=language)
+            notification_table = django_tables.NotificationTableTranslated(
+                list(l_notifications))
+        if q_notifications and l_notifications:
+            notifications = q_notifications.filter(
+                language=language)
+            notification_table = django_tables.NotificationTableTranslated(
                 list(notifications))
-
-        tables.RequestConfig(request, paginate={'per_page': 8}).configure(
+        tables.RequestConfig(request, paginate={'per_page': 10}).configure(
             notification_table)
+        # default page language
         if not language:
             language = 'en'
         context = {
@@ -950,7 +957,8 @@ class NetworkNotificationsEdit(ProtectedView):
                     if message:
                         msg.message = message
                     msg.translation = request.POST.get('lang_' + msg.language)
-                    msg.event = event
+                    if not msg.protected:
+                        msg.event = event
                     msg.save()
                 resp = 'Updated Successfully!'
             else:

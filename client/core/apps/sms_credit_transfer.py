@@ -66,6 +66,9 @@ def process_transfer(from_imsi, to_imsi, amount):
     Returns:
       boolean indicating success
     """
+    # Error when user tries to transfer to his own account
+    if from_imsi == to_imsi:
+        return False, get_event('transfer_self_fail')
     from_balance = int(subscriber.get_account_balance(from_imsi))
     # Error when blocked or expired user tries to transfer credit
     from_imsi_status = subscriber.status().get_account_status(

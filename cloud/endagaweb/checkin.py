@@ -324,7 +324,7 @@ class CheckinResponder(object):
                         notification = Notification.objects.create(
                             event=event, type=type, message=message,
                             translation=response[language], language=language,
-                            network=self.bts.network)
+                            network=self.bts.network, protected=True)
                         notification.save()
                     except IntegrityError:  # Don't break
                         continue
@@ -383,10 +383,7 @@ class CheckinResponder(object):
 
         if notifications:
             for notification in notifications:
-                translation = notification.translation
-                if isinstance(notification.translation, str):
-                    translation = unicode(notification.translation, "utf-8")
-                res.update({notification.event: translation})
+                res.update({notification.event: notification.translation})
         return res
 
     def gen_config(self):
