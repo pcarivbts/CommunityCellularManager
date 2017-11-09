@@ -162,6 +162,11 @@ class StatsClientBase(object):
             result = models.UsageEvent.objects.filter(filters).values_list(
                 'subscriber_id', flat=True).distinct()
             return list(result)
+        if report_view == 'imsi':
+            filters = filters & Q(date__lte=end) & Q(date__gte=start)
+            result = models.UsageEvent.objects.filter(filters).values_list(
+                'subscriber_imsi', flat=True).distinct()
+            return list(result)
         queryset = objects.filter(filters)
 
         # Use qsstats to aggregate the queryset data on an interval.
@@ -641,7 +646,12 @@ class WaterfallStatsClient(StatsClientBase):
             kwargs['report_view'] = 'value'
             subscribers = self.aggregate_timeseries(kind_key, **kwargs)
 
-            month_row = {'month': key, 'activation': len(subscribers)}
+            kwargs['query'] = Q(subscriber=None)
+            kwargs['report_view'] = 'imsi'
+            subscriber_imsi = self.aggregate_timeseries(kind_key, **kwargs)
+
+            activation = len(subscribers) + len(subscriber_imsi)
+            month_row = {'month': key, 'activation': activation}
             for col_mnth in months:
                 col_key = col_mnth.strftime("%b") + "-" + col_mnth.strftime(
                     "%Y")
@@ -654,6 +664,8 @@ class WaterfallStatsClient(StatsClientBase):
                     subscriber__in=subscribers).values_list('number', flat=True)
 
                 start_time_epoch = int(month_start_dt.strftime("%s"))
+                if start_time_epoch < month_start_time_epoch:
+                    continue
                 kwargs['start_time_epoch'] = start_time_epoch
                 kwargs['end_time_epoch'] = int(month_end_dt.strftime("%s"))-1
                 kwargs['query'] = Q(subscriber_id__in=subscribers,
@@ -670,16 +682,30 @@ class WaterfallStatsClient(StatsClientBase):
                     kwargs['aggregation'] = 'reload_transcation_sum'
                     kwargs['report_view'] = 'summary'
 
-                if start_time_epoch < month_start_time_epoch:
-                    result = 0
-                else:
-                    result = self.aggregate_timeseries('transfer', **kwargs)
-                    if isinstance(result, (list, tuple)):
-                        result = len(result)
+                result_subs = self.aggregate_timeseries('transfer', **kwargs)
+                if isinstance(result_subs, (list, tuple)):
+                    result_subs = len(result_subs)
+
+                kwargs['query'] = Q(subscriber=None,
+                                    subscriber_role='subscriber',
+                                    subscriber_imsi__in=subscriber_imsi,
+                                    from_number__in=retailers_numbers)
+                result_imsi = self.aggregate_timeseries('transfer', **kwargs)
+                if isinstance(result_imsi, (list, tuple)):
+                    result_imsi = len(result_imsi)
+
+                result = result_subs + result_imsi
+
+                # if start_time_epoch < month_start_time_epoch:
+                #     result = 0
+                # else:
+                #     result = self.aggregate_timeseries('transfer', **kwargs)
+                #     if isinstance(result, (list, tuple)):
+                #         result = len(result)
 
                 if kind == 'reload_rate':
                     try:
-                        pers = round(float(result) / len(subscribers), 2) * 100
+                        pers = round(float(result) / activation, 2) * 100
                     except:
                         pers = 0
                     result = str(pers) + " %"
@@ -690,7 +716,8 @@ class WaterfallStatsClient(StatsClientBase):
                     if isinstance(loader, (list, tuple)):
                         loader = len(loader)
                     try:
-                        result = round(float(result) / float(loader), 2)
+                        #result = round(float(result) / float(loader), 2)
+                        result = round(float(result) / float(activation), 2)
                     except:
                         result = 0
                 month_row.update({col_key: result})

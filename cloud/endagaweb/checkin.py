@@ -630,7 +630,8 @@ def handle_event(bts, event, destinations=None):
     usage_event = UsageEvent(
         date=date, kind=event['kind'], oldamt=event['oldamt'],
         newamt=event['newamt'], change=event['change'],
-        reason=event['reason'][:500], subscriber=sub, bts=bts)
+        reason=event['reason'][:500], subscriber=sub, bts=bts,
+        subscriber_role=sub.role)
     # Try to get a valid call duration.  This either comes from the
     # 'call_duration' key in new events or can be parsed from the reason.
     # If we can't figure it out, just set the default to zero from None.
