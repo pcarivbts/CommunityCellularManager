@@ -29,7 +29,7 @@ sudo sed -i '/use-ipv6/d' /etc/lighttpd/lighttpd.conf || true
 sudo service lighttpd restart
 
 # Restart freeswitch.
-sudo service freeswitch restart
+# sudo service freeswitch restart
 
 # If we're missing the .noauto versions of VPN confs, copy them over. Needed
 # since 0.7.3.
