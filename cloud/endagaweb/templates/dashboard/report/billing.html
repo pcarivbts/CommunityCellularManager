@@ -337,11 +337,11 @@ function setloading() {
 function renderTable(reportId, tableId) {
 
   var secondsMap = {
-    'month': 30 * 24 * 60 * 60,
+    'month': 6 * 30 * 24 * 60 * 60,
     'year': 365 * 24 * 60 * 60,
   };
   var currentTimeEpoch = {{ current_time_epoch }};
-  var endTimeEpoch = currentTimeEpoch - secondsMap['year'];
+  var endTimeEpoch = currentTimeEpoch - secondsMap['month'];
 
   var formattedDate = moment.unix(currentTimeEpoch).format('YYYY-MM-DD');
   var formattedFromDate = moment.unix(endTimeEpoch).format('YYYY-MM-DD');
@@ -351,6 +351,34 @@ function renderTable(reportId, tableId) {
     format: 'YYYY-MM',
     defaultDate: formattedFromDate
   });
+  /*
+  .on('dp.change', function(event) {
+    console.log("shiv = ", event);
+    var newEpochTime = moment(event.target.value, 'YYYY-MM').unix();
+    console.log("newEpochTime = ", newEpochTime);
+    //var newEpochTime = moment(event.target.value, dateFormat).unix();
+    //handler(newEpochTime);
+  });
+  */
+
+  function shiv() {
+    console.log("aaaaaaaaaa");
+  }
+
+  $('#'+reportId+' .to_month').on('dp.change', function(event) {
+    console.log("to_month = ", event);
+    var newEpochTime = moment(event.target.value, 'YYYY-MM').unix();
+    console.log("newEpochTime 1 = ", newEpochTime);
+    shiv();
+    showReport();
+  });
+  $('#'+reportId+' .from_month').on('dp.change', function(event) {
+    console.log("to_month = ", event);
+    var newEpochTime = moment(event.target.value, 'YYYY-MM').unix();
+    console.log("newEpochTime 2 = ", newEpochTime);
+    shiv();
+    showReport();
+  });
 
   $('#'+reportId+' .to_month').datetimepicker({
     viewMode: 'months',
@@ -358,7 +386,9 @@ function renderTable(reportId, tableId) {
     defaultDate: formattedDate
   });
 
-  $('#'+reportId+' .submit').click(function(){
+  //$('#'+reportId+' .submit').click(function(){
+  function showReport() {
+    $('#'+reportId+' .loadingText').show();
     var from_date = moment.utc($('#'+reportId+' .from_month').val(), 'YYYY-MM').unix();
     var to_month = moment.utc($('#'+reportId+' .to_month').val(), 'YYYY-MM').unix();
 
@@ -413,8 +443,10 @@ function renderTable(reportId, tableId) {
         $(element).jqGrid(options);
         $(element).jqGrid("setFrozenColumns");
       }
+      $('#'+reportId+' .loadingText').hide();
     });
-  }).click();
+  }
+  //}).click();
 }
 
 function renderNonLoder() {
