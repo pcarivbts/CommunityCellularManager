@@ -857,7 +857,8 @@ class UsageEvent(models.Model):
     downloaded_bytes = models.BigIntegerField(null=True)
     timespan = models.DecimalField(null=True, max_digits=7, decimal_places=1)
     date_synced = models.DateTimeField(auto_now_add=True)
-    subscriber_role = models.TextField()
+    subscriber_role = models.TextField(null=True, blank=True,
+                                       default="subscriber")
 
     class Meta:
         default_permissions = ()
