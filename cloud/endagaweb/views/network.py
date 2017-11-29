@@ -961,6 +961,7 @@ class NetworkNotificationsEdit(ProtectedView):
                         msg.event = event
                     msg.save()
                 resp = 'Updated Successfully!'
+                messages.success(request, resp)
             else:
                 try:
                     if not models.Notification.objects.filter(
@@ -997,5 +998,5 @@ class NetworkNotificationsEdit(ProtectedView):
             events = notifications.values_list('event', flat=True).distinct()
             models.Notification.objects.filter(event__in=events).delete()
             resp = 'Selected notification(s) deleted successfully.'
-        messages.success(request, resp)
+            messages.success(request, resp)
         return redirect(urlresolvers.reverse('network-notifications'))
