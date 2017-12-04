@@ -351,32 +351,17 @@ function renderTable(reportId, tableId) {
     format: 'YYYY-MM',
     defaultDate: formattedFromDate
   });
-  /*
-  .on('dp.change', function(event) {
-    console.log("shiv = ", event);
-    var newEpochTime = moment(event.target.value, 'YYYY-MM').unix();
-    console.log("newEpochTime = ", newEpochTime);
-    //var newEpochTime = moment(event.target.value, dateFormat).unix();
-    //handler(newEpochTime);
-  });
-  */
-
-  function shiv() {
-    console.log("aaaaaaaaaa");
-  }
 
   $('#'+reportId+' .to_month').on('dp.change', function(event) {
     console.log("to_month = ", event);
     var newEpochTime = moment(event.target.value, 'YYYY-MM').unix();
     console.log("newEpochTime 1 = ", newEpochTime);
-    shiv();
     showReport();
   });
   $('#'+reportId+' .from_month').on('dp.change', function(event) {
     console.log("to_month = ", event);
     var newEpochTime = moment(event.target.value, 'YYYY-MM').unix();
     console.log("newEpochTime 2 = ", newEpochTime);
-    shiv();
     showReport();
   });
 
