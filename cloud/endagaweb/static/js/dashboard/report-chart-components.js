@@ -96,7 +96,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
         if (this.state.activeView != text) {
             this.setState({
                 startTimeEpoch: this.state.startTimeEpoch,
-                endTimeEpoch: this.props.currentTimeEpoch,
+                endTimeEpoch:  this.state.endTimeEpoch,
                 isLoading: true,
                 activeView: text,
             });
