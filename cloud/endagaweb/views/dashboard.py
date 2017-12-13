@@ -55,6 +55,8 @@ from endagaweb.util.currency import cents2mc
 from endagaweb.views import django_tables
 import json
 import django.utils.timezone
+from endagaweb.models import PERMISSIONS
+NETWORK_PERMISSIONS = PERMISSIONS
 
 
 class ProtectedView(PermissionRequiredMixin, View):
@@ -1076,6 +1078,14 @@ class UserManagement(ProtectedView):
             role = USER_ROLES
         content = ContentType.objects.get(
             app_label='endagaweb', model='network')
+
+        # cleans stale permissions, if any in network.
+        stale_permissions = Permission.objects.filter(
+            content_type_id=content.id).exclude(
+            codename__in=[a[0] for a in NETWORK_PERMISSIONS])
+        if stale_permissions:
+            stale_permissions.delete()
+
         network_permissions = Permission.objects.filter(
             codename__in=available_permissions,
             content_type_id=content.id).exclude(
@@ -1277,19 +1287,42 @@ class UserUpdate(ProtectedView):
             if len(existing_user) == 0:
                 existing_user = request.GET['id']
                 _user = User.objects.get(id=existing_user)
+                # get_perms fails to get permissions for users
+                # who are inactive i.e for blocked users
+                # https://github.com/django-guardian/django-guardian/issues/343
+                if not _user.is_active:
+                    _user.is_active = True  # setting active just to get perms
+                    existing_permissions = get_perms(_user,
+                                                     user_profile.network)
+                    _user.is_active = False # setting back to inactive
+                else:
+                    existing_permissions = get_perms(_user,
+                                                     user_profile.network)
             else:
                 _user = User.objects.get(email=existing_user)
+                if not _user.is_active:
+                    _user.is_active = True # setting active to get perms
+                    existing_permissions = get_perms(_user,
+                                                     user_profile.network)
+                    _user.is_active = False # setting back to inactive
+                else:
+                    existing_permissions = get_perms(_user,
+                                                     user_profile.network)
             update_user = True
             _user_profile = UserProfile.objects.get(user=_user)
             user_role = _user_profile.role
             # Setup available and assigned permissions
-            existing_permissions = get_perms(_user, user_profile.network)
+            content = ContentType.objects.get(app_label='endagaweb',
+                                              model='network')
+
             user_perms = Permission.objects.filter(
-                codename__in=existing_permissions).exclude(
-                codename='view_network')
+                codename__in=existing_permissions,
+                content_type_id=content).exclude(codename='view_network')
+
             available_permissions = Permission.objects.filter(
                 codename__in=network_permissions).exclude(
                 codename__in=existing_permissions)
+
             permissions = [(a.id, a.name) for a in available_permissions]
             user_permissions = [(a.id, a.name) for a in user_perms]
             context = {
@@ -1303,7 +1336,7 @@ class UserUpdate(ProtectedView):
             return HttpResponse(json.dumps(context),
                                 content_type="application/json")
         except User.DoesNotExist:
-            message = 'Strange! %s not found!' % existing_user
+            message = 'Strange! %s not found!' % request.GET['user']
             raise LookupError(message)
 
     def post(self, request, *args, **kwargs):

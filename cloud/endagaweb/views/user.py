@@ -359,16 +359,15 @@ def role_default_permissions(request):
                                  }
         content_type = ContentType.objects.filter(
             app_label='endagaweb', model='network').values_list(
-            'id', flat=True)
-        permission = Permission.objects.filter(
-            content_type__in=content_type).values_list('id', flat=True)
+            'id', flat=True)[0]
+        permission = Permission.objects.filter(content_type=content_type)
         role_permission = []
         if role in roles_and_permissions.keys():
-            role_permission = Permission.objects.filter(
+            role_permission = permission.filter(
                 codename__in=roles_and_permissions[role]).values_list(
                 'id', flat=True)
         else:
-            for i in permission:
+            for i in permission.values_list('id', flat=True):
                 role_permission.append(i)
         return JsonResponse({'permissions': list(role_permission)})
     return HttpResponseBadRequest()
