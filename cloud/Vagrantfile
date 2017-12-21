@@ -18,6 +18,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.define :web, primary: true do |web|
     web.vm.hostname = "endaga-web"
+    web.vm.network "public_network", type: "dhcp", bridge: "eno1"
     web.vm.network "private_network", ip: "192.168.40.10"
     web.vm.network "forwarded_port", guest: 8000, host: 9000
     web.vm.network "forwarded_port", guest: 80, host: 9080
@@ -42,6 +43,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.define :db do |db|
     db.vm.hostname = "endaga-db"
+    db.vm.network "public_network", type: "dhcp", bridge: "eno1"
     db.vm.network "private_network", ip: "192.168.40.20"
     db.vm.provision "ansible" do |ansible|
         ansible.playbook = "ansible/postgres.dev.yml"
@@ -55,6 +57,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.define :rmq do |rmq|
     rmq.vm.hostname = "endaga-rmq"
+    rmq.vm.network "public_network", type: "dhcp", bridge: "eno1"
     rmq.vm.network "forwarded_port", guest: 5555, host: 5555
     rmq.vm.network "private_network", ip: "192.168.40.30"
     rmq.vm.provision "ansible" do |ansible|
@@ -72,6 +75,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.define :cert do |cert|
     cert.vm.hostname = "endaga-cert"
+    cert.vm.network "public_network", type: "dhcp", bridge: "eno1"
     cert.vm.network "private_network", ip: "192.168.40.40"
     cert.vm.provision "ansible" do |ansible|
         ansible.playbook = "ansible/certifier.dev.yml"
@@ -85,6 +89,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.define :smpp, autostart: false do |smpp|
     smpp.vm.hostname = "endaga-smpp"
+    smpp.vm.network "public_network", type: "dhcp", bridge: "eno1"
     smpp.vm.network "private_network", ip: "192.168.40.50"
     smpp.vm.provision "ansible" do |ansible|
         ansible.playbook = "ansible/smpp.dev.yml"
@@ -98,6 +103,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.define :vpn do |vpn|
     vpn.vm.hostname = "endaga-vpn"
+    vpn.vm.network "public_network", type: "dhcp", bridge: "eno1"
     vpn.vm.network "private_network", ip: "192.168.40.60"
     vpn.vm.provision "ansible" do |ansible|
         ansible.playbook = "ansible/vpn.dev.yml"

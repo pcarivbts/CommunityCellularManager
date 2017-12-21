@@ -96,7 +96,9 @@ class EndagaD(object):
 
             # At this point, all services should be up, so we can perform
             # additional configuration.
-            self._reset_bts_config()
+            # We dont need this because osmocom or lc15bts client does nothing
+            # with this command
+            # self._reset_bts_config()
 
             # Update the inbound_url if the VPN is up.
             if system_utilities.get_vpn_ip() is not None:
@@ -129,8 +131,9 @@ class EndagaD(object):
 
             # Upgrade the endaga metapackage, when appropriate and only if that
             # feature is enabled.
-            logger.notice("Performing autoupgrade")
-            system_utilities.try_to_autoupgrade()
+            # We dont need this because upgrade shouble be done via opkg
+            #logger.notice("Performing autoupgrade")
+            #system_utilities.try_to_autoupgrade()
 
             # Sleep for some amount of time before retrying
             logger.notice("Performing sleep")

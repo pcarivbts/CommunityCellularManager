@@ -75,7 +75,7 @@ class SupervisorControl(BaseServiceControl):
     """
 
     def __init__(self):
-        t = SupervisorTransport(None, None, "unix:///var/run/supervisor.sock")
+        t = SupervisorTransport(None, None, "unix:///var/run/supervisor/supervisor.sock")
         self.server = xmlrpc.client.ServerProxy("http://127.0.0.1", transport=t)
 
     def stopProcess(self, name):
@@ -146,9 +146,9 @@ class SystemControl(BaseServiceControl):
                 self.cmd = "service"
 
         if self.cmd == "systemctl":
-            r = delegator.run("sudo systemctl %s %s" % (command, name))
+            r = delegator.run("systemctl %s %s" % (command, name))
         else:
-            r = delegator.run("sudo service %s %s" % (name, command))
+            r = delegator.run("service %s %s" % (name, command))
         result = r.return_code == 0
         return result
 

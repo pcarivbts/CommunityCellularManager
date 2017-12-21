@@ -61,7 +61,7 @@ class BTS(BaseVTY):
         """Returns a list of valid ARFCNs for the current band"""
         cur_band = self.show(bts_id)['band']
         valid_arfcns = {'GSM850': list(range(128, 252)),
-                        'GSM900': list(range(0,125)) + list(range(955,1024)),
+                        'GSM900': list(range(0,124)) + list(range(955,1023)),
                         'DCS1800': list(range(512,886)),
                         'PCS1900': list(range(512,811))}
         return valid_arfcns[cur_band]
