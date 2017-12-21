@@ -1,0 +1,32 @@
+
+<div class="row panel">
+    <div class="container-fluid">
+        <form action="{{ action_url }}" class="form-horizontal"
+              method="post" role="form" onsubmit="setloading()">
+            {% csrf_token %}
+            <div class="form-group col-md-12" id="bts_list" {% if not level_id %} style="display: none;" {% endif %}>
+                <label class="control-label col-md-1">Tower</label>
+                <div class="col-md-5">
+                    <select name="level_id" class="form-control">
+                      {% if towers %}
+                        {% for tower in towers %}
+                        {% if tower.id == level_id and level == 'tower' %}
+                        <option value="{{ tower.id }}" selected="selected">{{ tower.nickname }} ( {{tower.uuid}} )</option>
+                        {% else %}
+                        <option value="{{ tower.id }}">{{ tower.nickname }} ( {{tower.uuid}} )</option>
+                        {% endif %}
+                        {% endfor %}
+                      {% endif %}
+                    </select>
+                    <input type="hidden" name="filter" value="{{ filter }}" />
+                </div>
+                <div class="col-md-3">
+                    <button id="submit" type="submit" name="submit" value="Filter"
+                            class="btn btn-primary col-md-4">Filter
+                    </button>
+                </div>
+            </div>
+        </form>
+        <canvas id="canvas" style="display: none;"></canvas>
+    </div>
+</div>

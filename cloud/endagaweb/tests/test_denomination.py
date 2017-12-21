@@ -8,9 +8,22 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+from datetime import datetime
+from random import randrange
+import uuid
 from django import test
+import json
+
+import pytz
+
 from django.test import TestCase
 
+from ccm.common import crdt
 from endagaweb import models
 
 
@@ -56,30 +69,30 @@ class DenominationUITest(TestBase):
 
     def test_add_denominaton(self):
         self.logout()
-        response = self.client.get('/dashboard/network/denominations')
+        response = self.client.get('/dashboard/network/denominations/manage')
         # Anonymous User can not see this page so returning  permission denied.
         self.assertEqual(302, response.status_code)
 
     def test_add_denominaton_auth(self):
         self.login()
-        response = self.client.get('/dashboard/network/denominations')
+        response = self.client.get('/dashboard/network/denominations/manage')
         self.assertEqual(200, response.status_code)
 
     def test_delete_denominaton(self):
         self.logout()
-        response = self.client.delete('/dashboard/network/denominations')
+        response = self.client.delete('/dashboard/network/denominations/manage')
         # Anonymous User can not see this page so returning  permission denied.
         self.assertEqual(302, response.status_code)
 
     def test_delete_denominaton_auth(self):
         self.login()
-        response = self.client.delete('/dashboard/network/denominations')
+        response = self.client.delete('/dashboard/network/denominations/manage')
         self.assertEqual(200, response.status_code)
 
     def test_post_add_denominaton(self):
         self.logout()
         data = {}
-        response = self.client.post('/dashboard/network/denominations', data)
+        response = self.client.post('/dashboard/network/denominations/manage', data)
         # Anonymous User can not see this page so returning  permission denied.
         self.assertEqual(302, response.status_code)
 

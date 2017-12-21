@@ -10,19 +10,24 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 import datetime
 
+import pytz
+from crispy_forms.bootstrap import StrictButton, FieldWithButtons
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Submit, Field, Fieldset, ButtonHolder
 from django import forms
+from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm
+from django.contrib.auth.models import User
+from django.core import urlresolvers
 from django.db.models import Value
 from django.db.models.functions import Coalesce
-from django.core import urlresolvers
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, Field
-from crispy_forms.bootstrap import StrictButton, FieldWithButtons
-from django.contrib.auth.forms import PasswordChangeForm
-import pytz
+from django.utils import safestring
 
 from ccm.common.currency import CURRENCIES
 from endagaweb import models
 from endagaweb.templatetags import apptags
+from django.contrib.auth import password_validation
+from googletrans.constants import LANGUAGES, LANGCODES
+from django.conf import settings
 
 
 class UpdateContactForm(forms.Form):
@@ -153,6 +158,10 @@ class SubscriberSearchForm(forms.Form):
 
 class ChangePasswordForm(PasswordChangeForm):
     """Change password form visible on user profile page."""
+    """Updated for password validation. """
+
+    error_message = ''
+
     def __init__(self, *args, **kwargs):
         super(ChangePasswordForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
@@ -160,12 +169,33 @@ class ChangePasswordForm(PasswordChangeForm):
         self.helper.form_method = 'post'
         self.helper.form_action = '/account/password/change'
         self.helper.form_class = 'profile-form'
+        self.error_message = ''
         self.helper.add_input(Submit('submit', 'Save'))
+
+    def clean_password1(self):
+        old_password = self.cleaned_data.get("old_password")
+        new_password1 = self.cleaned_data.get("new_password1")
+        if new_password1 and old_password and old_password == new_password1:
+            self.error_message = 'Error: new password must not be old password.'
+            raise forms.ValidationError(self.error_message)
+        password_validation.validate_password(new_password1)
+        return new_password1
+
+    def clean_new_password2(self):
+        password1 = self.cleaned_data.get('new_password1')
+        password2 = self.cleaned_data.get('new_password2')
+        if password1 and password2:
+            if password1 != password2:
+                self.error_message = 'Error:conform password does not match.'
+                raise forms.ValidationError(self.error_message)
+        return password2
 
 
 class NotifyEmailsForm(forms.Form):
     notify_emails = forms.CharField(required=False, label="",
-                                    widget=forms.TextInput(attrs={'placeholder': 'shaddi@example.com, damian@example.com'}))
+                                    widget=forms.TextInput(attrs={
+                                        'placeholder': 'shaddi@example.com, damian@example.com'}))
+
     def __init__(self, *args, **kwargs):
         super(NotifyEmailsForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
@@ -175,12 +205,15 @@ class NotifyEmailsForm(forms.Form):
         self.helper.form_class = 'profile-form'
         update_button = StrictButton('Update', css_class='btn-default',
                                      type='submit')
-        self.helper.layout =  Layout(FieldWithButtons('notify_emails', update_button))
+        self.helper.layout = Layout(
+            FieldWithButtons('notify_emails', update_button))
 
 
 class NotifyNumbersForm(forms.Form):
     notify_numbers = forms.CharField(required=False, label="",
-                                     widget=forms.TextInput(attrs={'placeholder': '+62000000, +52000000, +63000000'}))
+                                     widget=forms.TextInput(attrs={
+                                         'placeholder': '+62000000, +52000000, +63000000'}))
+
     def __init__(self, *args, **kwargs):
         super(NotifyNumbersForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
@@ -190,7 +223,8 @@ class NotifyNumbersForm(forms.Form):
         self.helper.form_class = 'profile-form'
         update_button = StrictButton('Update', css_class='btn-default',
                                      type='submit')
-        self.helper.layout =  Layout(FieldWithButtons('notify_numbers', update_button))
+        self.helper.layout = Layout(
+            FieldWithButtons('notify_numbers', update_button))
 
 
 class SubVacuumForm(forms.Form):
@@ -208,8 +242,20 @@ class SubVacuumForm(forms.Form):
         label='Automatically delete inactive subscribers',
         help_text=inactive_help_text,
         choices=enabled_choices, widget=forms.RadioSelect())
-    inactive_days = forms.CharField(
-        required=False, label='Outbound inactivity threshold (days)')
+    inactive_days = forms.IntegerField(
+        required=False, label='Outbound inactivity threshold (days)',
+        min_value=0, max_value=10000, widget=
+        forms.TextInput(attrs={'class': 'form-control', 'pattern': '[0-9]+',
+                               'oninvalid': "setCustomValidity('Enter days only!')",
+                               'onchange': "try{"
+                                           "setCustomValidity('')}catch(e){}"}))
+    grace_days = forms.IntegerField(
+        required=False, label='Grace Period (days)', min_value=0,
+        max_value=1000, widget=
+        forms.TextInput(attrs={'class': 'form-control', 'pattern': '[0-9]+',
+                               'oninvalid': "setCustomValidity('Enter days only!')",
+                               'onchange': "try{"
+                                           "setCustomValidity('')}catch(e){}"}))
 
     def __init__(self, *args, **kwargs):
         super(SubVacuumForm, self).__init__(*args, **kwargs)
@@ -221,11 +267,14 @@ class SubVacuumForm(forms.Form):
         # not this feature is active.
         if args[0]['sub_vacuum_enabled']:
             days_field = Field('inactive_days')
+            grace_field = Field('grace_days')
         else:
             days_field = Field('inactive_days', disabled=True)
+            grace_field = Field('grace_days', disabled=True)
         self.helper.layout = Layout(
             'sub_vacuum_enabled',
             days_field,
+            grace_field,
             Submit('submit', 'Save', css_class='pull-right'),
         )
 
@@ -233,7 +282,7 @@ class SubVacuumForm(forms.Form):
 class NetworkSettingsForm(forms.Form):
     network_name = forms.CharField(required=False, label='Network name')
     choices = [(currency.code, currency.name) for currency in
-            CURRENCIES.values()]
+               CURRENCIES.values()]
     subscriber_currency = forms.ChoiceField(required=False, choices=choices,
                                             label='Subscriber currency')
     choices = (
@@ -343,10 +392,10 @@ class SelectTowerForm(forms.Form):
         choices = []
         # We create a convoluted tower queryset so that towers that have never
         # synced (last_active = None) sort after active and inactive towers.
-        the_past = datetime.datetime.now() - datetime.timedelta(days=10*365)
+        the_past = datetime.datetime.now() - datetime.timedelta(days=10 * 365)
         all_towers = models.BTS.objects.all().annotate(
             new_last_active=Coalesce('last_active', Value(the_past))).order_by(
-                '-new_last_active')
+            '-new_last_active')
         for tower in all_towers:
             value = tower.id
             user_profile = models.UserProfile.objects.get(
@@ -368,3 +417,209 @@ class SelectTowerForm(forms.Form):
         self.helper.form_action = '/dashboard/staff/tower-monitoring'
         self.helper.add_input(Submit('submit', 'Select'))
         self.helper.layout = Layout('tower')
+
+
+class UserSearchForm(forms.Form):
+    """Crispy search form on /dashboard/subscribers."""
+    query = forms.CharField(required=False, label="",
+                            widget=forms.TextInput(
+                                attrs={'placeholder':
+                                           'abc@domain.com'}))
+
+    def __init__(self, sender, *args, **kwargs):
+        self.helper = FormHelper()
+        self.helper.form_id = 'id-SearchForm'
+        self.helper.form_method = 'get'
+        self.helper.form_action = '/dashboard/user/management'
+        search_button = StrictButton('Search', css_class='btn-default',
+                                     type='submit')
+        self.helper.layout = Layout(FieldWithButtons('query', search_button))
+        super(UserSearchForm, self).__init__(*args, **kwargs)
+
+
+class PasswordResetRequestForm(PasswordResetForm):
+    email = forms.CharField(label=("Email"), max_length=254)
+
+    class Meta:
+        model = User
+        fields = ("email")
+
+
+class NetworkBalanceLimit(forms.Form):
+    """Crispy form to set Network balance limit and transaction.
+    set min_value =0.01 so that it will not accept 0 value"""
+
+    max_balance_title = 'Maximum account balance of an imsi within a network.'
+    max_balance = forms.CharField(required=False,
+                                  label="Maximum Balance Limit",
+                                  max_length=10,
+                                  widget=forms.TextInput(
+                                      attrs={'title': max_balance_title}))
+    max_unsuccessful_transaction_title = 'Maximum  consecutive failure ' \
+                                         'transactions an imsi can perform ' \
+                                         'within 24 hrs.'
+    max_unsuccessful_transaction = forms.CharField(required=False,
+                                                   max_length=3,
+                                                   label='Maximum Permissible '
+                                                         'Unsuccessful Transactions',
+                                                   widget=forms.TextInput
+                                                   (attrs={
+                                                       'title': max_unsuccessful_transaction_title}))
+
+    def __init__(self, *args, **kwargs):
+        super(NetworkBalanceLimit, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_id = 'id-NetworkBalanceLimitForm'
+        self.helper.form_method = 'post'
+        self.helper.form_action = '/dashboard/network/balance-limit'
+        self.helper.form_class = 'col-xs-12 col-sm-8 col-md-12 col-xl-8'
+        self.helper.add_input(Submit('submit', 'Save'))
+        self.helper.layout = Layout('max_balance',
+                                    'max_unsuccessful_transaction')
+
+    def clean_network_balance(self):
+        cleaned_data = super(NetworkBalanceLimit, self).clean()
+        max_balance = self.cleaned_data.get('max_balance', None)
+        max_unsuccessful_transaction = self.cleaned_data. \
+            get('max_unsuccessful_transaction', None)
+        if max_balance == "" and max_unsuccessful_transaction == "":
+            raise forms.ValidationError('Error : please provide value.')
+        if max_balance != "":
+            if (float(max_balance) <= 0):
+                raise forms.ValidationError(
+                    'Error : enter positive and non-zero value for maximum '
+                    'balance Limit.')
+        return cleaned_data
+
+
+class NotificationForm(forms.Form):
+    language_choices = []
+    for key in settings.BTS_LANGUAGES:
+        language_choices.append((key, LANGUAGES[key].capitalize()))
+    types = (
+        ('automatic', 'Automatic'),
+        ('mapped', 'Mapped')
+    )
+    help_text = (
+        '<b>Automatic:</b> Sent to user automatically, <br>'
+        '<b>Mapped:</b> Notification will be sent to mapped users.'
+    )
+    type = forms.ChoiceField(required=True, label='', help_text=help_text,
+                             choices=types,
+                             widget=forms.RadioSelect(
+                                 attrs={'title': 'Notification type'}), )
+
+    event_info = "<span id='event_exists' hidden='hidden' style='color:red'>" \
+                 "Notification already exists!</span>"
+    event = forms.CharField(required=True, help_text=event_info,
+                            widget=forms.TextInput(
+                                attrs={'title': 'alphabets or '
+                                                'alphanumeric only',
+                                       'style': 'width:300px',
+                                       'onchange': 'checkEvent()',
+                                       }), label='Events')
+
+    edit = "<span id='edit' hidden='hidden'> Click <a href='#' " \
+           "onclick='editMessage()'>Edit</a> to change.</span>"
+    edit = safestring.mark_safe(edit)
+    html_break = safestring.mark_safe('<br>')
+    message_edit_help = 'Note: Any change to above message will reflect all ' \
+                        'translations. %s %s ' \
+                        'Translations can be changed separately.' % (
+                            edit, html_break)
+    message = forms.CharField(required=True, min_length=20, max_length=160,
+                              label='Message',
+                              help_text=message_edit_help,
+                              widget=forms.Textarea(
+                                  attrs={'title': 'Message for translation '
+                                                  '(max characters: 160)',
+                                         'placeholder': 'Enter Message...',
+                                         'rows': '2',
+                                         'onchange': 'getTranslation(this)',
+                                         }
+                              ))
+    info = "Details on how to add message..."
+    number = forms.IntegerField(required=True, disabled=True, min_value=1,
+                                max_value=999, widget=forms.NumberInput(
+            attrs={'class': 'form-control', 'pattern': '[0-9]{3}',
+                   'title': 'numerical input only', 'style': 'width:100px',
+                   'oninvalid': "setCustomValidity('Enter number "
+                                "(max: 3 digits)')",
+                   'onchange': "try{"
+                               "setCustomValidity('')}"
+                               "catch(e){}; checkEvent();",
+                   }),
+                                )
+    pk = forms.CharField(widget=forms.HiddenInput())
+
+    def __init__(self, language=None, *args, **kwargs):
+        super(NotificationForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_id = 'network-notification-form'
+        self.helper.form_method = 'POST'
+        self.helper.form_action = '/dashboard/network/notification'
+        fields = []
+        fields.extend(['type', 'number', 'event', 'message', 'pk'])
+        if language:
+            languages = dict(language).keys()
+        else:
+            languages = settings.BTS_LANGUAGES
+        missing = ''
+        if len(languages) != len(settings.BTS_LANGUAGES):
+            missing = list(set(settings.BTS_LANGUAGES) - set(languages))
+        self.helper.add_input(
+            Submit('submit', 'Submit', css_class='invisible pull-right'))
+        for key in settings.BTS_LANGUAGES:
+            placeholder = 'Translation in %s ' % LANGUAGES[
+                key].capitalize()
+            label = LANGUAGES[key].capitalize()
+            if key in missing:
+                placeholder = 'New language %s' % LANGUAGES[
+                    key].capitalize()
+
+            self.fields['lang_%s' % key] = forms.CharField(
+                required=True, min_length=20, max_length=160,
+                label=label, widget=forms.Textarea(
+                    attrs={'id': 'lang_%s' % key,
+                           'title': "For dynamic values you can add "
+                                    "%(account_balance)s for number "
+                                    "%(number)s etc."
+                                    "Always add a space after"
+                                    "wildcard(s)",
+                           'placeholder': placeholder,
+                           'rows': '2',
+                           'onchange': 'enableUpdate()',
+                           }
+                ))
+            fields.append('lang_%s' % key)
+        self.helper.layout = Layout(*fields)
+
+
+class NotificationSearchForm(forms.Form):
+    """Crispy search form for notifications under network"""
+    choices = []
+    lang = settings.BTS_LANGUAGES
+    for lg in lang:
+        choices.append((lg, LANGUAGES[lg].capitalize()))
+
+    query = forms.CharField(required=False, label="",
+                            widget=forms.TextInput(
+                                attrs={'placeholder': 'Message or Type of'
+                                                      ' event'
+                                       }))
+    language = forms.ChoiceField(label="", choices=choices, required=False,
+                                 widget=forms.Select(
+                                     attrs={'onchange': 'form.submit();'}))
+
+    def __init__(self, *args, **kwargs):
+        super(NotificationSearchForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_id = 'id-NotificationSearchForm'
+        self.helper.form_method = 'get'
+        self.helper.form_action = '/dashboard/network/notification'
+        search_button = StrictButton('Filter', css_class='btn-default',
+                                     type='submit')
+        self.helper.form_class = 'col-sm-4'
+        self.helper.layout = Layout(FieldWithButtons('query', search_button),
+                                    'language')
+

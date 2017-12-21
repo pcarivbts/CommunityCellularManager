@@ -61,3 +61,7 @@ STATICFILES_DIRS = ()
 
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'endagaweb.wsgi.application'
+
+# BTS Notification Languages for translation.
+#TODO(sharma-sagar): currently supported for below languages only.
+BTS_LANGUAGES = ['id', 'tl', 'en']

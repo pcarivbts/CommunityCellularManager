@@ -25,6 +25,7 @@ class InternalAPITest(TestCase):
         """Generate a User, BTS and Number."""
         cls.email = "test@endaga.com"
         cls.user = models.User(username=cls.email, email=cls.email)
+        cls.user.is_superuser = True
         cls.user.save()
         cls.user_profile = models.UserProfile.objects.get(user=cls.user)
         cls.uuid = "59216199-d664-4b7a-a2db-6f26e9a5d209"

@@ -1,0 +1,640 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+{% load apptags %}
+{% load humanize %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+{% load guardian_tags %}
+
+{% block title %}
+{% if network.name %}
+{% tmpl_const "SITENAME" %} | "{{ network.name }}"
+{% else %}
+{% tmpl_const "SITENAME" %} | Network
+{% endif %}
+{% endblock %}
+
+{% block pagestyle %}
+<style>
+.modal.fade:not(.in).left .modal-dialog {
+	-webkit-transform: translate3d(-25%, 0, 0);
+	transform: translate3d(-25%, 0, 0);
+	//transform: translate3d(-25%, -25%, 0);
+	//transform: translate3d(-25%, 25%, 0);
+}
+.modal.fade:not(.in).right .modal-dialog {
+	-webkit-transform: translate3d(125%, 0, 0);
+	transform: translate3d(125%, 0, 0);
+	//transform: translate3d(25%, -25%, 0);
+	//transform: translate3d(25%, 25%, 0);
+}
+.modal.fade:not(.in).bottom .modal-dialog {
+	-webkit-transform: translate3d(0, 125%, 0);
+	transform: translate3d(0, 125%, 0);
+}
+@-webkit-keyframes ring {
+  0% {
+    -webkit-transform: rotate(-15deg);
+    transform: rotate(-15deg);
+  }
+
+  2% {
+    -webkit-transform: rotate(15deg);
+    transform: rotate(15deg);
+  }
+
+  4% {
+    -webkit-transform: rotate(-18deg);
+    transform: rotate(-18deg);
+  }
+
+  6% {
+    -webkit-transform: rotate(18deg);
+    transform: rotate(18deg);
+  }
+
+  8% {
+    -webkit-transform: rotate(-22deg);
+    transform: rotate(-22deg);
+  }
+
+  10% {
+    -webkit-transform: rotate(22deg);
+    transform: rotate(22deg);
+  }
+
+  12% {
+    -webkit-transform: rotate(-18deg);
+    transform: rotate(-18deg);
+  }
+
+  14% {
+    -webkit-transform: rotate(18deg);
+    transform: rotate(18deg);
+  }
+
+  16% {
+    -webkit-transform: rotate(-12deg);
+    transform: rotate(-12deg);
+  }
+
+  18% {
+    -webkit-transform: rotate(12deg);
+    transform: rotate(12deg);
+  }
+
+  20% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes ring {
+  0% {
+    -webkit-transform: rotate(-15deg);
+    -ms-transform: rotate(-15deg);
+    transform: rotate(-15deg);
+  }
+
+  2% {
+    -webkit-transform: rotate(15deg);
+    -ms-transform: rotate(15deg);
+    transform: rotate(15deg);
+  }
+
+  4% {
+    -webkit-transform: rotate(-18deg);
+    -ms-transform: rotate(-18deg);
+    transform: rotate(-18deg);
+  }
+
+  6% {
+    -webkit-transform: rotate(18deg);
+    -ms-transform: rotate(18deg);
+    transform: rotate(18deg);
+  }
+
+  8% {
+    -webkit-transform: rotate(-22deg);
+    -ms-transform: rotate(-22deg);
+    transform: rotate(-22deg);
+  }
+
+  10% {
+    -webkit-transform: rotate(22deg);
+    -ms-transform: rotate(22deg);
+    transform: rotate(22deg);
+  }
+
+  12% {
+    -webkit-transform: rotate(-18deg);
+    -ms-transform: rotate(-18deg);
+    transform: rotate(-18deg);
+  }
+
+  14% {
+    -webkit-transform: rotate(18deg);
+    -ms-transform: rotate(18deg);
+    transform: rotate(18deg);
+  }
+
+  16% {
+    -webkit-transform: rotate(-12deg);
+    -ms-transform: rotate(-12deg);
+    transform: rotate(-12deg);
+  }
+
+  18% {
+    -webkit-transform: rotate(12deg);
+    -ms-transform: rotate(12deg);
+    transform: rotate(12deg);
+  }
+
+  20% {
+    -webkit-transform: rotate(0deg);
+    -ms-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+}
+
+.faa-ring.animated,
+.faa-ring.animated-hover:hover,
+.faa-parent.animated-hover:hover > .faa-ring {
+  -webkit-animation: ring 2s ease infinite;
+  animation: ring 2s ease infinite;
+  transform-origin-x: 50%;
+  transform-origin-y: 0px;
+  transform-origin-z: initial;
+}
+
+.loadinggif {
+    background:url('/static/img/loader.gif') no-repeat center center;
+}
+.btn{
+    margin-left: 5px;
+}
+.btn:last-child{
+    margin-left: 0;
+}
+.textarea{
+    resize:none;
+}
+table tbody tr.highlight td {
+    background-color: #ddd;
+}
+label.btn span {
+  font-size: 1.5em ;
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}
+
+.loader {
+  border: 16px solid lightgreen;
+  border-radius: 70%;
+  border-top: 16px solid white;
+  width: 30px;
+  height: 30px;
+  -webkit-animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
+  position: fixed;
+  top: 95%;
+  left: 1%;
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+}
+
+@-webkit-keyframes spin {
+  0% { -webkit-transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.loader-text {
+    position: fixed;
+    top: 96%;
+    font-size: 1.0em ;
+    left: 7%;
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "dashboard/network_detail/header.html" with network=network active_tab='network-notifications' %}
+
+<div class='row'>
+
+    {% include "dashboard/network_detail/nav.html" with active_tab='network-notifications' %}
+    {% get_obj_perms request.user for network as 'user_permission' %}
+    <div class='content col-xs-12 col-sm-10 col-md-10'>
+        {% for message in messages %}
+        <div class="message alert alert-{{ message.tags }}">
+            <a href="#" class="close" data-dismiss="alert">&times;</a>
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% crispy search %}
+        <form action="/dashboard/network/notification/update" method="POST"
+              name="notification_form" id="notification_form">
+            <div class="table-container col-sm-12">
+                {% csrf_token %}
+                {% if records > 0 %}
+                {% if current_lang %}
+                {% endif %}
+                {% render_table notification_table %}
+                {% if 'edit_notification' in user_permission %}
+                <div class="dropdown actions">
+                    <button class="btn btn-primary dropdown-toggle"
+                            type="button" data-toggle="dropdown">Action(s)
+                        <span class="caret"></span></button>
+                    <ul class="dropdown-menu">
+                        <li id="action_delete">
+                            <a data-target='#delete-event-modal'
+                               data-toggle='modal' href="javascript:void(0);">Delete</a>
+                        </li>
+                        <li id="action_edit"><a data-target="#save-event-modal"
+                                                data-toggle='modal'
+                                                onclick="editNotification()"
+                                                href="#">Edit</a></li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <p>No notifications in the current network </p>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="modal fade right" id="save-event-modal" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" onchange='resetForm()'>
+                    <span aria-hidden="true">&times;</span></button>
+                 <h4 class='modal-title'>
+                    <i class='fa fa-bell faa-ring animated'></i>
+                    <span class="title">Notification</span>
+                </h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <form action="/dashboard/network/notification/update"
+                      id="add-notification-modal" name="notification"
+                      method="POST">
+                        {% csrf_token %}
+                        {% crispy notification %}
+                </form>
+                </div>
+            </div>
+            <label class="pull-left btn btn-xs btn-link disabled"  id="status" hidden="hidden">Connection Error!</label>
+            <div class="modal-footer">
+                <input type="submit" id="add-notification-submit"
+                           class="btn btn-primary pull-right" value="Add Notification"
+                           onclick="document.getElementById('submit-id-submit').click()" disabled="disabled">
+                    <input type="submit" id="notification-translate"
+                           class="btn btn-success pull-right" value="Translate"
+                           onclick="getTranslation()" disabled="disabled">
+                    <button type='button' class='btn btn-danger pull-right'
+                            onclick='resetForm()'>
+                        Reset
+                    </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- variable-->
+<input type="hidden" id="is_protected" name="is_protected" value="True"/>
+
+<div class='modal fade' id='delete-event-modal'>
+    <div class='modal-dialog'>
+        <div class='modal-content'>
+            <div class='modal-header'>
+                <button type="button" class="close" data-dismiss="modal"
+                        aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class='modal-title'>
+                    Confirmation
+                </h4>
+            </div>
+            <div class='modal-body'>
+                <h4>
+                    Are you sure you want to delete?<br><br>
+                </h4>
+                <p class="alert alert-danger">This action will delete event and all its translations!</p>
+            </div>
+            <div class='modal-footer'>
+                <button type='button' class='btn btn-default'
+                        data-dismiss='modal'>Cancel
+                </button>
+                <button class='btn btn-primary' type='button'
+                        id='delete-confirm'>Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+</div><!-- /.delete-user-modal -->
+
+<!-- Show translations-->
+<div class="modal fade left" id="all-translations" tabindex="-1" role="dialog"
+     aria-labelledby="all-translations" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <i><b><h4 class="modal-title" id="event_title"></h4></b></i>
+      </div>
+        <div class="modal-body"><sup><label class="disabled btn btn-success btn-xs" id="event_type"></label></sup>
+            <div>&nbsp;</div><label>Message</label>
+            <textarea  class="textarea form-control" id="id_message"
+                              name="id_message"
+                              rows="2"
+                              disabled="disabled">
+            </textarea>
+        </div>
+        <input type="hidden" id="event_id" name="event_id" value="0"/>
+        {% for key, language in languages.items %}
+        <div class="modal-body" >
+            <label>{{ language }} </label>
+
+        <textarea  class="textarea form-control" id="lang_{{ key }}_get"
+                   maxlength="160" minlength="20"
+                   name="lang_{{ key }}_get" rows="2" disabled="disabled">
+        </textarea>
+      </div>
+        {% endfor %}
+        <div class="modal-footer">
+            <button type="button" class="btn btn-info"
+                    data-toggle='modal' data-target="#save-event-modal"
+                    data-dismiss='modal' onclick="editNotification()">
+                Edit Event
+            </button>
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+    </div>
+  </div>
+</div>
+
+{% include "dashboard/subscriber_detail/broadcast.html" with target='network' %}
+{% endblock %}
+{% block js %}
+<script type="text/javascript">
+
+function getTranslation() {
+    if ($('#id_message').val().length > 0) {
+        $('[id^="lang_"]').addClass('loadinggif');
+        $('#notification-translate').val('Retry Translation').removeAttr('disabled');
+    $("#status").hide();
+    $('#notification-translate').val('Translate');
+    $.ajax({
+        // just in case
+        statusCode: {
+            500: function() {
+            $("#status").show();
+            $("#status").text('Please try manual translation (Server Error!)');
+            $('#notification-translate').attr({'disabled':'disabled'});
+            $('[id^="lang_"]').removeClass('loadinggif').removeAttr('disabled');
+            }
+        },
+        url: '/dashboard/network/notification/translate?message=' + $('#id_message').val(),
+        type: 'GET',
+        timeout: 5000,
+
+        success: function (response) {
+            $('#id_translations').removeAttr('disabled');
+            $('#add-notification-submit').removeAttr('disabled');
+            for (var key in response.translation) {
+                $("#lang_"+key+"").removeClass('loadinggif').removeAttr('disabled').val(response.translation[key]);
+            }
+            $("#status").hide();
+            $('#notification-translate').val('Translate');
+        },
+        error: function(xhr, status, message) {
+        if(status == "timeout") {
+            $("#status").show();
+            $('#notification-translate').val('Retry Translation');
+            $('[id^="lang_"]').removeClass('loadinggif').removeAttr('disabled');
+            }
+        }
+    });
+    } else {
+        $('#notification-translate').attr({'disabled':'disabled'}).val('Translate');
+        $('#id_translations').attr({'disabled':'disabled'});
+        $("#status").hide();
+    }
+}
+$(function() {
+  $('.actions').hide();
+  $('input:checkbox').change(function() {
+      var num_records = $('form input[name=id]:checked').length;
+      if(num_records==1) {
+          $('.actions').show();
+          $('#action_edit').show();
+      } else if(num_records > 1) {
+          $('.actions').show();
+          $('#action_edit').hide();
+      } else {
+          $('.actions').hide();
+      }
+  });
+  $('input:radio').change(function() {
+    var notification_type = $('form input[name=type]:checked').val();
+    if (notification_type == 'mapped') {
+      $('#id_number').prop('disabled', false);
+      $('#id_event').val('');
+      $('#id_event').prop('disabled', true);
+    } else {
+      $('#id_number').prop('disabled', true);
+      $('#id_event').prop('disabled', false);
+      $('#id_number').val('');
+    }
+  });
+});
+
+$('#delete-confirm').click(function () {
+  $('#notification_form').submit();
+});
+
+function toggle(source) {
+  checkboxes = document.getElementsByName('id');
+  for(var i in checkboxes) {
+    checkboxes[i].checked = source.checked;
+  }
+}
+function editNotification() {
+  $("#status").hide();
+  if ($('form input[name=id]:checked').val()){
+  // edit via checkbox
+      var notif_id = $('form input[name=id]:checked').val();
+  } else {
+  // edit from detail form
+      var notif_id = $('#event_id').val();
+  }
+
+
+  // Post to the endagaweb API.
+  $('#id_message').attr({'disabled':'disabled'});
+  $('#add-notification-submit').val('Update');
+  $('#edit').show();
+  $('.title').html('Edit Notification');
+
+  $.ajax({
+      url: '/dashboard/network/notification?id=' + notif_id,
+      type: 'GET',
+      beforeSend: function (xhr) {
+          xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+      },
+      success: function (response) {
+          var etype = response.data.type;
+          $('form input[value='+ etype +']').prop('checked', true).change();
+          $('#id_number').val(response.data.number);
+          $('#id_event').val(response.data.event);
+          $('#id_message').val(response.data.message);
+          $('#id_pk').val(response.data.id);
+          $('#event_exists').hide();
+          for (var key in response.data.translations) {
+              $("#lang_"+key+"").val(response.data.translations[key]);
+              $('#lang_'+key+'_get').val(response.data.translations[key]);
+          }
+          if (response.data.protected){
+             $('#id_event').attr({'disabled':'disabled'});
+             $('#id_number').attr({'disabled':'disabled'});
+             $('[id^="id_type"]').attr({'disabled':'disabled'});
+                }else{
+             $('#id_event').removeAttr('disabled');
+             $('#id_number').removeAttr('disabled');
+          }
+      },
+      error: function (response) {
+          // Show an error message after a small delay.
+          setTimeout(function () {
+              var message = 'Error: ' + response.status;
+              var html = "<div class='alert alert-danger'>" + message + "</div>";
+              $('#user-messages-container').html(html).show();
+              $('#edit').hide();
+          }, 800);
+      },
+  });
+}
+function getNotification(id) {
+  // Post to the endagaweb API.
+    $("#status").hide();
+    $('#notification-translate').val('Translate');
+  $.ajax({
+      url: '/dashboard/network/notification?id=' + id,
+      type: 'GET',
+      beforeSend: function (xhr) {
+          xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+      },
+
+      success: function (response) {
+          $('#id_event').val(response.data.event);
+          // for specific language modal
+          $('#event_id').val(id);
+          $('#id_pk').val(id);
+          $('#is_protected').val(response.data.protected);
+          if (response.data.number){
+              $('#id_event').text(response.data.number);
+          }else{
+              $('#event_title').text((response.data.event.toUpperCase()).replace('_', ' '));
+          }
+          $('#event_type').text(response.data.type.toUpperCase());
+          // For edit scenario
+          $('[id^="id_message"]').val(response.data.message);
+          for (var key in response.data.translations) {
+                  $("#lang_"+key).val(response.data.translations[key]);
+                  // For edit scenario
+                  $("#lang_"+key+"_get").val(response.data.translations[key]);
+              }
+      },
+      error: function (response) {
+          // Show an error message after a small delay.
+          setTimeout(function () {
+              var message = 'Error: ' + response.status;
+              var html = "<div class='alert alert-danger'>" + message + "</div>";
+              $('#user-messages-container').html(html).show();
+          }, 800);
+      },
+  });
+}
+function resetForm() {
+// Reset all fields
+  $('#id_type_1').prop('checked', true).change();
+  $('#id_number').val('');
+  $('#id_message').val('');
+  $('#id_event').val('');
+  // clear all translations
+  $('[id^="lang_"]').val('');
+  $('[id^="lang_"]').attr({'disabled':'disabled'});
+  $('#id_pk').val(0);
+  $("#status").hide();
+  $('#event_exists').hide();
+  $('#notification-translate').val('Translate');
+  $("#edit").hide();
+  $('#add-notification-submit').val('Add Notification');
+  $('.title').html('Add Notification');
+}
+function filterNotifications(lang) {
+    $.ajax({
+        url: "/dashboard/network/notification?lang=" + lang.value
+        }).done(function(response) {
+        window.location.href = '/dashboard/network/notification?lang=' + lang.value;
+    });
+}
+function destroyContent() {
+  window.location.href = '/dashboard/network/notification';
+}
+function editLanguage(key) {
+  $('[id^="lang_"]').attr({'disabled':'disabled'});
+  $('#lang_'+key.name+'_get').removeAttr('disabled');
+  $('#lang_'+key.name+'').val($('#lang_'+key.name+'_get').val());
+  $('#lang_'+key.name).removeAttr('disabled');
+  $('#language_submit').removeAttr('disabled');
+}
+function editMessage(){
+  $('#id_message').removeAttr('disabled');
+  }
+function enableUpdate(){
+  $('#add-notification-submit').removeAttr('disabled');
+}
+
+function checkEvent(){
+    if ($('#id_event').val().length > 0){
+        var event = $('#id_event').val();
+    } else {
+        var event = $('#id_number').val();
+    }
+    $.ajax({
+        url: "/dashboard/network/notification/event?event=" + event,
+    }).done(function(response) {
+        if (response.event){
+        // if event not exists
+            $('#event_exists').hide();
+            $('#id_message').removeAttr('disabled');
+        }else{
+            $('#event_exists').show();
+            $('#id_message').attr({'disabled':'disabled'});
+            $('#add-notification-submit').attr({'disabled':'disabled'});
+        }
+});
+}
+</script>
+{% endblock %}

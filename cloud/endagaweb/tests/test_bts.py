@@ -43,6 +43,7 @@ class BTSHandleEventTestCase(TestCase):
     def setUpClass(cls):
         """Using setUpClass so we don't create duplicate objects."""
         cls.user = models.User(username="zzz", email="z@e.com")
+        cls.user.is_superuser = True
         cls.user.save()
         cls.user_profile = models.UserProfile.objects.get(user=cls.user)
         # mock out notifications' celery

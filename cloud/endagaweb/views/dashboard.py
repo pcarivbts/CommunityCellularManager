@@ -8,54 +8,75 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 """
 
+import csv
 import datetime
+import json
 import logging
+import operator
 import time
 import urllib
 import uuid
-import operator
 
-from django.template.loader import get_template
-from django.http import HttpResponse, HttpResponseBadRequest, QueryDict
-
-from django.shortcuts import redirect
-from django.contrib.auth.decorators import login_required
-from django.utils import timezone as django_utils_timezone
-from django.utils.decorators import method_decorator
-from django.contrib import messages
-from django.conf import settings
-from django.core import urlresolvers
-from django.views.generic import View
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q
-
+import django.utils.timezone
 import django_tables2 as tables
-import csv
 import humanize
 import pytz
 import stripe
-from guardian.shortcuts import get_objects_for_user
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User, Permission, ContentType
+from django.contrib.auth.views import password_reset
+from django.core import urlresolvers
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.urlresolvers import reverse
+from django.db import transaction, IntegrityError
+from django.db.models import Q
+from django.db.models.signals import post_save
+from django.http import HttpResponse, HttpResponseBadRequest, QueryDict, \
+    JsonResponse
+from django.shortcuts import redirect
+from django.template.loader import get_template
+from django.utils import timezone as django_utils_timezone
+from django.utils.decorators import method_decorator
+from django.views.generic import View
+from guardian.mixins import PermissionRequiredMixin
+from guardian.shortcuts import assign_perm, get_perms, remove_perm, \
+    get_users_with_perms
+from guardian.shortcuts import (get_objects_for_user)
+from rest_framework.authtoken.models import Token
 
+from endagaweb import tasks
+from endagaweb.forms import dashboard_forms as dform
 from ccm.common.currency import parse_credits, humanize_credits, CURRENCIES
 from endagaweb.models import (UserProfile, Subscriber, UsageEvent,
-                              Network, PendingCreditUpdate, Number)
+                              Network, PendingCreditUpdate, Number, BTS)
 from endagaweb.util.currency import cents2mc
-from endagaweb.forms import dashboard_forms as dform
-from endagaweb import tasks
 from endagaweb.views import django_tables
 import json
+import django.utils.timezone
+from endagaweb.models import PERMISSIONS
+NETWORK_PERMISSIONS = PERMISSIONS
 
-class ProtectedView(View):
+
+class ProtectedView(PermissionRequiredMixin, View):
     """ A class-based view that requires a login. """
 
-    @method_decorator(login_required)
-    def dispatch(self, *args, **kwargs):
-        return super(ProtectedView, self).dispatch(*args, **kwargs)
+    # title = ""
 
+    @method_decorator(login_required)
+    def dispatch(self, request, *args, **kwargs):
+        user_profile = UserProfile.objects.get(user=request.user)
+        PermissionRequiredMixin.permission_object = user_profile.network
+        PermissionRequiredMixin.raise_exception = True
+        return super(ProtectedView, self).dispatch(request, *args, **kwargs)
 
 """
 Views for logged in users.
 """
+USER_ROLES = ('Business Analyst', 'Loader',
+              'Partner', 'Network Admin')
+
 
 logger = logging.getLogger(__name__)
 
@@ -104,33 +125,37 @@ def addmoney(request):
         return HttpResponseBadRequest()
 
 
-@login_required
-def dashboard_view(request):
+class DashboardView(ProtectedView):
     """Main dashboard page with graph of network activity.
 
     The js on the template itself gets the data for the graph using the stats
     API.  We also load the server's notion of the current time so that we don't
     have to rely on the user's clock.
     """
-    user_profile = UserProfile.objects.get(user=request.user)
-    network = user_profile.network
-    timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
-        datetime.datetime.now()).total_seconds()
-    # Determine if there has been any activity on the network (if not, we won't
-    # show the graphs).
-    network_has_activity = UsageEvent.objects.filter(
-        network=network).exists()
-    context = {
-        'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
-        'user_profile': user_profile,
-        'network_id': network.id,
-        'current_time_epoch': int(time.time()),
-        'timezone_offset': timezone_offset,
-        'network_has_activity': network_has_activity,
-    }
-    template = get_template("dashboard/index.html")
-    html = template.render(context, request)
-    return HttpResponse(html)
+    # view_network is default (minimum permission assigned)
+    permission_required = 'view_network'
+
+    def get(self, request):
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        timezone_offset = pytz.timezone(user_profile.timezone).utcoffset(
+            datetime.datetime.now()).total_seconds()
+        # Determine if there has been any activity on the network (if not, we won't
+        # show the graphs).
+        network_has_activity = UsageEvent.objects.filter(
+            network=network).exists()
+        context = {
+            'network': network,
+            'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
+            'user_profile': user_profile,
+            'network_id': network.id,
+            'current_time_epoch': int(time.time()),
+            'timezone_offset': timezone_offset,
+            'network_has_activity': network_has_activity,
+        }
+        template = get_template("dashboard/index.html")
+        html = template.render(context, request)
+        return HttpResponse(html)
 
 
 @login_required
@@ -140,6 +165,7 @@ def profile_view(request):
     Allows one to change email, name, password and timezone.
     """
     user_profile = UserProfile.objects.get(user=request.user)
+    network = user_profile.network
     contact_form = dform.UpdateContactForm({
         'email': request.user.email,
         'first_name': request.user.first_name,
@@ -147,9 +173,9 @@ def profile_view(request):
         'timezone': user_profile.timezone
     })
     context = {
+        'network': network,
         'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
         'user_profile': user_profile,
-        'network': user_profile.network,
         'contact_form': contact_form,
         'change_pass_form': dform.ChangePasswordForm(request.user),
         'update_notify_emails_form': dform.NotifyEmailsForm(
@@ -182,6 +208,7 @@ def billing_view(request):
         num_pages = transaction_paginator.num_pages
         transactions = transaction_paginator.page(num_pages)
     context = {
+        'network': network,
         'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
         'user_profile': user_profile,
         'transactions': transactions
@@ -206,8 +233,7 @@ def billing_view(request):
     return HttpResponse(html)
 
 
-@login_required
-def subscriber_list_view(request):
+class SubscriberListView(ProtectedView):
     """View the list of Subscribers at /dashboard/subscribers.
 
     You can pass 'query' as a GET request parameter -- it can contain a
@@ -219,50 +245,135 @@ def subscriber_list_view(request):
     Returns:
        an HttpResponse
     """
+    permission_required = 'view_subscriber'
 
-    user_profile = UserProfile.objects.get(user=request.user)
-    network = user_profile.network
-    all_subscribers = Subscriber.objects.filter(network=network)
+    def get(self, request, *args, **kwargs):
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        currency = CURRENCIES[network.subscriber_currency]
+        all_subscribers = Subscriber.objects.filter(network=network)
 
-    query = request.GET.get('query', None)
-    if query:
-        # Get actual subs with partial IMSI matches or partial name matches.
-        query_subscribers = (
-            network.subscriber_set.filter(imsi__icontains=query) |
-            network.subscriber_set.filter(name__icontains=query))
-        # Get ids of subs with partial number matches.
-        sub_ids = network.number_set.filter(
-            number__icontains=query
-        ).values_list('subscriber_id', flat=True)
-        # Or them together to get list of actual matching subscribers.
-        query_subscribers |= network.subscriber_set.filter(
-            id__in=sub_ids)
-    else:
-        # Display all subscribers.
-        query_subscribers = all_subscribers
+        query = request.GET.get('query', None)
+        if query:
+            # Get actual subs with partial IMSI matches or partial name matches.
+            query_subscribers = (
+                network.subscriber_set.filter(imsi__icontains=query) |
+                network.subscriber_set.filter(name__icontains=query))
+            # Get ids of subs with partial number matches.
+            sub_ids = network.number_set.filter(
+                number__icontains=query
+            ).values_list('subscriber_id', flat=True)
+            # Or them together to get list of actual matching subscribers.
+            query_subscribers |= network.subscriber_set.filter(
+                id__in=sub_ids)
+        else:
+            # Display all subscribers.
+            query_subscribers = all_subscribers
 
-    # Setup the subscriber table.
-    subscriber_table = django_tables.SubscriberTable(list(query_subscribers))
-    tables.RequestConfig(request, paginate={'per_page': 15}).configure(
-        subscriber_table)
+        # Setup the subscriber table.
+        subscriber_table = django_tables.SubscriberTable(
+            list(query_subscribers))
+        tables.RequestConfig(request, paginate={'per_page': 15}).configure(
+            subscriber_table)
 
-    # Render the response with context.
-    context = {
-        'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
-        'currency': CURRENCIES[network.subscriber_currency],
-        'user_profile': user_profile,
-        'total_number_of_subscribers': len(all_subscribers),
-        'number_of_filtered_subscribers': len(query_subscribers),
-        'subscriber_table': subscriber_table,
-        'search': dform.SubscriberSearchForm({'query': query}),
-    }
-    template = get_template("dashboard/subscribers.html")
-    html = template.render(context, request)
-    return HttpResponse(html)
+        # If a CSV has been requested, return that here.
+        if request.method == "GET" and request.GET.get('csv', False):
+            headers = [
+                'IMSI',
+                'Name',
+                'Number(s)',
+                'Balance',
+                'Status',
+                'Last Active',
+                'Role'
+            ]
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = ('attachment;filename='
+                                               '"etage-subscribers-%s.csv"') \
+                                              % (
+                                              datetime.datetime.now().date(),)
+            writer = csv.writer(response)
+            writer.writerow(headers)
+            # Forcibly limit to 7000 items.
+            timezone = pytz.timezone(user_profile.timezone)
+            for subscriber in all_subscribers[:7000]:
+                status = 'camped' if subscriber.is_camped else 'not camped'
+                writer.writerow([
+                    subscriber.imsi,
+                    subscriber.name,
+                    subscriber.numbers(),
+                    humanize_credits(subscriber.balance,
+                                     currency=currency).amount_str(),
+                    status,
+                    subscriber.last_active,
+                    subscriber.role,
+                ])
+            return response
+
+        # Render the response with context.
+        context = {
+            'network': network,
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=Network),
+            'currency': CURRENCIES[network.subscriber_currency],
+            'user_profile': user_profile,
+            'total_number_of_subscribers': len(all_subscribers),
+            'number_of_filtered_subscribers': len(query_subscribers),
+            'subscriber_table': subscriber_table,
+            'search': dform.SubscriberSearchForm({'query': query}),
+        }
+        template = get_template("dashboard/subscribers.html")
+        html = template.render(context, request)
+        return HttpResponse(html)
+
+    def post(self, request, *args, **kwargs):
+        # Added to check password to download the csv
+
+        if request.user.check_password(request.POST.get('password')):
+            response = {'status': 'ok'}
+        else:
+            response = {'status': 'fail'}
+        return HttpResponse(json.dumps(response),
+                            content_type="application/json")
+
+
+class SubscriberUpdateRole(ProtectedView):
+    """Updates Subscriber Role ( Subscriber, Retailer, Test)
+    """
+    permission_required = ['edit_subscriber','view_subscriber']
+
+    def post(self, request, *args, **kwargs):
+        subscriber_imsi_list = request.POST.getlist('imsi_val[]')
+        new_role = str(request.POST.get('category')).lower()
+
+        try:
+            subscribers = Subscriber.objects.filter(imsi__in=
+                                                    subscriber_imsi_list)
+            max_vald = django.utils.timezone.now() + datetime.timedelta(
+                days=(50 * 365))
+            min_vald = django.utils.timezone.now() + datetime.timedelta(
+                days=1)
+            if str(new_role).lower() == 'retailer':
+                subscribers.update(state='active', valid_through=max_vald,
+                                   role=new_role)
+            else:
+                for subscriber in subscribers:
+                    # if last role was retailer set the min validity.
+                    if str(subscriber.role).lower() == 'retailer':
+                        subscriber.valid_through = min_vald
+                    subscriber.role = new_role
+                    subscriber.save()
+            message = "Subscriber role updated successfully."
+        except Exception as e:
+            if hasattr(e, 'message'):
+                e = (e.message)
+            message = "Subscriber role update fail due to %s " % e
+        return HttpResponse(message)
 
 
 class SubscriberInfo(ProtectedView):
     """View info on a single subscriber."""
+    permission_required = 'view_subscriber'
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -275,10 +386,12 @@ class SubscriberInfo(ProtectedView):
             return HttpResponseBadRequest()
         # Set the context with various stats.
         context = {
+            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
             'currency': CURRENCIES[network.subscriber_currency],
             'user_profile': user_profile,
             'subscriber': subscriber,
+            'valid_through': subscriber.valid_through,
         }
         try:
             context['created'] = subscriber.usageevent_set.order_by(
@@ -316,6 +429,7 @@ class SubscriberActivity(ProtectedView):
     """
     datepicker_time_format = '%Y-%m-%d at %I:%M%p'
     url_time_format = '%Y-%m-%d-at-%I.%M%p'
+    permission_required = 'view_subscriber'
 
     def post(self, request, imsi=None):
         """Handles POST requests for activity filtering.
@@ -419,6 +533,7 @@ class SubscriberActivity(ProtectedView):
             context_end_date = end_date.strftime(self.datepicker_time_format)
 
         context = {
+            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
             'currency': CURRENCIES[network.subscriber_currency],
             'user_profile': user_profile,
@@ -431,6 +546,7 @@ class SubscriberActivity(ProtectedView):
             'end_date': context_end_date,
             'all_services': all_services,
             'checked_services': checked_services,
+            'network': network
         }
 
         template = get_template('dashboard/subscriber_detail/activity.html')
@@ -440,6 +556,7 @@ class SubscriberActivity(ProtectedView):
 
 class SubscriberSendSMS(ProtectedView):
     """Send an SMS to a single subscriber."""
+    permission_required = ['send_sms', 'view_subscriber']
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -456,11 +573,13 @@ class SubscriberSendSMS(ProtectedView):
         }
         # Set the response context.
         context = {
+            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
             'user_profile': user_profile,
             'subscriber': subscriber,
             'send_sms_form': dform.SubscriberSendSMSForm(
-                initial=initial_form_data)
+                initial=initial_form_data),
+            'network': network
         }
         # Render template.
         template = get_template('dashboard/subscriber_detail/send_sms.html')
@@ -501,6 +620,7 @@ class SubscriberSendSMS(ProtectedView):
 
 class SubscriberAdjustCredit(ProtectedView):
     """Adjust credit for a single subscriber."""
+    permission_required = ['adjust_credit','view_subscriber']
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -509,28 +629,30 @@ class SubscriberAdjustCredit(ProtectedView):
         try:
             subscriber = Subscriber.objects.get(imsi=imsi,
                                                 network=network)
+            # Set the response context.
+            pending_updates = subscriber.pendingcreditupdate_set.all().order_by(
+                'date')
+            initial_form_data = {
+                'imsi': subscriber.imsi,
+            }
+            context = {
+                'network': network,
+                'networks': get_objects_for_user(request.user, 'view_network',
+                                                 klass=Network),
+                'currency': CURRENCIES[network.subscriber_currency],
+                'user_profile': user_profile,
+                'subscriber': subscriber,
+                'pending_updates': pending_updates,
+                'credit_update_form': dform.SubscriberCreditUpdateForm(
+                    initial=initial_form_data),
+            }
+            # Render template.
+            template = get_template(
+                'dashboard/subscriber_detail/adjust_credit.html')
+            html = template.render(context, request)
+            return HttpResponse(html)
         except Subscriber.DoesNotExist:
             return HttpResponseBadRequest()
-        # Set the response context.
-        pending_updates = subscriber.pendingcreditupdate_set.all().order_by(
-            'date')
-        initial_form_data = {
-            'imsi': subscriber.imsi,
-        }
-        context = {
-            'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
-            'currency': CURRENCIES[network.subscriber_currency],
-            'user_profile': user_profile,
-            'subscriber': subscriber,
-            'pending_updates': pending_updates,
-            'credit_update_form': dform.SubscriberCreditUpdateForm(
-                initial=initial_form_data),
-        }
-        # Render template.
-        template = get_template(
-            'dashboard/subscriber_detail/adjust_credit.html')
-        html = template.render(context, request)
-        return HttpResponse(html)
 
     def post(self, request, imsi=None):
         """Operators can use this API to add credit to a subscriber.
@@ -590,6 +712,7 @@ class SubscriberAdjustCredit(ProtectedView):
 
 class SubscriberEdit(ProtectedView):
     """Edit a single subscriber's info."""
+    permission_required = 'edit_subscriber'
 
     def get(self, request, imsi=None):
         """Handles GET requests."""
@@ -608,13 +731,14 @@ class SubscriberEdit(ProtectedView):
                 subscriber.prevent_automatic_deactivation),
         }
         context = {
+            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
             'user_profile': user_profile,
             'subscriber': subscriber,
             'subscriber_info_form': dform.SubscriberInfoForm(
                 initial=initial_form_data),
             'network_version': (
-                subscriber.network.get_lowest_tower_version()),
+                subscriber.network.get_lowest_tower_version())
         }
         # Render template.
         template = get_template(
@@ -650,7 +774,7 @@ class SubscriberEdit(ProtectedView):
 
 class ActivityView(ProtectedView):
     """View activity on the network."""
-
+    permission_required = 'view_activity'
     datepicker_time_format = '%Y-%m-%d at %I:%M%p'
 
     def get(self, request, *args, **kwargs):
@@ -803,6 +927,7 @@ class ActivityView(ProtectedView):
             events = event_paginator.page(event_paginator.num_pages)
         # Setup the context for the template.
         context = {
+            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network', klass=Network),
             'currency': CURRENCIES[network.subscriber_currency],
             'user_profile': profile,
@@ -915,3 +1040,524 @@ class ActivityView(ProtectedView):
 
                 res_events |= events
             return res_events
+
+
+class UserManagement(ProtectedView):
+    """
+    Handles User management operations.
+    """
+    permission_required = 'user_management'
+
+    def get(self, request, *args, **kwargs):
+
+        # Handles request from Network Admin or Cloud Admin
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        user = User.objects.get(id=user_profile.user_id)
+        available_permissions = get_perms(request.user, network)
+        # Get all users except Cloud Admin
+        users_in_network = get_users_with_perms(
+            network, attach_perms=False, with_superusers=False).exclude(
+            Q(is_superuser=True) | Q(email='') | Q(
+                userprofile__role='Cloud Admin'))
+
+        if not user_profile.user.is_superuser:
+            users_in_network = users_in_network.exclude(
+                userprofile__role__in=['Network Admin', 'Cloud Admin'])
+        # Search for User query
+        query = request.GET.get('query', None)
+        if query:
+            query_users = (users_in_network.filter(username__icontains=query) |
+                           users_in_network.filter(email__icontains=query))
+        else:
+            query_users = users_in_network
+
+        if not user.is_superuser:  # If Cloud Admin
+            role = USER_ROLES[0:len(USER_ROLES) - 1]
+        else:  # If Network Admin
+            role = USER_ROLES
+        content = ContentType.objects.get(
+            app_label='endagaweb', model='network')
+
+        # cleans stale permissions, if any in network.
+        stale_permissions = Permission.objects.filter(
+            content_type_id=content.id).exclude(
+            codename__in=[a[0] for a in NETWORK_PERMISSIONS])
+        if stale_permissions:
+            stale_permissions.delete()
+
+        network_permissions = Permission.objects.filter(
+            codename__in=available_permissions,
+            content_type_id=content.id).exclude(
+            codename='view_network')
+
+        user_table = django_tables.UserTable(list(query_users))
+        tables.RequestConfig(request, paginate={'per_page': 12}).configure(
+            user_table)
+        context = {
+            'users': user_table,
+            'network': network,
+            'user_profile': user_profile,
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=Network),
+            'permissions': sorted(network_permissions, reverse=True),
+            'roles': role,
+            'total_users': len(users_in_network),
+            'total_users_found': len(query_users),
+            'search': dform.UserSearchForm({'query': query}),
+            }
+        info_template = get_template('dashboard/user_management/add.html')
+        html = info_template.render(context, request)
+        return HttpResponse(html)
+
+    def post(self, request, *args, **kwargs):
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        available_permissions = get_perms(request.user, network)
+        # setting email as username
+        username = request.POST['email']
+        email = request.POST['email']
+        user_role = str(request.POST['role'])
+        permissions = str(request.POST.get('permissions')).split(',')
+
+        if len(permissions) < 1:
+            message = "Minimum one permission is required to create user."
+            messages.error(request, message, extra_tags="alert alert-danger")
+            return JsonResponse({'status': 'error', 'message': message})
+
+        # Disconnect the signal only to create user,set network,role and group
+        post_save.disconnect(UserProfile.new_user_hook, sender=User)
+        try:
+            with transaction.atomic():
+                user = User(username=username)
+
+                if user_role == 'Network Admin':
+                    user.is_staff = True
+                else:
+                    user.is_staff = user.is_superuser = False
+                user.email = email
+                # Set random password as send mail fails if no password is set
+                user.set_password(uuid.uuid4())
+                user.save()
+                # creates Token that BTSs on the network use to authenticate
+                Token.objects.create(user=user)
+                # Setup UserProfile database
+                user_profile = UserProfile.objects.create(user=user)
+                user_network = Network.objects.get(id=network.id)
+                # Add the permissions
+                for permission_id in permissions:
+                    permission = Permission.objects.get(id=permission_id)
+                    if permission.codename in available_permissions:
+                        codename = 'endagaweb.' + permission.codename
+                        assign_perm(codename, user, user_network)
+                # view network permission as minimum permission
+                assign_perm('endagaweb.view_network', user, user_network)
+
+                # Set last network as default network for User
+                user_profile.network = user_network
+                user_profile.role = user_role
+                user_profile.save()
+
+        except IntegrityError:
+            message = "User with email %s already exists!" % email
+            post_save.connect(UserProfile.new_user_hook, sender=User)
+            messages.error(request, message, extra_tags="alert alert-danger")
+            # Re-connect the signal before return if it reaches exception
+            post_save.connect(UserProfile.new_user_hook, sender=User)
+            return JsonResponse({'status': 'error', 'message': message})
+        # Sending email now to reset password
+        try:
+            self._send_reset_link(request)
+            mail_info = ' (Reset mail has been sent to %s)' % email
+            # messages.success(request, mail_info)
+        except Exception as ex:
+            logger.error(ex)
+            mail_info = '\n Please configure email to send password reset ' \
+                        'link to user'
+            messages.warning(request, mail_info,
+                             extra_tags="alert alert-danger")
+        # Re-connect the signal before return if it reaches exception
+        post_save.connect(UserProfile.new_user_hook, sender=User)
+        messages.success(request, 'User added successfully.' + mail_info)
+
+        return JsonResponse(
+            {'status': 'success', 'message': 'User added successfully'})
+
+    def _send_reset_link(self, request):
+        return password_reset(request,
+                              post_reset_redirect=reverse('user-management'))
+
+    def delete(self, request, *args, **kwargs):
+        """Handles POST requests to delete or block User."""
+
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        user_ids = request.GET.getlist('ids[]') or None
+        action = 'delete'
+        status = None
+        if user_ids is None:
+            action = 'block'
+            user_ids = request.GET.getlist('block_ids[]') or None
+            # For toggles
+            if user_ids is None:
+                user_ids = [int(request.GET.get('block_id'))]
+                status = request.GET.get('status')
+        user_profile = UserProfile.objects.get(user=request.user)
+        _users = []
+        admin_users = []
+        self_delete = False
+        message = None
+        try:
+            users = User.objects.filter(id__in=user_ids)
+            for user in users:
+                if ((user_profile.user.is_superuser and user_profile.user.is_staff) and
+                        (not user.is_superuser)) or (
+                            user_profile.user.is_staff and (not user.is_staff)):
+                    _users.append(user)
+                elif user_profile.user.id == user.id:
+                    # Lets not delete self
+                    self_delete = True
+                else:
+                    # Not deleting Admins either
+                    admin_users.append(user.username)
+            if len(_users)>0:
+                if action == 'delete':
+                    for user in _users:
+                        # Check if user exists in other N/Ws
+                        networks_assigned = get_objects_for_user(
+                            user, 'view_network', klass=Network)
+                        existing_permissions = get_perms(user, network)
+                        if len(networks_assigned) > 1:
+
+                            for perm in existing_permissions:
+                                permission = 'endagaweb.' + perm
+                                # remove from current network only
+                                remove_perm(permission, user, network)
+                        else:
+                            # if only one n/w it is associated with
+                            user.delete()
+                    action = 'Removed from %s' % network.name
+                elif action == 'block':
+                    for user in _users:
+                        if user.is_active:
+                            user.is_active = False
+                        else:
+                            user.is_active = True
+                        action = 'Updated'
+                        user.save()
+                message = 'Successfully, %s!' % action
+                if status is None:
+                    messages.success(request, message,
+                                    extra_tags="alert alert-success")
+            if len(admin_users)>0:
+                message = 'Cannot %s admin(s): %s ' % (action,
+                                                       ', '.join(admin_users))
+                messages.warning(request, message,
+                                 extra_tags="alert alert-warning")
+            if self_delete:
+                message = 'You cannot delete yourself.'
+                messages.warning(request, message,
+                                 extra_tags="alert alert-warning")
+            return HttpResponse(request, message)
+        except User.DoesNotExist:
+            return HttpResponseBadRequest()
+
+
+class UserUpdate(ProtectedView):
+    """
+    Updates the existing user's permissions or role,
+    this view is specific to cloud/network admins.
+    """
+    permission_required = 'user_management'
+
+    def get(self, request, *args, **kwargs):
+
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        user = User.objects.get(id=user_profile.user_id)
+        # Admin permissions on current network
+        network_permissions = get_perms(request.user, network)
+
+        if not user.is_superuser:  # if cloud admin
+            roles = USER_ROLES[0:len(USER_ROLES) - 1]
+        else:  # if network admin
+            roles = USER_ROLES
+        try:
+            existing_user = request.GET['user']
+            if len(existing_user) == 0:
+                existing_user = request.GET['id']
+                _user = User.objects.get(id=existing_user)
+                # get_perms fails to get permissions for users
+                # who are inactive i.e for blocked users
+                # https://github.com/django-guardian/django-guardian/issues/343
+                if not _user.is_active:
+                    _user.is_active = True  # setting active just to get perms
+                    existing_permissions = get_perms(_user,
+                                                     user_profile.network)
+                    _user.is_active = False # setting back to inactive
+                else:
+                    existing_permissions = get_perms(_user,
+                                                     user_profile.network)
+            else:
+                _user = User.objects.get(email=existing_user)
+                if not _user.is_active:
+                    _user.is_active = True # setting active to get perms
+                    existing_permissions = get_perms(_user,
+                                                     user_profile.network)
+                    _user.is_active = False # setting back to inactive
+                else:
+                    existing_permissions = get_perms(_user,
+                                                     user_profile.network)
+            update_user = True
+            _user_profile = UserProfile.objects.get(user=_user)
+            user_role = _user_profile.role
+            # Setup available and assigned permissions
+            content = ContentType.objects.get(app_label='endagaweb',
+                                              model='network')
+
+            user_perms = Permission.objects.filter(
+                codename__in=existing_permissions,
+                content_type_id=content).exclude(codename='view_network')
+
+            available_permissions = Permission.objects.filter(
+                codename__in=network_permissions).exclude(
+                codename__in=existing_permissions)
+
+            permissions = [(a.id, a.name) for a in available_permissions]
+            user_permissions = [(a.id, a.name) for a in user_perms]
+            context = {
+                'permissions': permissions,
+                'user_permissions': user_permissions,
+                'roles': roles,
+                'user_role': user_role,
+                'update': update_user,
+                'email': _user.email,
+            }
+            return HttpResponse(json.dumps(context),
+                                content_type="application/json")
+        except User.DoesNotExist:
+            message = 'Strange! %s not found!' % request.GET['user']
+            raise LookupError(message)
+
+    def post(self, request, *args, **kwargs):
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        email = request.POST['email']
+        user_role = str(request.POST['role'])
+        permissions = request.POST.get('permissions')
+        user = User.objects.get(email=email)
+        user_profile = UserProfile.objects.get(user=user)
+        existing_permissions = get_perms(user, network)
+
+        if len(permissions) > 1:
+            permissions = permissions.split(',')
+            if user_role == 'Network Admin':
+                user.is_staff = True
+            else:
+                user.is_staff = user.is_superuser = False
+            user.save()
+
+            # Update Permissions
+            new_permissions = []
+            for permission_id in permissions:
+                permission = Permission.objects.get(id=permission_id)
+                new_permissions.append(permission.codename)
+
+            user_permissions = set(existing_permissions + new_permissions)
+            for user_perm in user_permissions:
+                perm = 'endagaweb.' + user_perm
+                if user_perm not in new_permissions:
+                    remove_perm(perm, user, network)
+                else:
+                    assign_perm(perm, user, network)
+            assign_perm('endagaweb.view_network', user, network)
+            user_profile.network = network
+            if user_profile.role != user_role:
+                user_profile.role = user_role
+            user_profile.save()
+            message = 'User updated!'
+            messages.success(request, message)
+        else:
+            if len(existing_permissions) < 1:
+                message = 'Nothing to update!'
+            else:
+                for permission in existing_permissions:
+                    perm = 'endagaweb.' + permission
+                    remove_perm(perm, user, network)
+                message = 'Removed all permissions!'
+            messages.info(request, message)
+
+        return HttpResponse(request, message)
+
+
+class SubscriberCategoryEdit(ProtectedView):
+    """Search and update the category of the subscriber"""
+    permission_required = 'edit_subscriber'
+
+    def get(self, request, *args, **kwargs):
+        return self._handle_request(request)
+
+    def post(self, request, *args, **kwargs):
+        return self._handle_request(request)
+
+    def _handle_request(self, request):
+        user_profile = UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        all_subscribers = Subscriber.objects.filter(network=network)
+
+        if request.method == "GET":
+            query = request.GET.get('query', '')
+            show_table = False
+
+            if query:
+                # Get actual subs with partial IMSI matches or partial name
+                # matches.
+                query_subscribers = (
+                    network.subscriber_set.filter(imsi__icontains=query) |
+                    network.subscriber_set.filter(name__icontains=query))
+                # Get ids of subs with partial number matches.
+                sub_ids = network.number_set.filter(
+                    number__icontains=query
+                ).values_list('subscriber_id', flat=True)
+                # Or them together to get list of actual matching subscribers.
+                query_subscribers |= network.subscriber_set.filter(
+                    id__in=sub_ids)
+                show_table = True
+            else:
+                # Display all subscribers.
+                query_subscribers = all_subscribers
+
+            subscriber_table = django_tables.SubscriberManagementTable(
+                list(query_subscribers))
+
+            tables.RequestConfig(request, paginate={'per_page': 10}).configure(
+                subscriber_table)
+
+            # Render the response with context.
+            context = {
+                'network': network,
+                'networks': get_objects_for_user(request.user, 'view_network',
+                                                 klass=Network),
+                'currency': CURRENCIES[network.subscriber_currency],
+                'user_profile': user_profile,
+                'total_number_of_subscribers': len(all_subscribers),
+                'number_of_filtered_subscribers': len(query_subscribers),
+                'query_subscribers': query_subscribers,
+                'subscriber_table': subscriber_table,
+                'show_table': show_table,
+                'query': query,
+            }
+            template = get_template(
+                'dashboard/subscriber_management/subscribers.html')
+            html = template.render(context, request)
+            return HttpResponse(html)
+
+        elif request.method == "POST":
+            imsi = request.POST.getlist('imsi_val[]')
+            category = request.POST.get('category')
+
+            try:
+                update_imsi = Subscriber.objects.filter(imsi__in=imsi)
+                update_imsi.update(role=category)
+                message = "IMSI category updated successfully"
+                messages.success(request, message,
+                                 extra_tags="alert alert-success")
+            except Exception as e:
+                message = "IMSI category update cannot happen"
+                messages.error(request, message,
+                               extra_tags="alert alert-danger")
+            return HttpResponse(message)
+        else:
+            return HttpResponseBadRequest()
+
+
+class BroadcastView(ProtectedView):
+    """Send an SMS to a single subscriber."""
+    permission_required = 'send_sms'
+
+    def post(self, request):
+        """Broadcast bulk SMS to network, tower or selected imsi.
+
+        This API will call tasks.async_post method to send request to
+        Client BTS system for broadcast SMS
+        """
+
+        sendto = request.POST.get('sendto', None)
+        network_id = request.POST.get('network_id', None)
+        tower_id = request.POST.get('tower_id', None)
+        imsi_str = request.POST.get('imsi', None)
+        message = request.POST.get('message', None)
+        response = {
+            'status': 'failed',
+            'messages': [],
+            'imsi': [],
+            'sent': ''
+        }
+        if sendto in ['network', 'tower']:
+            if (sendto == 'tower' and not tower_id) or sendto == 'network':
+                # Lookup for BTS inbound_url.
+                bts_list = BTS.objects.filter(network=network_id)
+            else:
+                # Lookup for BTS inbound_url.
+                bts_list = BTS.objects.filter(id=tower_id)
+
+            for bts in bts_list:
+                # Fire off an async task request to send the SMS.
+                params = {
+                    'to': '*',
+                    'sender': '0000',
+                    'text': message,
+                    'msgid': str(uuid.uuid4())
+                }
+                if bts.inbound_url:
+                    url = bts.inbound_url + "/endaga_sms"
+                    tasks.async_post.delay(url, params)
+        elif sendto == 'imsi':
+            imsi_list = imsi_str.split(',')
+            invalid_imsi = []
+            subscribers = []
+            for imsi in imsi_list:
+                try:
+                    sub = Subscriber.objects.get(imsi=imsi, network=network_id)
+                    subscribers.append(sub)
+                except Subscriber.DoesNotExist:
+                    invalid_imsi.append(imsi)
+            for subscriber in subscribers:
+                try:
+                    # We send sms to the subscriber's first number.
+                    num = subscriber.number_set.all()[0]
+                except:
+                    num = None
+                if num:
+                    # Fire off an async task request to send the SMS.
+                    params = {
+                        'to': num.number,
+                        'sender': '0000',
+                        'text': message,
+                        'msgid': str(uuid.uuid4())
+                    }
+                    if subscriber.bts.inbound_url:
+                        url = subscriber.bts.inbound_url + "/endaga_sms"
+                        tasks.async_post.delay(url, params)
+            if not imsi_str:
+                message = "Enter Subscriber IMSI number."
+                response['messages'].append(message)
+                return HttpResponse(json.dumps(response),
+                                    content_type="application/json")
+            if len(invalid_imsi) > 0:
+                message = "%s does not exist in this network." % (','.join(
+                    invalid_imsi))
+                response['messages'].append(message)
+                response['imsi'] = invalid_imsi
+                response['sent'] = len(subscribers)
+                return HttpResponse(json.dumps(response),
+                                    content_type="application/json")
+        else:
+            response['messages'].append('Invalid request data.')
+            return HttpResponse(json.dumps(response),
+                                content_type="application/json")
+        message = "Broadcast SMS sent successfully"
+        response['status'] = 'ok'
+        response['messages'].append(message)
+        return HttpResponse(json.dumps(response),
+                            content_type="application/json")

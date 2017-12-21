@@ -11,11 +11,12 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load humanize %}
 {% load crispy_forms_tags %}
 {% load render_table from django_tables2 %}
+{% load guardian_tags %}
 
 {% block title %} {% tmpl_const "SITENAME" %} | Manage Subscribers {% endblock %}
 
 {% block content %}
-
+{% get_obj_perms request.user for network as 'user_permission' %}
 <div class="row">
   <div class="col-xs-12 page-header">
     <h3>Subscribers</h3>
@@ -23,7 +24,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 </div>
 
 <div class='row'>
-
+    {% if 'view_subscriber' in user_permission %}
     <div class="col-xs-12 col-md-4 col-xl-2 pull-right">
     {% if total_number_of_subscribers %}
       <p>Search subscribers by name, IMSI or number:</p>
@@ -32,8 +33,14 @@ of patent rights can be found in the PATENTS file in the same directory.
         {% if total_number_of_subscribers == 1 %}
           You have 1 subscriber on your network.
         {% else %}
-          You have {{ total_number_of_subscribers }} total subscribers on your network.
+          You have {{ total_number_of_subscribers }} total subscribers on <b>{{ network.name }}</b>
+          {% if total_number_of_subscribers > number_of_filtered_subscribers %}
+          <a href="/dashboard/subscribers">
+              (Clear Search)<sup>&nbsp;<i class="fa fa-times" data-toggle="tooltip" title="Clear Search" aria-hidden="true"></i></sup>
+          </a>
+          {% endif %}
         {% endif %}
+        <div></div>
         Keep it up!
       </p>
     {% endif %}
@@ -42,20 +49,340 @@ of patent rights can be found in the PATENTS file in the same directory.
     <div class="col-xs-12 col-md-8">
     {% if number_of_filtered_subscribers %}
     {% render_table subscriber_table %}
+        <div class='modal fade' id='deactivate-subscriber-modal'>
+            <div class='modal-dialog'>
+                <div class='modal-content'>
+                    <div class='modal-header'>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class='modal-title'>
+                            Confirmation
+                        </h4>
+                    </div>
+                    <div class='modal-body'>
+                        <p style="word-wrap: break-word">
+                            Are you sure you want to deactivate
+                            <strong id ="subscriber_imsi"></strong>?<br/>
+                            The subscriber will no longer have service,
+                            but can re-register with the same SIM card by texting 101.
+                        </p>
+                    </div>
+                    <div class='modal-footer'>
+                        <button type='button' class='btn btn-default' data-dismiss='modal'>Cancel</button>
+                        <button class='btn btn-primary' type='button' id='deactivate-subscriber-submit'>Deactivate Subscriber</button>
+                        <div id='subscriber-messages-container'></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class='modal fade' id='update-subscriber-modal'>
+            <div class='modal-dialog'>
+                <div class='modal-content'>
+                    <div class='modal-header'>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class='modal-title'>
+                            Confirmation
+                        </h4>
+                    </div>
+                    <div class='modal-body'>
+                        <p style="word-wrap: break-word">
+                            Are you sure you want to update role of
+                            <strong id ="update_imsi"></strong>?<br/>
+                        </p>
+                        <table class="table table">
+                            <tr>
+                                <label class="radio-inline"><input type="radio"
+                                                                   name="subscriberType"
+                                                                   id="subscriber"
+                                                                   value="Subscriber"><b>Subscriber</b>
+                                </label>
 
+                                <label class="radio-inline"><input type="radio"
+                                                                   name="subscriberType"
+                                                                   id="retailer"
+                                                                   value="Retailer"><b>Retailer</b></label>
+
+                                <label class="radio-inline"><input type="radio"
+                                                                   name="subscriberType"
+                                                                   id="test_sim"
+                                                                   value="Test Sim"><b>Test
+                                    SIM</b></label>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class='modal-footer'>
+                        <button type='button' class='btn btn-default' data-dismiss='modal'>Cancel</button>
+                        <button class='btn btn-primary' type='button' id='update-subscriber-submit'>Update Subscriber</button>
+                        <div id='update-subscriber-messages-container'></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% if 'edit_subscriber' in user_permission %}
+        <div class="dropdown actions">
+            <button id ="actions" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" > Action(s)<span class="caret"></span></button>
+            <ul class="dropdown-menu">
+                <li><a data-toggle='modal' data-target='#deactivate-subscriber-modal' href='#'><i class="fa fa-ban" aria-hidden="true"></i> Deactivate Subscriber</a></li>
+                <li><a data-toggle='modal' data-target='#update-subscriber-modal' href='#'><i class="fa fa-pencil-square-o" aria-hidden="true"></i> Change Subscriber Role</a></li>
+            </ul>
+        </div>
+        {% endif %}
+        <div class="row">
+            <div class="col-xs-12">
+                <p>
+                    {% if total_number_of_subscribers > 100000 %}
+                    Too many results to export, try a shorter date range.
+                    {% elif total_number_of_subscribers > 0 %}
+                    <a href='#' data-toggle='modal' data-target='#pwd-dialog-modal'>Export results as CSV</a>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
     {% elif total_number_of_subscribers > 0 %}
     <h4>No subscribers matched your search.</h4>
 
     {% else %}
     <p>
-      There are currently no subscribers registered on this network.
-      Go find some users!
+        There are currently no subscribers registered on this network.
+        Go find some users!
     </p>
 
     {% endif %}
+</div>
+{% else %}
+    {% include 'dashboard/permission_denied.html' %}
+{% endif %}
+
+<div class='modal fade' id='pwd-dialog-modal'>
+    <div class='modal-dialog'>
+        <div class='modal-content'>
+            <div class='modal-header'>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class='modal-title'>
+                    <p>Hello <strong>{{ user_profile.display_name }}</strong>, please enter your password for authorization.</p>
+                 </h4>
+            </div>
+            <div class='modal-body'>
+                 <div id='messages-container'></div>
+                <form id='password-authorization'>
+                    <div class='form-group'>
+                        <div class='controls'>
+                              <input class='textinput textInput form-control' id='pwd-input' name='pwd' type='password'>
+                        </div>
+                    </div><!-- /.form-group -->
+
+                </form>
+            </div> <!-- /.modal-body -->
+            <div class='modal-footer' id="modal-footerId">
+                <button type='button' class='btn btn-default' data-dismiss='modal'>Cancel</button>
+                <button class='btn btn-primary' type='button' id='pwd-dialog-submit'>OK</button>
+            </div>
+        </div>
     </div>
+</div>
 
-</div> <!-- /.row (subscribers) -->
+{% endblock %}
 
+{% block js %}
+{% get_obj_perms request.user for network as 'user_permission' %}
+{% if not "edit_subscriber" in user_permission %}
+<script>
+    $('.table').find("th").eq(0).hide();
+    $('table tbody tr').each(function() {
+        $(this).find("td").eq(0).hide();
+    });
+</script>
+{% endif %}
+<script>
+        var messageClearTimeout;
+                $('.update-subscriber-link').click(function(event) {
+          event.preventDefault();
+      });
 
+        $('.deactivate-subscriber-link').click(function(event) {
+          event.preventDefault();
+      });
+        toggle();
+        function toggle(source) {
+          var imsi = $('.imsi_id:checked').length;
+          if(document.getElementById("subscriber-select-all").checked==true){
+              $(':checkbox').each(function() {
+                this.checked = true;
+            });
+          }
+          if(document.getElementById("subscriber-select-all").checked==false){
+            $(':checkbox').each(function() {
+                this.checked = false;
+            });
+            var imsi = $('.imsi_id:checked').length;
+        }
+        imsiSelected();
+    }
+    function imsiSelected(check){
+
+        var imsi = $('.imsi_id:checked').length;
+        if(imsi){
+            $('#actions').show();
+        } else{
+            $('#actions').hide();
+        }
+        var i=0;
+        var imsi_val=[];
+        var imsi_list = $('.imsi_id:checked');
+        $.each(imsi_list, function(key, val){
+            imsi_val[i++]=val.value;
+        });
+        $('#subscriber_imsi').html(imsi_val.join());
+        $('#update_imsi').html(imsi_val.join());
+
+    }
+    $('#deactivate-subscriber-submit').click(function(event) {
+      var i=0;
+      var imsi_val=[];
+      var imsi_list = $('.imsi_id:checked');
+      $.each(imsi_list, function(key, val){
+          imsi_val[i++]=val.value;
+      });
+      imsi_list_value = imsi_val.join()
+          // Show a 'working' message.
+          var message = 'Working..';
+          var html = "<div class='alert alert-success'>" + message + "</div>";
+          $('#subscriber-messages-container').html(html).show();
+          // Post to the endagaweb API.
+          $.ajax({
+            url: '/api/v2/subscribers/' + imsi_list_value,
+            type: 'DELETE',
+            beforeSend: function(xhr) {
+              xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+          },
+          success: function(response) {
+              // Show a success message after a small delay.
+              // Then, after some more time has passed, redirect back to /subscribers.
+              setTimeout(function() {
+                var message = 'Subscriber deactivated successfully.';
+                var html = "<div class='alert alert-success'>" + message + "</div>";
+                $('#subscriber-messages-container').html(html).show();
+            }, 1000);
+              clearTimeout(messageClearTimeout);
+              setTimeout(function() {
+                window.location.href = '/dashboard/subscribers';
+            }, 2000);
+          },
+          error: function(response) {
+              // Show an error message after a small delay.
+              setTimeout(function() {
+                var message = 'Error: ' + response.status;
+                var html = "<div class='alert alert-danger'>" + message + "</div>";
+                $('#subscriber-messages-container').html(html).show();
+            }, 800);
+          },
+      });
+      });
+    $('#update-subscriber-submit').click(function(){
+      if($('input[name="subscriberType"]:checked').length<=0){
+               var html = "<div class='alert alert-danger'> Please select category</div>";
+        $('#update-subscriber-messages-container').html(html).show().delay(3000).fadeOut();
+        return
+      }
+      category=document.querySelector('input[name="subscriberType"]:checked').value
+      var i=0;
+      var imsi_val=[];
+      var imsi_list = $('.imsi_id:checked');
+      $.each(imsi_list, function(key, val){
+        imsi_val[i++]=val.value;
+      });
+      var data = {
+        category: category,
+        imsi_val : imsi_val,
+
+      };
+         $.ajax({
+            url: '/dashboard/subscribers/role',
+            data: data,
+            type: 'POST',
+            beforeSend: function(xhr) {
+              xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+          },
+          success: function(response) {
+              setTimeout(function() {
+                 var message = 'Subscriber updated successfully.';
+                var html = "<div class='alert alert-success'>" + message+"</div>";
+                $('#update-subscriber-messages-container').html(html).show();
+            }, 1000);
+              clearTimeout(messageClearTimeout);
+              setTimeout(function() {
+                window.location.href = '/dashboard/subscribers';
+            }, 2000);
+          },
+          error: function(response) {
+              // Show an error message after a small delay.
+              setTimeout(function() {
+                var message = 'Error: ' + response;
+                var html = "<div class='alert alert-danger'>" + message + "</div>";
+                $('#update-subscriber-messages-container').html(html).show();
+            }, 800);
+          },
+      });
+    });
+
+    $('#deactivate-subscriber-modal').on('hidden.bs.modal', function() {
+        $('#subscriber-messages-container').html('');
+    });
+    $('#update-subscriber-modal').on('hidden.bs.modal', function() {
+        $('#updateddate-subscriber-messages-container').html('');
+    });
+
+    // Handle clicks on the pwd-dialog-submit button.
+    $('#pwd-dialog-submit').click(function() {
+        submitPwdDialogData();
+    });
+    // Handle <enter> keypress on pwd-dialog-submit.
+    $('input, #pwd-dialog-submit').keypress(function(e) {
+        if (e.keyCode == 13) {
+            e.preventDefault();
+            submitPwdDialogData();
+        }
+    });
+    $('#pwd-dialog-modal').on('hide.bs.modal', function (e) {
+        $(this).find('form').trigger('reset');
+    });
+
+    function submitPwdDialogData() {
+        var data = {
+            password: $('#pwd-input').val(),
+            csrfmiddlewaretoken: '{{ csrf_token }}',
+        };
+        $.post('/dashboard/subscribers', data, function(response) {
+            if (response['status'] == 'ok') {
+                // Clear out any old messages and show the div again.
+                $('#messages-container').html();
+                $('#messages-container').css('opacity', 1);
+                var message = 'Password Authorization Successful.';
+                var html = '<div class="alert alert-success">' + message + '</div>';
+                $('#messages-container').html(html);
+                setTimeout(function() {
+                    window.location="?page={{ events.number }}&csv=1"
+                    $('#pwd-dialog-modal').modal('hide');
+                    $('#messages-container').fadeTo(200, 0);
+                }, 2000);
+            } else {
+                $('#messages-container').html();
+                $('#messages-container').css('opacity', 1);
+                var message = 'Incorrect password.';
+                var html = '<div class="alert alert-danger">' + message + '</div>';
+                $('#messages-container').html(html);
+                setTimeout(function() {
+                    $('#messages-container').html("")
+                    $('#pwd-input').val("");
+                }, 2000);
+            }
+        });
+    }
+</script>
 {% endblock %}

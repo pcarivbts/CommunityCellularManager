@@ -10,7 +10,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 <extension name="credit_check">
   <condition field="${destination_number}" expression="^${credit_check_number}$">
     <action application="set" data='balance=${python(endaga_currency ${vbts_account_balance})}' />
-    <action application="python" data='endaga_i18n Your balance is %(account_bal)s.|{"account_bal": "${balance}"}'/>
+    <action application="python" data='endaga_notification ${credit_check_number}|{"account_bal": "${balance}"}'/>
     <action application="set" data='res=${python(VBTS_Send_SMS ${vbts_callerid}|${destination_number}|${_localstr})}'/>
   </condition>
 </extension>

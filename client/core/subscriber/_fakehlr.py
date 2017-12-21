@@ -15,8 +15,8 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 
 from core import number_utilities
-from core.subscriber.base import BaseSubscriber, SubscriberNotFound
-
+from core.subscriber.base import BaseSubscriber, SubscriberNotFound, \
+    BaseSubscriberStatus, BaseBTSNotification
 
 class FakeSubscriberDB(BaseSubscriber):
     def __init__(self):
@@ -124,3 +124,17 @@ class FakeSubscriberDB(BaseSubscriber):
         FakeBTS uses IMSI as username, so this is trivial.
         """
         return username
+
+    def status(self, update=None):
+        status = BaseSubscriberStatus()
+        if update is not None:
+            status.process_update(update)
+            return
+        return status
+
+    def notif_status(self, update=None):
+        status = BaseBTSNotification()
+        if update is not None:
+            status.process_notifcaiton(update)
+            return
+        return status

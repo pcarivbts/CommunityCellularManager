@@ -592,7 +592,7 @@ class Checkin(APIView):
             resp = checkin.CheckinResponder(bts).process(bts_status)
         except Exception as e:
             print "Error handling checkin (BTS %s): %s" % (bts.uuid, e)
-            print "BTS status: %s" % bts_status
+            # print "BTS status: %s" % bts_status
             raise
 
         checkin_resp = Response({'response': resp}, status=status.HTTP_200_OK)

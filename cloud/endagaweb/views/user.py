@@ -8,25 +8,40 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 """
 
-from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+import logging
+import re
+
 from allauth.account.utils import user_email
 from allauth.exceptions import ImmediateHttpResponse
-from django.template.context_processors import csrf
-from django.shortcuts import render_to_response, redirect
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.models import User
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.http import HttpResponse, HttpResponseBadRequest
-from django.core.validators import validate_email
-from django.core.exceptions import ValidationError
+from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import ContentType, Permission
+from django.contrib.auth.models import User
+from django.contrib.auth.views import password_reset, password_reset_confirm
 from django.core import urlresolvers
+from django.core.exceptions import ValidationError
+from django.core.urlresolvers import reverse
+from django.core.validators import validate_email
+from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.shortcuts import render_to_response, redirect
+from django.template.context_processors import csrf
 from django.template.loader import get_template
 from django.utils.translation import ugettext_lazy as _
 
 from endagaweb.models import UserProfile
-import logging
+from django.utils import timezone
+import urlparse
+from guardian.shortcuts import get_objects_for_user
+from endagaweb.forms import dashboard_forms as dform
+from endagaweb import models
+from django.core import exceptions
+from endagaweb.util import api
+from googletrans.constants import LANGUAGES
 
 logger = logging.getLogger('endagaweb')
 
@@ -102,12 +117,30 @@ def auth_and_login(request):
     """Handles POSTed credentials for login."""
     user = authenticate(username=request.POST['email'],
                         password=request.POST['password'])
-    if user:
-        login(request, user)
-        next_url = '/dashboard'
-        if 'next' in request.POST and request.POST['next']:
-            next_url = request.POST['next']
-        return redirect(next_url)
+    if user is not None:
+        if user.is_active:
+            login(request, user)
+            user = User.objects.get(username=user)
+            today = timezone.now()
+            user_profile = UserProfile.objects.get(user=user)
+            next_url = '/dashboard'
+            if 'next' in request.POST and request.POST['next']:
+                next_url = request.POST['next']
+            if (today - user_profile.last_pwd_update).days >= \
+                    settings.ENDAGA['PASSSWORD_EXPIRED_LAST_SEVEN_DAYS']:
+                password_expired_day_left = str(settings.ENDAGA['PASSWORD_EXPIRED_DAY']
+                                                - (today - user_profile.last_pwd_update).days)
+                text = '%s, your account will be blocked in next  %s days unless' \
+                       ' change your password' %(user, password_expired_day_left)
+                messages.error(request, text)
+                return redirect(next_url)
+            else:
+                return redirect(next_url)
+        else:
+            # Notification, if blocked user is trying to log in
+            text = "This user is blocked. Please contact admin."
+            messages.error(request, text)
+            return redirect('/login/')
     else:
         text = "Sorry, that email / password combination is not valid."
         messages.error(request, text)
@@ -123,31 +156,68 @@ def change_password(request):
     required_params = ('old_password', 'new_password1', 'new_password2')
     if not all([param in request.POST for param in required_params]):
         return HttpResponseBadRequest()
-    # Validate
-    redirect_url = '/dashboard/profile'
+    # Validate url for redirect
+    if urlparse.urlparse(request.META['HTTP_REFERER']
+                         ).path != '/dashboard/profile':
+        redirect_url = '/password/change'
+    else:
+        redirect_url = '/dashboard/profile'
     if not request.user.check_password(request.POST['old_password']):
         text = 'Error: old password is incorrect.'
         tags = 'password alert alert-danger'
         messages.error(request, text, extra_tags=tags)
         return redirect(redirect_url)
-    if request.POST['new_password1'] != request.POST['new_password2']:
-        text = 'Error: new passwords do not match.'
-        tags = 'password alert alert-danger'
-        messages.error(request, text, extra_tags=tags)
-        return redirect(redirect_url)
-    if request.POST['new_password1'] == '':
-        text = 'Error: new password is not valid.'
-        tags = 'password alert alert-danger'
-        messages.error(request, text, extra_tags=tags)
-        return redirect(redirect_url)
-    # Everything checks out, change the password.
-    request.user.set_password(request.POST['new_password1'])
-    request.user.save()
-    text = 'Password changed successfully.'
-    tags = 'password alert alert-success'
-    messages.success(request, text, extra_tags=tags)
-    return redirect(redirect_url)
+    try:
+        form = dform.ChangePasswordForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            new_password1 =form.clean_password1()
+            form.save()
+            request.user.set_password(new_password1)
+            user_profile = UserProfile.objects.get(user=request.user)
+            user_profile.last_pwd_update = timezone.now()
+            user_profile.save()
+            request.user.save()
+            text = 'Password changed successfully.'
+            tags = 'password alert alert-success'
+            messages.success(request, text, extra_tags=tags)
+            if urlparse.urlparse(request.META['HTTP_REFERER']
+                                 ).path != '/dashboard/profile':
+                redirect_url = '/dashboard'
+                return redirect(redirect_url)
+            else:
+                return redirect(redirect_url)
+        else:
+            """if form is invalid in scenario if conform password not match with
+            new password, so firstly validate new_password strength and raise execption
+            if password strength is success then give error Error:conform password does
+            not match by default djnago called clean_password2()."""
 
+            form.clean_password1()
+            tags = 'password alert alert-danger'
+            messages.error(request, form.error_message, extra_tags=tags)
+            return redirect(redirect_url)
+    except exceptions.ValidationError as e:
+        tags = 'password alert alert-danger'
+        messages.error(request, ''.join(e.messages), extra_tags=tags)
+        return redirect(redirect_url)
+
+@login_required(login_url='/login/')
+def change_expired_password(request):
+    """Render password change template to change
+        password
+    """
+    user_profile = UserProfile.objects.get(user=request.user)
+    network = user_profile.network
+    context = {
+        'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
+        'user_profile': user_profile,
+        'network': network,
+        'change_pass_form': dform.ChangePasswordForm(request.user),
+
+    }
+    template = get_template("dashboard/password_change.html")
+    html = template.render(context, request)
+    return HttpResponse(html)
 
 @login_required(login_url='/login/')
 def update_contact(request):
@@ -217,5 +287,138 @@ def update_notify_numbers(request):
             messages.success(request, "Notify numbers updated.",
                          extra_tags="alert alert-success notify-numbers")
             return redirect("/dashboard/profile")
+    return HttpResponseBadRequest()
+
+
+@login_required(login_url='/login/')
+def check_user(request):
+    if request.method == 'GET':
+        context = {}
+        if 'email' in request.GET:
+            if User.objects.filter(email=request.GET['email']).exists():
+                context['email_available'] = False
+            else:
+                context['email_available'] = True
+        elif 'username' in request.GET:
+            if User.objects.filter(username=request.GET['username']).exists():
+                context['username_available'] = False
+            else:
+                context['username_available'] = True
+
+        return JsonResponse(context)
+    return HttpResponseBadRequest()
+
+# This view handles the password reset.
+def reset(request):
+    return password_reset(request,
+                          email_template_name=
+                          'dashboard/user_management/reset_email.html',
+                          subject_template_name=
+                          'dashboard/user_management/reset_subject.txt',
+                          post_reset_redirect=reverse('user-management'))
+
+
+# This view handles the changing password to reset.
+def reset_confirm(request, uidb64=None, token=None):
+    return password_reset_confirm(request, uidb64=uidb64,
+                                  template_name=
+                                  'dashboard/user_management/reset_confirm.html',
+                                  token=token, post_reset_redirect=
+                                  reverse('success'))
+
+
+def success(request):
+    return render(request, "dashboard/user_management/success.html")
+
+
+@login_required(login_url='/login/')
+def role_default_permissions(request):
+    if request.method == 'GET':
+        role = request.GET['role']
+        # Default permissions on role selection
+        business_analyst = (
+            'view_activity', 'view_bts', 'view_denomination',
+            'view_graph', 'view_network', 'view_notification',
+            'view_report', 'view_subscriber',
+        )
+        loader = (
+            'view_activity', 'view_bts', 'view_denomination',
+            'view_graph', 'view_network', 'view_notification',
+            'view_report', 'view_subscriber', 'adjust_credit',
+            'send_sms', 'edit_subscriber',
+        )
+        partner = (
+            'view_activity', 'view_bts', 'view_denomination',
+            'view_graph', 'view_network', 'view_notification',
+            'view_report', 'view_subscriber', 'send_sms',
+            'edit_subscriber',
+        )
+        roles_and_permissions = {'Business Analyst': business_analyst,
+                                 'Loader': loader,
+                                 'Partner': partner,
+                                 }
+        content_type = ContentType.objects.filter(
+            app_label='endagaweb', model='network').values_list(
+            'id', flat=True)[0]
+        permission = Permission.objects.filter(content_type=content_type)
+        role_permission = []
+        if role in roles_and_permissions.keys():
+            role_permission = permission.filter(
+                codename__in=roles_and_permissions[role]).values_list(
+                'id', flat=True)
+        else:
+            for i in permission.values_list('id', flat=True):
+                role_permission.append(i)
+        return JsonResponse({'permissions': list(role_permission)})
+    return HttpResponseBadRequest()
+
+
+def validate_password_strength(value):
+    """Checks that a submitted value should match regex and return
+        boolean value
+    """
+
+    value = value.lower()
+    regex = "(?=.*[a-zA-Z])(?=.*\\d)(?=.*[!@#$%&*()_+=|<>?{}\\[\\]~-]).{8}"
+    pattern = re.compile(regex)
+    return bool(pattern.match(value))
+
+
+@login_required(login_url='/login/')
+def get_translation(request):
+    # For ajax call to translate on runtime
+    if request.method == 'GET':
+        context = {}
+        if 'message' in request.GET:
+            to_languages = settings.BTS_LANGUAGES
+            try:
+                message = request.GET['message']
+                context['translation'] = api.multiple_translations(
+                    message, *to_languages)
+                return JsonResponse(context)
+            except:
+                return HttpResponseBadRequest
+    return HttpResponseBadRequest()
+
+
+@login_required(login_url='/login/')
+def get_event(request):
+    # For ajax call to translate on runtime
+    if request.method == 'GET':
+        context = {'event': False}
+        network = UserProfile.objects.get(user=request.user).network
+        event = request.GET['event']
+        try:
+            number = int(event)  # Should Fail if event is automatic
+            if int(number) < 10:
+                event = '00' + event
+            elif int(number) < 100:
+                event = '0' + event
+        except ValueError:
+            event = str(event).lower().strip().replace(' ', '_')
+        if not models.Notification.objects.filter(event=event,
+                                                  network=network).exists():
+            context = {'event': True}
+        return JsonResponse(context)
     return HttpResponseBadRequest()
 

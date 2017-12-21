@@ -1,17 +1,10 @@
 """
-We have a few strings that are defined in our FS chatplan and dialplan which
-need internationalization support.
-
-The way we handle this is via the endaga_i18n script. It's used in a
+The way we handle this is via the endaga_notification script. It's used in a
 dialplan/chatplan like so:
 
-    <action application="python" data='endaga_i18n "Your number is %(number)s" % {"number": ${vbts_callerid}}'/>
-
-The result is saved into the $endaga_i18n FS variable for later use.
-
-Note what this does -- it's passing in a string to the script, which in turn
-needs to look it up and return some sensible result. This file is where we
-actually keep track of the various strings used in the dialplan/chatplan.
+    <action application="python" data='endaga_notification 'any key in Base_MESSAGES' % {"number": ${vbts_callerid}}'/>
+    ex:
+    <action application="python" data='endaga_notification sms_error % {"number": ${vbts_callerid}}'/>
 
 Copyright (c) 2016-present, Facebook, Inc.
 All rights reserved.
@@ -23,15 +16,70 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 import gettext
 
-from ccm.common import currency
 import core.config_database
+from ccm.common import currency
 
 configdb = core.config_database.ConfigDB()
+number_check_number = configdb.get('number_check_number') or 104
+credit_check_number = configdb.get('credit_check_number') or 103
 
-gt = gettext.translation("endaga", configdb['localedir'], [configdb['locale'], "en"]).gettext
+BASE_MESSAGES = {
+    # Mapped
+    str(credit_check_number): "Your balance is %(account_bal)s.",
+    str(number_check_number): "Your number is %(from_number)s.",
+
+    'block_expired': "Your account is blocked or expired, Please contact "
+                     "your service provider.",
+    'receiver_expired': "Failed to deliver message, as the receiver number "
+                        "has expired.",
+    'provisioning': "Already registered with number %(from_number)s",
+    'unprovisioned': "Your phone is not provisioned.",
+    'sms_error': "Message not sent to %(to_number)s",
+    'no_money': "Your account doesn't have sufficient funds.",
+    'no_money_sms': "Your account doesn't have sufficient funds to send an "
+                    "SMS.",
+    'invalid_address': "Invalid Address",
+    'reg_failed': "Failed to register your handset.",
+
+    # SMS CREDIT TRANSFER (CT_MESSAGES)
+    'transfer_self_fail': "Transaction Failed. Sharing load to your own "
+                            "account is not allowed.",
+    'transfer_attempts_left': "Your left attempts %(attempts)s",
+    'transfer_denomination_error': "Top-up not under denomination range.",
+    'transfer_confirm': "Reply to this message with %(code)s to confirm your "
+                        "transfer of %(amount)s to %(to_number)s Code expires "
+                        "in ten minutes.",
+    'transfer_from_to': "SMS transfer from %(from_number)s to %(to_number)s",
+    'transfer_details_recipient': "You've received %(amount)s. credits from "
+                                  "%(from_number)s Now your balance "
+                                  "%(new_balance)s and validity is "
+                                  "%(validity)s.",
+    'transfer_details_sender': "You've transferred %(amount)s to "
+                               "%(to_number)s Your new balance is "
+                               "%(account_bal)s.",
+    'transfer_expired': "That transfer confirmation code doesn't exist or has "
+                        "expired .",
+    'transfer_help': "To transfer credit, reply with a message in the format "
+                     "'NUMBER*AMOUNT'.",
+    'invalid_number': "Invalid phone number: %(to_number)s",
+    'low_credit': "Your account doesn't have sufficient funds for the "
+                  "transfer.",
+    'sender_dont_exists': "The number you're sending to doesn't exist. "
+                          "Try again.",
+    'account_blocked': "Your account is blocked",
+    'no_validity': "Your account has no validity",
+    'top_up_not_allowed': "Top-up not allowed. Maximum balance limit crossed "
+                          "%(credit)s.",
+    'top_up_not_allowed_detail': "Top-up not allowed. Maximum balance limit "
+                                 "crossed %(credit)s You can transfer upto"
+                                 " %(transfer)s.",
+}
+# TODO(sharma-sagar): After above below will be dead code below (remove later)
+gt = gettext.translation("endaga", configdb['localedir'],
+                         [configdb['locale'], "en"]).gettext
 
 # NOTE: (chatplan/01_provisioning) This message is sent when a user tries to register an already registered SIM card.
-gt("Already registered with number %(number)s.")
+gt("Already registered with number %(from_number)s.")
 
 # NOTE: (chatplan/02_unprovisioned) This message is sent when an unprovisioned phone tries to use the network.
 gt("Your phone is not provisioned.")
@@ -40,10 +88,10 @@ gt("Your phone is not provisioned.")
 gt("Your balance is %(account_bal)s.")
 
 # NOTE: (chatplan/13_number_check, dialplan/11_number_check) This message is sent when the user checks their phone number.
-gt("Your number is %(number)s.")
+gt("Your number is %(from_number)s.")
 
 # NOTE: (chatplan/20_error) Sent when the SMS contains bad characters.
-gt("Message not sent to %(dest_number)s.")
+gt("Message not sent to %(to_number)s.")
 
 # NOTE: (dialplan/25_no_money) This message is sent when the user has insufficient funds.
 gt("Your account doesn't have sufficient funds.")
@@ -54,8 +102,10 @@ gt("Your account doesn't have sufficient funds to send an SMS.")
 # NOTE: (chatplan/99_invalid) This message is sent when the SMS is sent to an invalid address.
 gt("Invalid Address")
 
+
 def localize(string_key, params):
     return str(gt(string_key) % params)
+
 
 def humanize_credits(amount_raw):
     """Given a raw amount from the subscriber registry, this will return a
@@ -63,8 +113,9 @@ def humanize_credits(amount_raw):
     """
     currency_code = configdb['currency_code']
     money = currency.humanize_credits(amount_raw,
-                currency.CURRENCIES[currency_code])
+                                      currency.CURRENCIES[currency_code])
     return money
+
 
 def parse_credits(string):
     """Given a numerical string, this will return a Money instance in the
@@ -72,5 +123,5 @@ def parse_credits(string):
     """
     currency_code = configdb['currency_code']
     money = currency.parse_credits(string,
-                currency.CURRENCIES[currency_code])
+                                   currency.CURRENCIES[currency_code])
     return money

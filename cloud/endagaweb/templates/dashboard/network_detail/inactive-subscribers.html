@@ -10,6 +10,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load apptags %}
 {% load crispy_forms_tags %}
 {% load render_table from django_tables2 %}
+{% load guardian_tags %}
 
 
 {% block title %}
@@ -49,11 +50,12 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 
 {% include "dashboard/network_detail/header.html" with network=network %}
+{% get_obj_perms request.user for network as 'user_permission' %}
 
 
 <div class = 'row'>
   {% include "dashboard/network_detail/nav.html" with active_tab='inactive-subscribers'%}
-
+{% if 'edit_network' in user_permission %}
   <div class='col-xs-12 col-offset-sm-2 col-sm-4'>
     <div class='col-sm-12'>
       {% crispy sub_vacuum_form %}
@@ -130,7 +132,9 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 
   </div>
-
+  {% else %}
+  {% include 'dashboard/permission_denied.html' %}
+  {% endif %}
 </div>
 
 
@@ -144,11 +148,14 @@ of patent rights can be found in the PATENTS file in the same directory.
       var sub_vacuum_enabled = 'True' == $('form input[name=sub_vacuum_enabled]:checked').val();
       if (sub_vacuum_enabled) {
         $('#id_inactive_days').prop('disabled', false);
+        $('#id_grace_days').prop('disabled', false);
       } else {
         $('#id_inactive_days').prop('disabled', true);
+        $('#id_grace_days').prop('disabled', true);
       }
     });
   });
 </script>
+<script src="/static/js/dashboard/sms-broadcast.js"></script>
 {% endblock %}
 

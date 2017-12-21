@@ -1,0 +1,748 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+{% load guardian_tags %}
+{% load account socialaccount %}
+{% block pagestyle %}
+{% load render_table from django_tables2 %}
+{% load crispy_forms_tags %}
+<style xmlns="http://www.w3.org/1999/html">
+
+    .form-check-label {
+        font-weight: unset;
+    }
+    .msg {
+        display: none;
+    }
+    .error {
+        color: #a94442;
+    }
+    .success {
+        color: green;
+    }
+    .exists {
+        display:none;
+        color:#a94442;
+    }
+    .no_perm_error {
+        color: #a94442;
+    }
+    .modal-dialog {
+        width: 800px;
+    }
+    /* Modal Content/Box */
+    .modal-content {
+        margin: 10% auto; /* 15% from the top and centered */
+        padding: 20px;
+    }
+    .sortable tr {
+    cursor: pointer;
+    }
+    /* The switch - the box around the slider */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+
+    /* Hide default HTML checkbox */
+    .switch input {display:none;}
+
+    /* The slider */
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      -webkit-transition: .4s;
+      transition: .4s;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      -webkit-transition: .4s;
+      transition: .4s;
+    }
+
+    input:checked + .slider {
+      background-color: #2196F3;
+    }
+
+    input:focus + .slider {
+      box-shadow: 0 0 1px #2196F3;
+    }
+
+    input:checked + .slider:before {
+      -webkit-transform: translateX(26px);
+      -ms-transform: translateX(26px);
+      transform: translateX(26px);
+    }
+
+    /* Rounded sliders */
+    .slider.round {
+      border-radius: 34px;
+    }
+
+    .slider.round:before {
+      border-radius: 50%;
+    }
+    .loader {
+      border: 16px solid lightgreen;
+      border-radius: 50%;
+      border-top: 16px solid white;
+      width: 60px;
+      height: 60px;
+      -webkit-animation: spin 2s linear infinite;
+      animation: spin 2s linear infinite;
+      position: fixed;
+      top: 80%;
+      left: 50%;
+      -webkit-transform: translate(-50%, -50%);
+      transform: translate(-50%, -50%);
+    }
+
+    @-webkit-keyframes spin {
+      0% { -webkit-transform: rotate(0deg); }
+      100% { -webkit-transform: rotate(360deg); }
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loader-text {
+        position: fixed;
+        top: 90%;
+        left: 49%;
+      }
+</style>
+{% endblock %}
+{% block headerclass %}
+
+<div id="add_user">
+<link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
+<header class="navbar navbar-inverse normal" role="banner">
+    {% endblock %}
+    {% block content %}
+    {% get_obj_perms request.user for network as 'user_permission' %}
+    {% if 'user_management' in user_permission %}
+    <div class="row">
+        <div class="col-xs-12 col-sm-12 page-header">
+            <div class="page-title col-xs-4">
+                <h3>
+                <i class='fa fa-user'></i>
+                User Management
+                <a href='#' data-toggle='modal' data-target='#add-user-modal'> <!--add-user-modal-->
+                    <small>(add user)</small>
+                </a>
+                </h3>
+                <div id="loading" hidden="hidden">
+                    <div class="loader"></div>
+                    <h4 class="loader-text">Please Wait...</h4>
+                </div>
+            </div>
+        </div>
+        <div class="container col-sm-12">
+            {% for message in messages %}
+            <div class="col-sm-8 message alert alert-{{message.tags}}">
+                <a href="#" class="close" data-dismiss="alert">&times;</a>
+                {{message}}
+            </div>
+            {% endfor %}
+            <div class="col-sm-8">
+                {% if total_users_found == 0 %}
+                <h4>No user found on {{ network.name }}!</h4>
+                {% else %}
+                {% render_table users %}
+                {% endif %}
+                <div class="dropdown actions">
+                    <button class="btn btn-primary dropdown-toggle"
+                            type="button" data-toggle="dropdown">Action(s)
+                        <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu ">
+                        <li id="action_edit">
+                            <a  data-target='#add-user-modal'
+                                data-toggle='modal'
+                                href="javascript: void();" onclick="editUser()">
+                                <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
+                                Edit
+                            </a>
+                        </li>
+                        <li id="action_block">
+                            <a data-target='#block-event-modal'
+                               data-toggle='modal' href="javascript:void(0);">
+                                <i class="fa fa-ban" aria-hidden="true"></i>
+                                Toggle Status
+                            </a>
+                        </li>
+                        <li id="action_delete">
+                            <a data-target='#delete-event-modal'
+                               data-toggle='modal' href="javascript:void(0);">
+                                <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                Delete
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-xs-12 col-md-4 pull-right">
+                {% if total_users %}
+                <p>Search Users by email:</p>
+                {% crispy search %}
+                <p>
+                    {% if total_users == 1 %}
+                    You have only 1 user on <b>{{ network.name }}</b>.
+                    {% else %}
+                    You have {{ total_users }} total users on <b>{{ network.name }} </b>
+                    {% if total_users != total_users_found %}
+                        <a href="/dashboard/user/management">
+                                (Clear Search)<sup>&nbsp;<i class="fa fa-times" data-toggle="tooltip" title="Clear Search" aria-hidden="true"></i></sup>
+                        </a>
+                    {% endif %}
+                    {% endif %}
+                    <div></div>
+                    Keep it up!
+                </p>
+                {% endif %}
+            </div>
+            <div class='modal fade' id='add-user-modal' data-backdrop="static" data-keyboard="false">
+                <div class='modal-dialog'>
+                    <div class='modal-content'>
+                        <form id='user_form' action='/dashboard/user/management' name='user_form'
+                                  method='POST' data-toggle='validator' onsubmit='return createUser();'> {% csrf_token %}
+                            <div class='modal-header'>
+                             <button type="button" class="close" onclick="destroyContent()" data-dismiss="modal" aria-label="Close">
+                                 <span aria-hidden="true">&times;</span>
+                             </button>
+                             <h4 class='modal-title'>
+
+                                 <i class='fa fa-user'></i>
+                                 <span class="title">Add </span> User ({{ network.name }})
+
+                             </h4>
+
+                         </div>
+                            <div class='modal-body'>
+                                <div class='form-group'>
+                                    <div class="form-group row" data-toggle="tooltip" title="Select the user role (same on all networks) " required>
+                                        <div class="col-sm-12">
+                                            <div class="input-group col-sm-8">
+                                                <label for="role" id="role-ariaLable" class="col-6 col-form-label">
+                                                    Role
+                                                    <span class="aseriskField">*</span>
+
+                                                </label>
+
+                                                <div class="input-group-addon">
+                                                    <i class="glyphicon glyphicon-user"></i>
+                                                </div>
+
+                                                <select name="role" id="role" class="form-control" onchange="changeRole(this)" required>
+                                                    <option value="">-Select role-</option>
+                                                    {% for values in roles %}
+                                                    <option value="{{ values }}">{{ values }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div><!--Role Ends-->
+
+                                    <div class="col-sm-12">
+                                        <div class="form-group row">
+                                            <div class="input-group col-sm-8" style="float:left;" data-toggle="tooltip" title="User email to Add or Edit">
+                                                <label for="email" id="ariaLable" class="col-6 col-form-label">
+                                                    Email
+                                                    <span class="aseriskField">*</span></label>
+
+                                                <div class="input-group-addon">
+                                                    <i class="glyphicon glyphicon-envelope"></i>
+                                                </div>
+                                                <input type="hidden" name="valid_email" id="valid_email" value="0"/>
+                                                <input class="form-control" type="text" id="email" name="email"
+                                                       placeholder="abc@yourdomain.com" required/>
+                                            </div>
+                                            <div class="input-group col-sm-4" style="float:right; cursor: pointer; cursor: hand;" title="click to edit user">
+                                                <span class="msg exists">
+                                                    &nbsp;&nbsp;
+                                                    <i onclick="editUser()" class="fa fa-pencil-square-o" aria-hidden="true">
+                                                        <p>User Exists<br>(click to edit)</p>
+                                                    </i>
+                                                </span>
+                                                <span class="msg success">
+                                                    &nbsp;&nbsp;
+                                                    <i class="fa fa-check" fa fa-pencil-square-o title="Valid Email">
+                                                        <p>Correct</p>
+                                                    </i>
+                                                </span>
+                                                <span class="msg error">
+                                                    &nbsp;&nbsp;
+                                                    <i class="fa fa-times" aria-hidden="true" title="Invalid Email">
+                                                        <p>Incorrect</p>
+                                                    </i>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div><!--Email Ends-->
+                                    <div>
+                                        <label><h4>Permissions</h4></label>
+                                        <hr style="height: 10px; margin:0 auto;line-height:2px;">
+                                    </div>
+                                    <div class="form-group">
+                                        <div>
+                                            <div class="row">
+                                                <div class="col-xs-5">
+                                                    <label><i class="glyphicon glyphicon-list-alt"></i> Available </label>
+                                                    <select name="available_permissions" id="permissions_left" class="form-control"
+                                                            size="12"
+                                                            multiple="multiple" data-toggle="tooltip"
+                                                            title="Add/Remove the permissions for the user">
+                                                        {% for entry in permissions %}
+                                                        <option value="{{ entry.id }}">{{ entry.name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="col-xs-2">
+                                                    <div>&nbsp;</div>
+                                                    <div>&nbsp;</div>
+                                                    <button type="button" id="lstview_rightAll" class="btn btn-default btn-block"><i
+                                                            class="glyphicon glyphicon-forward"></i></button>
+                                                    <button type="button" id="lstview_rightSelected"
+                                                            class="btn btn-default btn-block"><i
+                                                            class="glyphicon glyphicon-chevron-right"></i></button>
+                                                    <button type="button" id="lstview_leftSelected"
+                                                            class="btn btn-default btn-block"><i
+                                                            class="glyphicon glyphicon-chevron-left"></i></button>
+                                                    <button type="button" id="lstview_leftAll" class="btn btn-default btn-block"><i
+                                                            class="glyphicon glyphicon-backward"></i></button>
+                                                </div>
+
+                                                <div class="col-xs-5">
+                                                    <label><i class="glyphicon glyphicon-ok-circle"></i> Selected<span class="aseriskField"> *</span></label>
+                                                    <select name="permissions" id="permissions_right" class="form-control"
+                                                            size="12"
+                                                            multiple="multiple"></select>
+                                                    <span class="msg no_perm_error">Please assign atleast one permission.</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div><!-- Permission Ends -->
+                                </div>
+                            </div>
+                            <div class='modal-footer'>
+                                <button type='button' class='btn btn-default' onclick="destroyContent()" data-dismiss='modal'>Cancel</button>
+                                <button class='btn btn-primary' type='submit' id='submit'>Add</button>
+                                <div id='messages-container'></div>
+                            </div>
+
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            {% include 'dashboard/permission_denied.html' %}
+            {% endif %}
+        </div>
+    </div>
+</header>
+<div class='modal fade' id='delete-event-modal'>
+    <div class='modal-dialog'>
+        <div class='modal-content'>
+            <div class='modal-header'>
+                <button type="button" class="close" data-dismiss="modal"
+                        aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class='modal-title'>
+                    <b>Confirmation</b>
+                </h4>
+            </div>
+            <div class='modal-body'>
+                <h4>
+                    Are you sure you want to delete?
+                </h4>
+            </div>
+            <div class='modal-footer'>
+                <button type='button' class='btn btn-default'
+                        data-dismiss='modal'>Cancel
+                </button>
+                <button class='btn btn-primary' type='button'
+                        id='delete-confirm'>Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+</div><!-- /.delete-user-modal -->
+
+<div class='modal fade' id='block-event-modal'>
+    <div class='modal-dialog'>
+        <div class='modal-content'>
+            <div class='modal-header'>
+                <button type="button" class="close" data-dismiss="modal"
+                        aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class='modal-title'>
+                   <b>Confirmation</b>
+                </h4>
+            </div>
+            <div class='modal-body'>
+                <h4>
+                    Are you sure you want to change status ?
+                </h4>
+            </div>
+            <div class='modal-footer'>
+                <button type='button' class='btn btn-default'
+                        data-dismiss='modal'>Cancel
+                </button>
+                <button class='btn btn-primary' type='button'
+                        id='block-confirm'>Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+</div><!-- /.block-user-modal -->
+
+{% endblock %}
+{% block js %}
+
+<link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
+<script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+<script type="text/javascript" src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
+<script type="text/javascript">
+
+  $('input:checkbox').change(function() {
+    $('#console-event').html('Toggle: ' + $(this).prop('checked'));
+    //console.log("Change event: " + this.id + ' ' + $(this).prop('checked'));
+    var res = [];
+    res = Number(this.id);
+    var status = $(this).prop('checked');
+    if(res){
+    $.ajax({
+      url: "/dashboard/user/management?"+$.param({'block_id': res, 'status': status }),
+        type: 'DELETE',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+        },
+        success: function () {
+            $('#toggle-'+ res).show()
+            setTimeout(function() {
+                $('#toggle-'+ res).fadeOut(800);
+            }, 1000);
+        }
+    });
+    }
+  });
+  $(function() {
+    $('.actions').hide();
+    $('input:checkbox').change(function() {
+        var num_records = $('input[name=id]:checked').length;
+        if(num_records==1) {
+            $('.actions').show();
+            $('#action_edit').show();
+            $('#action_block').hide();
+        } else if(num_records > 1) {
+            $('.actions').show();
+            $('#action_block').show();
+            $('#action_edit').hide();
+        } else {
+            $('.actions').hide();
+        }
+    });
+    $('input:radio').change(function() {
+      var notification_type = $('form input[name=type]:checked').val();
+      if (notification_type == 'mapped') {
+        $('#id_number').prop('disabled', false);
+        $('#id_event').prop('disabled', true);
+      } else {
+        $('#id_number').prop('disabled', true);
+        $('#id_event').prop('disabled', false);
+      }
+    });
+  });
+    function changeRole(role) {
+        if (role.value) {
+            $.ajax({
+                url: "/dashboard/user/management/permissions?role=" + role.value
+            }).done(function(response) {
+                moveAllItems('#permissions_right', '#permissions_left');
+
+                $.each(response.permissions, function(key,val){
+
+                    var left = $('#permissions_left option[value="'+val+'"]');
+                    $('#permissions_right').append(left);
+
+                });
+            });
+        } else {
+            moveAllItems('#permissions_right', '#permissions_left');
+        }
+    }
+
+    function moveItems(origin, dest) {
+        $(origin).find(':selected').appendTo(dest);
+        $('.no_perm_error').hide();
+        $('.no_perm_error').parent().removeClass('has-warning');
+    }
+
+    function moveAllItems(origin, dest) {
+        $(origin).children().appendTo(dest);
+        $('.no_perm_error').hide();
+        $('.no_perm_error').parent().removeClass('has-warning');
+    }
+
+    $(document).ready(function() {
+        $("#permissions_row tr:odd").css("background", "#DAE4F0");
+        $("#permissions_row tr:even").css("background", "#eee");
+
+        $('#lstview_rightSelected').click(function () {
+            moveItems('#permissions_left', '#permissions_right');
+        });
+
+        $('#lstview_leftSelected').on('click', function () {
+            moveItems('#permissions_right', '#permissions_left');
+        });
+
+        $('#lstview_leftAll').on('click', function () {
+            moveAllItems('#permissions_right', '#permissions_left');
+        });
+
+        $('#lstview_rightAll').on('click', function () {
+            moveAllItems('#permissions_left', '#permissions_right');
+        });
+
+        // Email validation
+
+        $('form input[name="email"]').blur(function () {
+            $('#email').removeClass('form-control-success');
+            $('#email').removeClass('form-control-warning');
+            $('#email').removeClass('form-control-error');
+            var email = $(this).val();
+            var _changeInterval = null;
+            var validate = /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/;
+            if (validate.test(email)) {
+
+                $('.msg').hide();
+                $('.success').show();
+                $('.exists').hide();
+                $('#email').parent().parent().removeClass('has-success');
+                $('#email').parent().parent().removeClass('has-error');
+                $('#email').parent().parent().removeClass('has-warning');
+
+                // Check if email exists...
+                clearInterval(_changeInterval);
+                _changeInterval = setInterval(function() {
+                    clearInterval(_changeInterval)
+                    $.ajax({
+                        url: "/dashboard/user/management/checkuser?email=" + $('#email').val(),
+                    }).done(function(response) {
+                        $('#email').removeClass('form-control-success');
+                        $('#email').removeClass('form-control-warning');
+                        $('.exists').hide();
+                        if(response.email_available) {
+                            $('#valid_email').val(1);
+                            $('#email').parent().parent().addClass('has-success');
+                            $('#email').addClass('form-control-success');
+                            $('#submit').removeAttr('disabled');
+                            $('.success').show();
+                            $('.exists').hide();
+                            $('#role').removeAttr('disabled');
+                            $('#permissions_left').removeAttr('disabled');
+                            $('#lstview_rightAll').removeAttr('disabled');
+                        } else {
+                            $('#email').parent().parent().addClass('has-warning');
+                            $('#valid_email').val(2);
+                            $('.success').hide();
+                            $('#submit').attr('disabled','disabled');
+                            $('.exists').show();
+                        }
+                        if (email=='') {
+                            $('.exists').hide();
+                        }
+                    });
+                }, 200);
+
+        } else {
+            $('.success').hide();
+            $('.msg').hide();
+            $('.error').show();
+            $('.exists').hide();
+            $('#email').parent().parent().removeClass('has-success');
+            $('#email').parent().parent().removeClass('has-warning');
+            $('#email').parent().parent().addClass('has-error');
+        }
+
+        });
+
+        //$('#user_form').validator();
+        $('#user_form').validate({
+            highlight: function(element) {
+                $(element).closest('.form-group').addClass('has-error');
+            },
+            unhighlight: function(element) {
+                $(element).closest('.form-group').removeClass('has-error');
+            },
+            errorElement: 'span',
+            errorClass: 'help-block',
+            errorPlacement: function(error, element) {
+                if(element.parent('.input-group').length) {
+                    error.insertAfter(element.parent());
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+
+  });
+    //$('#submit').click(function(){
+    function createUser() {
+        if ($('#permissions_right option').length == 0) {
+            $('.no_perm_error').show();
+            $('.no_perm_error').parent().addClass('has-warning');
+        }
+        if($('#role').val() && $('#valid_email').val() >= 1
+        && $('#permissions_right option').length) {
+            var permissions = [];
+            $.each($('#permissions_right option'), function(key, val) {
+                permissions.push($(val).val());
+            });
+            var action_url = "/dashboard/user/management";
+            if($('#valid_email').val() == 2) {
+                var action_url = "/dashboard/user/management/update"
+            }
+            $.ajax({
+
+                url: action_url,
+                type: 'POST',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                },
+                data:{
+                    role: $('#role').val(),
+                    email: $('#email').val(),
+                    permissions: permissions.join(",")
+                }
+            }).done(function(response) {
+                window.location.href = '/dashboard/user/management';
+            });
+            $('#add-user-modal').hide();
+            $("#loading").show();
+        }
+        return false;
+    }
+    function editUser() {
+        $.ajax({
+            url: '/dashboard/user/management/update?user=' + $('#email').val() + '&id='+$('input[name=id]:checked').val(),
+            type: 'GET',
+            success: function (response) {
+                $('#role').val(response.user_role);
+                $('#email').attr({'disabled':'disabled'});
+                $('#permissions_left').html('');
+                $('#submit').removeAttr('disabled');
+                $('#role').removeAttr('disabled');
+                $('#permissions_left').removeAttr('disabled');
+                $('#lstview_rightAll').removeAttr('disabled');
+                $.each(response.permissions, function(key, val) {
+                    $('#permissions_left').append($('<option>', {
+                        value: val[0],
+                        text: val[1]
+                    }));
+                });
+
+                $('#permissions_right').html('');
+                $.each(response.user_permissions, function(key, val) {
+                    $('#permissions_right').append($('<option>', {
+                        value: val[0],
+                        text: val[1]
+                    }));
+                });
+                $('.exists').hide();
+                $('#valid_email').val(2);
+                $('#email').val(response.email)
+                $('.title').html('Update');
+                $('#submit').html('Update');
+
+            },
+        });
+    }
+
+    $('#delete-confirm').click(function () {
+    //$('#user_delete').submit();
+    var ids = [];
+    $.each($('input[name=id]:checked'), function(key, element){
+        ids.push($(element).val());
+    });
+    $.ajax({
+        url: "/dashboard/user/management?"+$.param({'ids': ids}),
+        type: 'DELETE',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+        },
+        success: function (response) {
+            $('#delete-user-modal').modal('hide');
+            window.location.href = '/dashboard/user/management';
+        }
+    });
+  });
+  // Block User(s)
+  $('input[name=toggle]').change(function(){
+    var mode= $(this).prop('checked');
+    var id=$( this ).val();
+    $.ajax({
+      url: "/dashboard/user/management?"+$.param({'block_ids': ids}),
+        type: 'DELETE',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+        },
+        success: function (response) {
+        }
+    });
+  });
+
+  $('#block-confirm').click(function () {
+    //$('#user_delete').submit();
+    var ids = [];
+    $.each($('input[name=id]:checked'), function(key, element){
+        ids.push($(element).val());
+    });
+    // Sending Block/UnBlock as Delete request
+    $.ajax({
+        url: "/dashboard/user/management?"+$.param({'block_ids': ids}),
+        type: 'DELETE',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+        },
+        success: function (response) {
+            $('#delete-user-modal').modal('hide');
+            window.location.href = '/dashboard/user/management';
+        }
+    });
+  });
+  function toggle(source) {
+    checkboxes = document.getElementsByName('id');
+    for(var i in checkboxes) {
+      checkboxes[i].checked = source.checked;
+    }
+  }
+  function destroyContent() {
+    window.location.href = '/dashboard/user/management';
+  }
+</script>
+
+{% endblock %}

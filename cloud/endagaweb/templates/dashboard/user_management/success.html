@@ -1,0 +1,33 @@
+{% extends "home/layout.html" %}
+{% block pagestyle %}
+
+<style>
+  #login-button {
+    margin-bottom: 30px;
+  }
+
+</style>
+{% endblock %}
+
+{% block headerclass %}
+<body id="reset_password">
+<header class="navbar navbar-inverse normal" role="banner">
+
+    {% endblock %}
+    {% block content %}
+    <div class="container">
+        <div class="row header">
+            <div class="col-md-12">
+            <br>
+                <img class="img-responsive" src="/static/img/papua.jpg" alt="Papua"/>
+            </div>
+        </div>
+        <div class="row">
+            <div class="container">
+                    <h4>Password has been reset, Please <a href="/login">login</a> again!</h4>
+            </div>
+        </div>
+    </div>
+</header>
+</body>
+{% endblock %}

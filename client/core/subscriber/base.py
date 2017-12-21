@@ -14,14 +14,17 @@ LICENSE file in the root directory of this source tree. An additional grant
 of patent rights can be found in the PATENTS file in the same directory.
 """
 
+import json
+from datetime import datetime
+from datetime import timedelta
 
-
-
-
+import dateutil.parser as dateparser
 
 from ccm.common import crdt, logger
 from core.db.kvstore import KVStore
-from core.exceptions import SubscriberNotFound
+from core.exceptions import SubscriberNotFound, EventNotFound
+from core.freeswitch_strings import BASE_MESSAGES
+from itertools import count
 
 
 class BaseSubscriber(KVStore):
@@ -485,3 +488,302 @@ class BaseSubscriber(KVStore):
                 logger.error("Balance sync fail! IMSI: %s, %s Error: %s" %
                                 (imsi, sub['balance'], e))
 
+    def status(self, update=None):
+        status = BaseSubscriberStatus()
+        if update is not None:
+            status.process_update(update)
+            return
+        return status
+
+    def notif_status(self, update=None):
+        status = BaseBTSNotification()
+        if update is not None:
+            status.process_notifcaiton(update)
+            return
+        return status
+
+
+class BaseSubscriberStatus(KVStore):
+    """
+    Sets and Updates Subscriber Status similar to balance updates
+    Current Status can be (i.e States of subscriber):
+        Blocked : Subscriber blocked for some reason (no call/sms) for some period.
+        Active: Subscriber is active
+        First Expire : Subscriber has no validity (no call/sms)
+        Expired: Grace period also expired after First Expire (no call/sms)
+    """
+
+    def __init__(self, connector=None):
+        super(BaseSubscriberStatus, self).__init__('subscribers_status',
+                                                   connector, key_name='imsi',
+                                                   val_name='status')
+
+    def get_subscriber_status(self, imsis=None):
+        """
+        Return a dictionary containing all the subscriber status.  Format is:
+
+        { 'IMSIxxx...' : {'state' : 'active' , 'valid_through': '01-09-2100'}
+            ...
+        }
+
+        Args:
+            imsis: A list of IMSIs to get state for. If None, returns
+                   everything.
+        Returns: if imsis is None => return ALL subscribers
+                 imsis is an empty list [] => return an empty dictionary
+                 otherwise => return information about the subscribers listed
+                 in imsis
+        """
+        if imsis:  # non-empty list, return requested subscribers
+            subs = self.get_multiple(imsis)
+        elif imsis is None:  # empty list, return all subscribers
+            subs = list(self.items())
+        else:
+            return {}  # empty list - return an empty dict
+
+        res = {}
+        for (imsi, state) in subs:
+            res[imsi] = {}
+            # state = {'state': 'active', 'valid_through': '01-09-2100'}
+            res[imsi]['state'] = state
+        return res
+
+    def create_subscriber_status(self, imsi, status):
+        def _add_if_absent(cur):
+            if self._get_option(cur, imsi):
+                raise ValueError(imsi)
+            self._insert(cur, imsi, status)
+
+        self._connector.with_cursor(_add_if_absent)
+
+    def delete_subscriber(self, imsi):
+        del self[imsi]
+
+    def _set_status(self, cur, imsi, status):
+        try:
+            self._update(cur, imsi, status)
+        except KeyError:
+            raise SubscriberNotFound(imsi)
+
+    def update_status(self, imsi, status):
+        def _update(cur):
+            self._set_status(cur, imsi, status)
+
+        self._connector.with_cursor(_update)
+
+    def get_subscriber_imsis(self):
+        return {key for key in self.get_subscriber_status().keys()}
+
+    def process_update(self, net_subs):
+        from core import events
+        bts_imsis = self.get_subscriber_imsis()
+        net_imsis = set(net_subs.keys())
+        subs_to_add = net_imsis.difference(bts_imsis)
+        subs_to_delete = bts_imsis.difference(net_imsis)
+        subs_to_update = bts_imsis.intersection(net_imsis)
+        subscriber = BaseSubscriber()
+
+        for imsi in subs_to_delete:
+            self.delete_subscriber(imsi)
+
+        for imsi in subs_to_update:
+            sub = net_subs[imsi]
+            sub_state = sub['state']
+            sub_validity = sub['validity']
+            sub_info = {"state": sub_state, "validity": sub_validity}
+            # Error Transfer Count this won't sync to cloud
+            if 'ie_count' not in sub:
+                sub['ie_count'] = 0
+
+            sub_info = {"state": sub_state, "validity": sub_validity,
+                        "ie_count": sub['ie_count']}
+            try:
+                if str(sub_state).lower() not in ['active', 'active*']:
+                    old_balance = subscriber.get_account_balance(imsi)
+                    if old_balance > 0:
+                        subscriber.subtract_credit(imsi, str(old_balance))
+                        reason = 'Subscriber expired: Setting balance zero' \
+                                 ' (deduct_money)'
+                        events.create_add_money_event(imsi, old_balance, 0,
+                                                      reason)
+                self.update_status(imsi, json.dumps(sub_info))
+            except SubscriberNotFound as e:
+                logger.warning(
+                    "State sync fail! IMSI: %s is not found Error: %s" %
+                    (imsi, e))
+            except ValueError as e:
+                logger.error("State sync fail! IMSI: %s, %s Error: %s" %
+                             (imsi, sub_info, e))
+                subs_to_add.add(imsi)  # try to add it (again)
+
+        for imsi in subs_to_add:
+            sub = net_subs[imsi]
+            sub_state = sub['state']
+            sub_validity = sub['validity']
+            sub_info = {"state": sub_state, "validity": sub_validity}
+            try:
+                if str(sub_state).lower() not in ['active', 'active*']:
+                    old_balance = subscriber.get_account_balance(imsi)
+                    if old_balance > 0:
+                        subscriber.subtract_credit(imsi, str(old_balance))
+                        reason = 'Subscriber expired:setting balance zero' \
+                                 ' (deduct_money)'
+                        events.create_add_money_event(imsi, old_balance, 0,
+                                                      reason)
+                self.create_subscriber_status(imsi, json.dumps(sub_info))
+            except (SubscriberNotFound, ValueError) as e:
+                logger.error("State sync fail! IMSI: %s, %s Error: %s" %
+                             (imsi, sub_info, e))
+
+    def get_account_status(self, imsi):
+        status = json.loads(self.get(imsi))
+        return str(status['state'])
+
+    def get_subscriber_validity(self, imsi, days):
+        sub_info = json.loads(self.get(imsi))
+        validity = str(sub_info['validity'])
+        delta_validity = datetime.utcnow() + timedelta(days=days)
+        if validity is None:
+            sub_info["validity"] = str(delta_validity.date())
+            date = delta_validity
+        else:
+            validity_date = dateparser.parse(validity).date()
+            if validity_date < delta_validity.date():
+                sub_info["validity"] = str(delta_validity.date())
+                date = delta_validity
+            else:
+                sub_info["validity"] = str(validity_date)
+                date = validity_date
+        sub_info['state'] = 'active'
+        # '*' represents block, keep it blocked if already blocked.
+        if '*' in self.get_account_status(imsi):
+            sub_info['state'] += '*'
+        self.update_status(imsi, json.dumps(sub_info))
+        return str(datetime.combine(date, datetime.min.time()))
+
+    def get_invalid_count(self, imsi):
+        subscriber = json.loads(self.get(imsi))
+        try:
+            return int(subscriber['ie_count'])
+        except:
+            return 0  # doesn't exist
+
+    def reset_invalid_count(self, imsi):
+        subscriber = json.loads(self.get(imsi))
+        subscriber['ie_count'] = 0
+        self.update_status(imsi, json.dumps(subscriber))
+
+    def set_invalid_count(self, imsi, max_transactions):
+        subscriber = json.loads(self.get(imsi))
+        if 'ie_count' in subscriber:
+            subscriber['ie_count'] = int(subscriber['ie_count']) + 1
+        else:
+            subscriber['ie_count'] = 1
+
+        if subscriber['ie_count'] >= max_transactions:
+            # If transaction has happened means it's in active state
+            subscriber['state'] = 'active*'
+            subscriber['ie_count'] = 0
+        self.update_status(imsi, json.dumps(subscriber))
+
+
+class BaseBTSNotification(KVStore):
+    _ids = count(0)
+
+    def __init__(self, connector=None):
+        self.id = next(self._ids)
+        super(BaseBTSNotification, self).__init__('notification', connector,
+                                                  key_name='event',
+                                                  val_name='message')
+        # add only once.
+        if 2 > self.id:
+            for message in BASE_MESSAGES:
+                self.get_or_create(message, BASE_MESSAGES[message])
+
+    def get_notification(self, event=None):
+        if event:  # non-empty list, return requested notifications
+            return self.get(event)
+        elif event is None:  # empty list, return all
+            events = list(self.items())
+        else:
+            return {}  # empty list - return an empty dict
+        res = {}
+        for (event, message) in events:
+            res[event] = message
+        return res
+
+    def _set_notification(self, cur, event, message):
+        try:
+            self._update(cur, event, message)
+        except KeyError:
+            raise EventNotFound(event)
+
+    def get_events(self):
+        return {key for key in self.get_notification().keys()}
+
+    def delete_notification(self, event):
+        del self[event]
+
+    def create_notification(self, event, message):
+        def _add_if_absent(cur):
+            if self._get_option(cur, event):
+                raise ValueError(event)
+
+            self._insert(cur, event, message)
+
+        self._connector.with_cursor(_add_if_absent)
+
+    def update_notification(self, event, message):
+        def _update(cur):
+            self._set_notification(cur, event, message)
+
+        self._connector.with_cursor(_update)
+
+    def process_notifcaiton(self, notifications):
+        """
+        notifications: {event: some_event , message: some_translated_message}
+        Update notification messages w.r.t current bts language
+        :param event: Number(int type) or Event(string type)
+        """
+        bts_events = self.get_events()
+        cloud_events = set(notifications.keys())
+
+        events_to_add = cloud_events.difference(bts_events)
+        events_to_delete = bts_events.difference(cloud_events)
+        events_to_update = bts_events.intersection(cloud_events)
+
+        for event in events_to_delete:
+            self.delete_notification(event)
+
+        for event in events_to_update:
+            message = notifications[event]
+            try:
+                self.update_notification(event, message)
+            except EventNotFound as e:
+                logger.warning(
+                    "Notification sync fail! Event: %s is not found Error: %s"
+                    % (event, e))
+            except ValueError as e:
+                logger.error("Notification sync fail! Event: %s, Error: %s"
+                             % (event, e))
+                events_to_add.add(notifications)  # try to add it (again)
+
+        for event in events_to_add:
+            message = notifications[event]
+            self.create_notification(event, message)
+            try:
+                self.update_notification(event, message)
+            except (EventNotFound, ValueError) as e:
+                logger.error(
+                    "Notification sync fail! Event: %s Error: %s" %
+                    (event, e))
+
+    def get_or_create(self, key, message=None):
+        if message is not None:
+            # flag the message for translation,
+            # cloud to translate and revert back notification for next time
+            if self.get(key) is None:
+                message = str(message) + '*'
+                self.create_notification(event=key, message=message)
+                return
+        return self.get(key)

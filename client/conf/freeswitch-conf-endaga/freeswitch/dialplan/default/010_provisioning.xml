@@ -15,7 +15,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       <action application="system" data='curl --data "from_number=${vbts_callerid}&from_name=${from_imsi}&ip=${sip_received_ip}&port=${sip_received_port}&ret_num=${destination_number}" http://127.0.0.1/endaga_registration'/>
       <action application="system" data='curl --data "from_number=${vbts_callerid}&from_name=${from_imsi}&service_type=${service_type}&destination=${destination_number}" http://127.0.0.1/smscdr'/>
     <!-- if already provisioned -->
-        <anti-action application="python" data='endaga_i18n Already registered with number %(number)s.|{"number": ${vbts_callerid}}'/>
+        <anti-action application="python" data='endaga_notification provisioning|{"from_number": ${vbts_callerid}}'/>
         <anti-action application="python" data="VBTS_Send_SMS ${vbts_callerid}|${destination_number}|${_localstr}"/>
         <anti-action application="system" data='curl --data "from_number=${vbts_callerid}&from_name=${from_imsi}&service_type=${service_type}&destination=${destination_number}" http://127.0.0.1/smscdr'/>
   </condition>

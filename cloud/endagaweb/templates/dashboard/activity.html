@@ -12,6 +12,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load apptags %}
 {% load humanize %}
 {% load crispy_forms_tags %}
+{% load guardian_tags %}
 
 {% block pagestyle %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
@@ -20,13 +21,14 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% block title %} {% tmpl_const "SITENAME" %} | Network Activity {% endblock %}
 
 {% block content %}
+{% get_obj_perms request.user for network as 'user_permission' %}
 
 <div class="row">
   <div class="col-xs-12 page-header">
     <h3>Network Activity</h3>
   </div>
 </div>
-
+{% if 'view_activity' in user_permission %}
 {% if network_has_activity %}
 <div class="row">
     <div class="col-xs-12 col-lg-7">
@@ -94,9 +96,9 @@ of patent rights can be found in the PATENTS file in the same directory.
             <td>{{ event.date }}</td>
             {% if event.subscriber %}
               {% if event.subscriber.name %}
-                <td><a href="{% url 'subscriber-info' imsi=event.subscriber.imsi %}">{{ event.subscriber.name }} ({{ event.subscriber.imsi }})</a></td>
+                  <td><a href="{% url 'subscriber-info' imsi=event.subscriber.imsi %}">{{ event.subscriber.name }} ({{ event.subscriber.imsi }})</a></td>
               {% else %}
-                <td><a href="{% url 'subscriber-info' imsi=event.subscriber.imsi %}">{{ event.subscriber.imsi }}</a></td>
+                  <td><a href="{% url 'subscriber-info' imsi=event.subscriber.imsi %}">{{ event.subscriber.imsi }}</a></td>
               {% endif %}
             {% else %}  {# /event.subscriber check #}
 
@@ -176,7 +178,39 @@ of patent rights can be found in the PATENTS file in the same directory.
         </div>
     </div>
 </div>
+<div class='modal fade' id='pwd-dialog-modal'>
+    <div class='modal-dialog'>
+        <div class='modal-content'>
+            <div class='modal-header'>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class='modal-title'>
+                    <p>Hello <strong>{{ user_profile.display_name }}</strong>, please enter your password for authorization.</p>
+                 </h4>
+            </div>
+            <div class='modal-body'>
+                 <div id='messages-container'></div>
+                <form id='password-authorization'>
+                    <div class='form-group'>
+                        <div class='controls'>
+                              <input class='textinput textInput form-control' id='pwd-input' name='pwd' type='password'>
+                        </div>
+                    </div><!-- /.form-group -->
 
+                </form>
+            </div> <!-- /.modal-body -->
+            <div class='modal-footer' id="modal-footerId">
+                <button type='button' class='btn btn-default' data-dismiss='modal'>Cancel</button>
+                <button class='btn btn-primary' type='button' id='pwd-dialog-submit'>
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if 'download_activity' in user_permission %}
 <div class="row">
     <div class="col-xs-12">
     <p>
@@ -188,6 +222,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     </p>
     </div>
 </div>
+{% endif %}
 
 
 {% include 'dashboard/timezone-notice.html' %}
@@ -198,7 +233,9 @@ of patent rights can be found in the PATENTS file in the same directory.
   {% endcomment %}
   <p>There is no network activity to display.</p>
 {% endif %}
-
+{% else %}
+{% include 'dashboard/permission_denied.html' %}
+{% endif %}
 {% endblock %}
 
 

@@ -1,0 +1,172 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+{% load apptags %}
+{% load humanize %}
+{% load crispy_forms_tags %}
+{% load render_table from django_tables2 %}
+{% load account socialaccount %}
+{% load guardian_tags %}
+{% block pagestyle %}
+<style>
+
+</style>
+{% endblock %}
+{% block title %} {% tmpl_const "SITENAME" %} | Subscribers Management {% endblock %}
+
+{% block content %}
+{% include "dashboard/subscriber_management/header.html" with user=user %}
+{% include "dashboard/subscriber_management/nav.html" with active_tab='category'%}
+{% get_obj_perms request.user for network as 'user_permission' %}
+
+{% if 'view_subscriber' in user_permission %}
+<div class='col-md-10'>
+    <div class='row'>
+        {% if total_number_of_subscribers %}
+
+        <form action="/dashboard/subscriber_management/subscriber"
+              class="form-horizontal" method="get" role="form">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <input type="text" class="form-control" name="query"
+                           placeholder="Search subscribers by name, IMSI or number"
+                           value="{{ query }}"/>
+                    <span class="input-group-btn">
+                <button class="btn btn-secondary" type="submit">Search</button>
+              </span>
+
+                </div>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+    <div class='row'>&nbsp;
+        {% for message in messages %}
+        <div class="message alert alert-{{message.tags}}">
+            <a href="#" class="close" data-dismiss="alert">&times;</a>
+            {{message}}
+        </div>
+        {% endfor %}
+    </div>
+    <div class='row'>
+        <div class="col-md-6 left">
+            <div id='number-messages-container'></div>
+        </div>
+    </div>
+
+    <div class='row' id="table_id">
+        <div class="col-xs-12 col-md-12">
+            {% if show_table and number_of_filtered_subscribers %}
+            {% render_table subscriber_table%}
+
+            {% elif show_table and total_number_of_subscribers > 0 %}
+            <h4>No subscribers matched your search.</h4>
+
+            {% elif not show_table and total_number_of_subscribers > 0 %}
+
+            {% else %}
+            <p>
+                There are currently no subscribers registered on this network.
+                Go find some users!
+            </p>
+            {% endif %}
+        </div>
+    </div> <!-- /.row (subscribers) -->
+    <div class='row'>
+        <div class="pull-left" class="container" id="container_id">
+            <table class="table table">
+                <tr>
+                    <label class="radio-inline"><input type="radio"
+                                                       name="subscriberType"
+                                                       id="subscriber"
+                                                       value="Subscriber"><b>Subscriber</b>
+                    </label>
+
+                    <label class="radio-inline"><input type="radio"
+                                                       name="subscriberType"
+                                                       id="retailer"
+                                                       value="Retailer"><b>Retailer</b></label>
+
+                    <label class="radio-inline"><input type="radio"
+                                                       name="subscriberType"
+                                                       id="test_sim"
+                                                       value="Test Sim"><b>Test
+                        SIM</b></label>
+                </tr>
+            </table>
+            <div class='row'>
+
+                <div class="col-xs-6 col-md-4 col-xl-2 pull-left">
+                    <button class='btn btn-primary' id="update" type="Submit">
+                        Update
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+  {% include 'dashboard/permission_denied.html' %}
+  {% endif %}
+{% endblock %}
+{% block js %}
+
+<script>
+$('.sub_type').click(function(){
+  $('#number-messages-container').hide();
+});
+
+function imsiSelected(check){
+    var imsi = $('.imsi_id:checked').length;
+    var updateDiv = document.getElementById('container_id');
+    if(imsi){
+        updateDiv.style.display = "block";
+      }
+      else{
+        updateDiv.style.display = "none";
+      }
+}
+imsiSelected();
+$('#update').click(function(){
+
+  if($('input[name="subscriberType"]:checked').length<=0){
+    var html = "<div class='alert alert-danger'> Please select category</div>";
+    $('#number-messages-container').html(html).show();
+    return
+  }
+
+  category=document.querySelector('input[name="subscriberType"]:checked').value
+
+  var i=0;
+  var imsi_val=[];
+  var imsi_list = $('.imsi_id:checked');
+  $.each(imsi_list, function(key, val){
+    imsi_val[i++]=val.value;
+  });
+  var data = {
+    category: category,
+    imsi_val : imsi_val,
+    csrfmiddlewaretoken: '{{ csrf_token }}',
+  };
+  var url = '/dashboard/subscriber_management/subscriber';
+  $.ajax({
+        url: url,
+        data: data,
+        type: "POST"
+    }).done(function(response) {
+        window.location = "/dashboard/subscriber_management/subscriber";
+    }).fail(function(response) {
+    });
+});
+
+
+
+
+</script>
+{% endblock %}

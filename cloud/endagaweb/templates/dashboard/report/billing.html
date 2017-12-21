@@ -1,0 +1,508 @@
+{% extends "dashboard/layout.html" %}
+{% comment %}
+Copyright (c) 2016-present, Facebook, Inc.
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree. An additional grant
+of patent rights can be found in the PATENTS file in the same directory.
+{% endcomment %}
+{% load apptags %}
+{% load humanize %}
+{% load crispy_forms_tags %}
+{% load guardian_tags %}
+
+{% block title %}
+    {% tmpl_const "SITENAME" %} | Report
+    {% if report_summary  %}
+        | "{{ report_summary }}"
+    {% endif %}
+{% endblock %}
+
+{% block pagestyle %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap3-dialog/1.34.7/css/bootstrap-dialog.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css" type="text/css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqgrid/4.6.0/css/ui.jqgrid.css"/>
+<style type="text/css">
+  .ui-jqgrid tr.jqgrow th {font-size:1.3em}
+  .ui-jqgrid tr.jqgrow td {font-size:1.2em}
+</style>
+
+{% endblock %}
+
+{% block content %}
+    {% include "dashboard/report/header.html" with header='Billing'  %}
+    {% get_obj_perms request.user for network as 'user_permission' %}
+
+    <div class='row'>
+
+        {% include "dashboard/report/nav.html" with active_tab='billing_reports' %}
+        {% if 'view_report' in user_permission %}
+        <div class='content col-xs-12 col-sm-10 col-md-10'>
+            {% include "dashboard/report/filter.html" with action_url='/dashboard/reports/billing' %}
+            {% if network_has_activity %}
+            <div class="row">
+              <div id='top-up-subscriber-chart'></div>
+              <div id='top-up-chart'></div>
+              <div id='billing-waterfall-summary-chart'></div>
+            </div>
+            {% if 'Loader' in reports %}
+            <div class="row">
+              <div id="loader">
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Loader" info="This report shows count of subscribers who did  top-up in assessing month. So, total count of such subscribers will get updated against their provisioned month." id="waterfall_loader" %}
+              </div>
+            </div>
+            {% endif %}
+            {% if 'Reload Rate' in reports %}
+            <div class="row">&nbsp;</div>
+            <div class="row">
+              <div id="reload_rate">
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Rate" info='This report shows average number of time top-up done by all the subscribers  in assessing month against the number of subscriber provisioned in that particular month' id="waterfall_reload_rate" %}
+              </div>
+            </div>
+            {% endif %}
+            {% if 'Reload Amount' in reports %}
+            <div class="row">&nbsp;</div>
+            <div class="row">
+              <div id="reload_amount">
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Amount" info="This report shows total top-up done by all the subscribers through retailer in assessing month. so, sum of top-up amount done by all the subscriber will get updated against their provisioned month" id="waterfall_reload_amount" %}
+              </div>
+            </div>
+            {% endif %}
+            {% if 'Reload Transaction' in reports %}
+            <div class="row">&nbsp;</div>
+            <div class="row">
+              <div id="reload_transaction">
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Reload Transaction" info="This report shows number of transaction done by all the subscribers in assessing month. So, number of transaction done by all the subscribers will get updated against their provisioned month" id="waterfall_reload_transaction"  %}
+              </div>
+            </div>
+            {% endif %}
+            {% if 'Average Load' in reports %}
+            <div class="row">&nbsp;</div>
+            <div class="row">
+              <div id="average_load">
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Average Load" info="This report shows average top-up done by each subscriber in assessing month. So, average amount per subscriber will get updated against their provisioned month" id="waterfall_average_load" %}
+              </div>
+            </div>
+            {% endif %}
+            {% if 'Average Frequency' in reports %}
+            <div class="row">&nbsp;</div>
+            <div class="row">
+              <div id="average_frequency">
+                {% include "dashboard/report/waterfall.html" with title="Waterfall - Average Frequency" info="This report shows average number of time top-up done by each subscriber in assessing month. So, average frequency per subscriber will get updated against their provisioned month" id="waterfall_average_frequency" %}
+              </div>
+            </div>
+            {% endif %}
+
+            {% if 'Total Base' in reports %}
+            <div class="row">
+              <div id="non_loader_base">
+                <h4>Non Loader Report - Total Base</h4>
+                <table id="non_loader_total_base"></table>
+                <div id='non-loder-base'></div>
+              </div>
+            </div>
+            {% endif %}
+
+            <div class="row">
+                <div id='add-money-usage-chart'></div>
+                <div id='load-transfer-usage-chart'></div>
+                <div id='sms-usage-chart'></div>
+                <div id='call-sms-usage-chart'></div>
+                <div id='call-usage-chart'></div>
+            </div>
+
+            {% else %}
+                <p>There is no network activity to display.</p>
+            {% endif %}
+            <div class="row">
+                {% include 'dashboard/timezone-notice.html' %}
+            </div>
+
+        </div> <!-- /.col-md-4 -->
+        {% else %}
+        {% include 'dashboard/permission_denied.html' %}
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block js %}
+{% if network_has_activity %}
+<script>
+  $(function() {
+    setTimeout(function() {
+      $('.timezone-notice').fadeIn(500);
+    }, 800);
+  });
+</script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap3-dialog/1.34.7/js/bootstrap-dialog.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/react.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/JSXTransformer.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.1.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.1.13-beta/nv.d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/js/bootstrap-datetimepicker.min.js"></script>
+<script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.7.0/moment.min.js" type="text/javascript"></script>
+<script src="/static/js/dashboard/saveSvgAsPng.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqgrid/4.6.0/js/jquery.jqGrid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqgrid/4.6.0/js/i18n/grid.locale-en.js"></script>
+
+<script type="text/jsx" src="/static/js/dashboard/report-chart-components.js"></script>
+<script type="text/jsx">
+  var currentTimeEpoch = {{ current_time_epoch }};
+  var timezoneOffset = {{ timezone_offset }};
+  {% if 'Call Billing' in reports %}
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Call Billing Report'
+      chartID='call-billing-chart'
+      statTypes='local_call,outside_call'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
+      aggregation='transaction_sum'
+      yAxisLabel='charges of calls'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      chartType='pie-chart'
+      tooltipUnits='s of'
+      reportView='summary'
+      frontTooltip='{{ value_type }}'
+      info='This report shows total billing amount  charged to all the subscribers for all kind of outbound Calls ( Local & Outside).'
+    />,
+    document.getElementById('call-usage-chart')
+  );
+  {% endif %}
+  {% if 'SMS Billing' in reports %}
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='SMS Billing Report'
+      chartID='sms-billing-chart'
+      statTypes='local_sms,outside_sms'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
+      aggregation='transaction_sum'
+      yAxisLabel='charges of sms'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      chartType='pie-chart'
+      tooltipUnits='s of'
+      reportView='summary'
+      frontTooltip='{{ value_type }}'
+      info='This report shows total billing amount  charged to all the subscribers for all types of outbound ( Local & Outside) SMS’s.'
+    />,
+    document.getElementById('sms-usage-chart')
+  );
+  {% endif %}
+  {% if 'Call and SMS Billing' in reports %}
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Call and SMS Billing Report'
+      chartID='call-sms-billing-chart'
+      statTypes='local_call,outside_call,local_sms,outside_sms'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
+      aggregation='transaction_sum'
+      yAxisLabel='call and sms charges'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      chartType='pie-chart'
+      tooltipUnits='s of'
+      reportView='summary'
+      frontTooltip='{{ value_type }}'
+      info='This report shows total billing amount  charged to all the subscribers for all kind of outbound Calls & SMS’s ( Local & Outside).'
+    />,
+    document.getElementById('call-sms-usage-chart')
+  );
+  {% endif %}
+  {% if 'Retailer Load Transfer' in reports %}
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Retailer Load Transfer Report'
+      chartID='load-transfer-chart'
+      statTypes='transfer'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
+      aggregation='transaction_sum'
+      yAxisLabel='Load Transfer'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      chartType='bar-chart'
+      tooltipUnits=' of '
+      frontTooltip='{{ value_type }}'
+      info='This report shows total top-up done by all the retailers to the subscribers  in a given time window.'
+    />,
+    document.getElementById('load-transfer-usage-chart')
+  );
+  {% endif %}
+  {% if 'Retailer Recharge' in reports %}
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Retailer Recharge Report'
+      chartID='add-money-chart'
+      statTypes='add_money'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
+      aggregation='transaction_sum'
+      yAxisLabel='Add Money'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      chartType='bar-chart'
+      tooltipUnits=' added'
+      frontTooltip=' {{ value_type }} '
+      info='This report shows total amount transferred to retailers by business analyst using add credit function in endagaweb for selected time window.'
+    />,
+    document.getElementById('add-money-usage-chart')
+  );
+  {% endif %}
+  {% if 'Activation' in reports %}
+  React.render(
+    <TimeseriesChartWithButtonsAndDatePickers
+      title='Waterfall Activation Report'
+      chartID='summary-chart'
+      statTypes='Provisioned'
+      level='{{ level }}'
+      levelID='{{ level_id }}'
+      aggregation='valid_through'
+      yAxisLabel='numbers of activation'
+      currentTimeEpoch={currentTimeEpoch}
+      timezoneOffset={timezoneOffset}
+      tooltipUnits=' subscriber'
+      chartType='bar-chart'
+      info='This report shows the count of provisioned subscribers for selected time window.'
+    />,
+    document.getElementById('billing-waterfall-summary-chart')
+  );
+  {% endif %}
+  {% if 'Count Based' in reports %}
+  React.render(
+  <TimeseriesChartWithButtonsAndDatePickers
+    title='Top Up Report (Count Based)'
+    chartID='topup-chart'
+    //statTypes='start_amount,end_amount'
+    statTypes='{{ kinds }}'
+    level='{{ level }}'
+    levelID='{{ level_id }}'
+    aggregation='transcation_count'
+    yAxisLabel='Count'
+    buttons={['day','week','month','year']}
+    defaultButtonText='month'
+    currentTimeEpoch={currentTimeEpoch}
+    timezoneOffset={timezoneOffset}
+    chartType='bar-chart'
+    tooltipUnits=' top ups in range '
+    frontTooltip=''
+    topupPercent='{{ topup_percent }}'
+    extras='{{ extra_param }}'
+    dynamicStat='true'
+    info='This report shows number of  top-ups done by subscribers through retailer for selected time window in defined denomination brackets.'
+  />,
+  document.getElementById('top-up-chart')
+  );
+  {% endif %}
+  {% if 'Amount Based' in reports %}
+  React.render(
+  <TimeseriesChartWithButtonsAndDatePickers
+    title='Top Up Report (Amount Based)'
+    chartID='topupSubscriber-chart'
+    statTypes='{{ kinds }}'
+    level='{{ level }}'
+    levelID='{{ level_id }}'
+    aggregation='transaction_sum'
+    yAxisLabel='Amount'
+    buttons={['day','week','month','year']}
+    defaultButtonText='month'
+    currentTimeEpoch={currentTimeEpoch}
+    timezoneOffset={timezoneOffset}
+    chartType='bar-chart'
+    tooltipUnits=' total in range '
+    extras='{{ extra_param }}'
+    dynamicStat='true'
+    topupPercent='{{ topup_percent }}'
+    frontTooltip='{{ value_type }}'
+    info='This report shows sum of top-ups done by subscribers through retailer for selected time window in defined denomination brackets.'
+  />,
+  document.getElementById('top-up-subscriber-chart')
+);
+{% endif %}
+
+</script>
+<script type="text/javascript">
+function setloading() {
+  var $btn = $('#submit').button().button('loading');
+}
+function renderTable(reportId, tableId) {
+
+  var secondsMap = {
+    'month': 6 * 30 * 24 * 60 * 60,
+    'year': 365 * 24 * 60 * 60,
+  };
+  var currentTimeEpoch = {{ current_time_epoch }};
+  var endTimeEpoch = currentTimeEpoch - secondsMap['month'];
+
+  var formattedDate = moment.unix(currentTimeEpoch).format('YYYY-MM-DD');
+  var formattedFromDate = moment.unix(endTimeEpoch).format('YYYY-MM-DD');
+
+  $('#'+reportId+' .from_month').datetimepicker({
+    viewMode: 'months',
+    format: 'YYYY-MM',
+    defaultDate: formattedFromDate
+  });
+
+  $('#'+reportId+' .to_month').on('dp.change', function(event) {
+    console.log("to_month = ", event);
+    var newEpochTime = moment(event.target.value, 'YYYY-MM').unix();
+    console.log("newEpochTime 1 = ", newEpochTime);
+    showReport();
+  });
+  $('#'+reportId+' .from_month').on('dp.change', function(event) {
+    console.log("to_month = ", event);
+    var newEpochTime = moment(event.target.value, 'YYYY-MM').unix();
+    console.log("newEpochTime 2 = ", newEpochTime);
+    showReport();
+  });
+
+  $('#'+reportId+' .to_month').datetimepicker({
+    viewMode: 'months',
+    format: 'YYYY-MM',
+    defaultDate: formattedDate
+  });
+
+  //$('#'+reportId+' .submit').click(function(){
+  function showReport() {
+    $('#'+reportId+' .loadingText').show();
+    var from_date = moment.utc($('#'+reportId+' .from_month').val(), 'YYYY-MM').unix();
+    var to_month = moment.utc($('#'+reportId+' .to_month').val(), 'YYYY-MM').unix();
+
+    var queryParams = {
+      'start-time-epoch': from_date,
+      'end-time-epoch': to_month,
+      'stat-types': reportId,
+      'interval': 'months',
+      'level-id':{{ level_id }},
+      'aggregation': reportId
+    };
+    var endpoint = '/api/v1/stats/{{ level }}';
+    $.get(endpoint, queryParams, function(data) {
+
+      var tableHeader = data['results'][0]['values']['header'];
+      var tableData = data['results'][0]['values']['data'];
+
+      var header = [];
+      var row_width_total = 0;
+
+      $.each(data['results'][0]['values']['header'], function(index, value){
+        value['width'] = 80;
+        value['align'] = 'center';
+        header.push(value);
+        row_width_total += 80;
+      });
+
+      var row_width = parseInt($("#"+reportId).width()) - 50;
+      var shrink = true;
+      if (row_width_total > row_width) {
+        shrink = false;
+      }
+      var options = {
+        colModel: header, //tableHeader,
+        data: tableData,
+        viewrecords: true,
+        width: row_width,
+        height: 'auto',
+        datatype: 'local',
+        "scrollY": true,
+        shrinkToFit: shrink
+      };
+
+      var element = '#'+tableId;
+      var grid = $(element);
+
+      if(grid[0].grid == undefined) {
+        grid.jqGrid(options);
+      } else {
+        delete grid;
+        $(element).GridUnload(element);
+        $(element).jqGrid(options);
+        $(element).jqGrid("setFrozenColumns");
+      }
+      $('#'+reportId+' .loadingText').hide();
+    });
+  }
+  //}).click();
+}
+
+function renderNonLoder() {
+  var queryParams = {
+      'stat-types': 'non_loader_base',
+      'interval': 'months',
+      'level-id':{{ level_id }},
+      'aggregation': 'non_loader_base'
+    };
+    var endpoint = '/api/v1/stats/{{ level }}';
+    $.get(endpoint, queryParams, function(data) {
+
+      var tableHeader = data['results'][0]['values']['header'];
+      var tableData = data['results'][0]['values']['data'];
+
+      var header = [];
+      var row_width_total = 0;
+
+      $.each(data['results'][0]['values']['header'], function(index, value){
+        value['width'] = 80;
+        value['align'] = 'center';
+        header.push(value);
+        row_width_total += 80;
+      });
+
+      //var row_width = $("#non_loader_base").width();
+      var row_width = parseInt($("#non_loader_base").width()) - 100;
+      var shrink = true;
+      if (row_width_total > row_width) {
+        shrink = false;
+      }
+      var options = {
+        colModel: header, //tableHeader,
+        data: tableData,
+        viewrecords: true,
+        //width: row_width,
+        height: 'auto',
+        datatype: 'local',
+        "scrollX": true,
+        "scrollY": true,
+        shrinkToFit: shrink
+      };
+      var element = '#non_loader_total_base';
+
+      var grid = $(element);
+
+      if(grid[0].grid == undefined) {
+        grid.jqGrid(options);
+      } else {
+        delete grid;
+        $(element).GridUnload(element);
+        $(element).jqGrid(options);
+        $(element).jqGrid("setFrozenColumns");
+      }
+    });
+}
+$(document).ready(function() {
+
+  renderTable('loader', 'waterfall_loader');
+  renderTable('reload_rate', 'waterfall_reload_rate');
+  renderTable('reload_amount', 'waterfall_reload_amount');
+  renderTable('reload_transaction', 'waterfall_reload_transaction');
+  renderTable('average_load', 'waterfall_average_load');
+  renderTable('average_frequency', 'waterfall_average_frequency');
+
+  //renderNonLoder();
+
+});
+
+</script>
+
+{% endif %}
+
+{% endblock %}

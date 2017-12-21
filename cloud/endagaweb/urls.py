@@ -10,7 +10,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 from django.conf import settings
 from django.conf.urls import include, url
-from django.contrib import admin
+from django.contrib import admin, auth
 import django.contrib.auth.views
 
 import endagaweb.views
@@ -81,13 +81,16 @@ urlpatterns = [
     url(r'^auth/', endagaweb.views.user.auth_and_login),
     url(r'^account/password/change', endagaweb.views.user.change_password),
     url(r'^account/update', endagaweb.views.user.update_contact),
-    url(r'^account/', endagaweb.views.dashboard.dashboard_view),
+    url(r'^account/', endagaweb.views.dashboard.DashboardView.as_view(),
+        name='dashboard-view'),
     url(r'^logout/$', django.contrib.auth.views.logout, {'next_page': '/'}),
+    # Added for ExpiredPassword
+    url(r'^password/change', endagaweb.views.user.change_expired_password),
 
     # Dashboard.
     url(r'^dashboard/card', endagaweb.views.dashboard.addcard),
     url(r'^addmoney/', endagaweb.views.dashboard.addmoney),
-    url(r'^dashboard/billing', endagaweb.views.dashboard.billing_view),
+    url(r'^dashboard/billing$', endagaweb.views.dashboard.billing_view),
     url(r'^dashboard/profile', endagaweb.views.dashboard.profile_view),
     # Tower views in the dashboard.
     # /towers -- GET a list of towers or POST here to add one
@@ -116,7 +119,12 @@ urlpatterns = [
         name='tower-events'),
     # Subscriber views in the dashboard.
     url(r'^dashboard/subscribers$',
-        endagaweb.views.dashboard.subscriber_list_view),
+        endagaweb.views.dashboard.SubscriberListView.as_view(),
+        name='subscribers-list'),
+    url(r'^dashboard/subscribers/role$',
+        endagaweb.views.dashboard.SubscriberUpdateRole.as_view(),
+        name='subscribers-update-role'),
+
     url(r'^dashboard/subscribers/(?P<imsi>[^/]+)$',
         endagaweb.views.dashboard.SubscriberInfo.as_view(),
         name='subscriber-info'),
@@ -132,6 +140,42 @@ urlpatterns = [
     url(r'^dashboard/subscribers/(?P<imsi>[^/]+)/edit$',
         endagaweb.views.dashboard.SubscriberEdit.as_view(),
         name='subscriber-edit'),
+    url(r'^dashboard/user/management$',
+        endagaweb.views.dashboard.UserManagement.as_view(),
+        name='user-management'),
+
+    url(r'^dashboard/user/management/update',
+        endagaweb.views.dashboard.UserUpdate.as_view(),
+        name='user-update'),
+
+    url(r'^dashboard/user/management/checkuser',
+        endagaweb.views.user.check_user),
+
+    url(r'^dashboard/network/notification/translate',
+        endagaweb.views.user.get_translation),
+
+    url(r'^dashboard/network/notification/event',
+        endagaweb.views.user.get_event),
+
+    url(r'^dashboard/user/management/permissions',
+        endagaweb.views.user.role_default_permissions),
+
+    url(r'^dashboard/network/broadcast_sms$',
+        endagaweb.views.dashboard.SubscriberSendSMS.as_view(),
+        name='broadcast-sms'),
+
+    url(r'^reset$', endagaweb.views.user.reset),
+
+    url(r'^reset/(?P<token>[A-Za-z0-9-]+)/(?P<uidb64>[0-9A-Za-z_\-]+)/$',
+        endagaweb.views.user.reset_confirm,
+        name='password_reset_confirm'),
+
+    url(r'^success/$', endagaweb.views.user.success, name='success'),
+
+
+    url(r'^dashboard/subscriber_management/subscriber$',
+        endagaweb.views.dashboard.SubscriberCategoryEdit.as_view(),
+        name='subscriber-category'),
     # Network views in the dashboard.
     # /network -- GET basic network info
     # /network/prices -- GET pricing data for the network or POST to change it
@@ -145,6 +189,9 @@ urlpatterns = [
     url(r'^dashboard/network/denominations$',
         endagaweb.views.network.NetworkDenomination.as_view(),
         name='network-denominations'),
+    url(r'^dashboard/network/denominations/manage$',
+        endagaweb.views.network.NetworkDenominationEdit.as_view(),
+        name='network-denominations-manage'),
     url(r'^dashboard/network/inactive-subscribers$',
         endagaweb.views.network.NetworkInactiveSubscribers.as_view(),
         name='network-inactive-subscribers'),
@@ -153,11 +200,39 @@ urlpatterns = [
         name='network-edit'),
     url(r'^dashboard/network/select/(?P<network_id>[0-9]+)$',
         endagaweb.views.network.NetworkSelectView.as_view()),
+    # Added for network balance limit
+    url(r'^dashboard/network/balance-limit',
+        endagaweb.views.network.NetworkBalanceLimit.as_view(),
+        name='network_balance_limit'),
+    # Notifications
+    url(r'^dashboard/network/notification$',
+        endagaweb.views.network.NetworkNotifications.as_view(),
+        name='network-notifications'),
+    url(r'^dashboard/network/notification/update',
+        endagaweb.views.network.NetworkNotificationsEdit.as_view(),
+        name='network-notifications-manage'),
     # The activity table.
     url(r'^dashboard/activity',
         endagaweb.views.dashboard.ActivityView.as_view(),
         name='network-activity'),
-
+    url(r'^dashboard/reports/calls',
+        endagaweb.views.reports.CallReportView.as_view(),
+        name='call-report'),
+    url(r'^dashboard/reports/subscriber',
+        endagaweb.views.reports.SubscriberReportView.as_view(),
+        name='subscriber-report'),
+    url(r'^report/downloadcsv',
+        endagaweb.views.reports.ReportGraphDownload.as_view(),
+        ),
+    url(r'^dashboard/reports/billing',
+        endagaweb.views.reports.BillingReportView.as_view(),
+        name='billing-report'),
+    url(r'^dashboard/reports/health',
+        endagaweb.views.reports.HealthReportView.as_view(),
+        name='health-report'),
+    url(r'^dashboard/broadcast',
+        endagaweb.views.dashboard.BroadcastView.as_view(),
+        name='sms-brosdcast'),
     # Raise a server error on-demand to test the 500 template.
     url(r'^insta-five-hundred$',
         endagaweb.views.static.InstaFiveHundred.as_view()),
@@ -193,7 +268,8 @@ if 'django.contrib.admin' in settings.INSTALLED_APPS:
 
 urlpatterns += [
     # The dashboard 'home'.
-    url(r'^dashboard', endagaweb.views.dashboard.dashboard_view),
+    url(r'^dashboard', endagaweb.views.reports.DashboardView.as_view(),
+        name='Call_Sms_Data_Usage'),
 
     # Old stats.
     url(r'^stats/numbers', endagaweb.views.stats.numbers),

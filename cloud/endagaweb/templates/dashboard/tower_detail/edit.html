@@ -10,7 +10,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load apptags %}
 {% load humanize %}
 {% load crispy_forms_tags %}
-
+{% load guardian_tags %}
 
 {% block title %}
 {% if tower_nickname %}
@@ -46,10 +46,11 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 {% block content %}
 {% include "dashboard/tower_detail/header.html" with tower=tower %}
+{% get_obj_perms request.user for network as 'user_permission' %}
 
 <div class = 'row'>
   {% include "dashboard/tower_detail/nav.html" with uuid=tower.uuid active_tab='edit'%}
-
+  {% if 'edit_bts' in user_permission %}
   <div class='content col-xs-12 col-sm-10'>
     <form id='edit-tower-form'>
       <div class='form-group col-sm-6'>
@@ -78,6 +79,9 @@ of patent rights can be found in the PATENTS file in the same directory.
       <div id='messages-container' class='col-xs-12 col-sm-8'></div>
     </form>
   </div>
+  {% else %}
+    {% include 'dashboard/permission_denied.html' %}
+  {% endif %}
 </div>
 {% endblock %}
 
@@ -86,6 +90,7 @@ of patent rights can be found in the PATENTS file in the same directory.
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
   <script src="https://homes.cs.washington.edu/~kheimerl/ccm/leaflet-animated-draggable-marker.js"></script>
+  <script src="/static/js/dashboard/sms-broadcast.js"></script>
   <script>
 
     // Init the map so we can move it later and

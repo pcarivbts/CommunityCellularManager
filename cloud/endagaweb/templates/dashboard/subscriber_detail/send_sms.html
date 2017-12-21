@@ -10,17 +10,17 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% load apptags %}
 {% load humanize %}
 {% load crispy_forms_tags %}
-
+{% load guardian_tags %}
 
 {% block title %} {% tmpl_const "SITENAME" %} | {{ subscriber.imsi }} Send SMS {% endblock %}
 
 
 {% block content %}
 {% include "dashboard/subscriber_detail/header.html" with subscriber=subscriber %}
-
 <div class = 'row'>
   {% include "dashboard/subscriber_detail/nav.html" with imsi=subscriber.imsi active_tab='send_sms'%}
-
+    {% get_obj_perms request.user for network as 'user_permission' %}
+    {% if 'send_sms' in user_permission %}
   <div class='content col-xs-12 col-sm-10'>
     {% if request.GET.sent == 'true' %}
     <p><strong>Message queued for sending!</strong></p>
@@ -29,4 +29,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     {% crispy send_sms_form %}
   </div>
 </div>
+{% else %}
+{% include 'dashboard/permission_denied.html' %}
+{% endif %}
 {% endblock %}

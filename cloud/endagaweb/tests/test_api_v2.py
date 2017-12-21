@@ -496,6 +496,21 @@ class SubscriberTest(TestCase):
         cls.pcu = models.PendingCreditUpdate(subscriber=cls.sub, amount=100,
                                              uuid='abc123')
         cls.pcu.save()
+        # create more subscriber for same network with different number
+        cls.imsi3 = "IMSI999990000000455"
+        cls.sub2_network1 = models.Subscriber(
+            balance=100000, name='sub-two', imsi=cls.imsi3,
+            network=cls.bts.network, bts=cls.bts)
+        cls.sub2_network1.save()
+        cls.number4 = models.Number(number='6285574719326',
+                                           state="inuse",
+                                           network=cls.user_profile.network,
+                                           subscriber=cls.sub2_network1,
+                                           kind="number.nexmo.monthly")
+        cls.number4.save()
+        cls.pcu2 = models.PendingCreditUpdate(subscriber=cls.sub2_network1, amount=300,
+                                             uuid='abc345')
+        cls.pcu2.save()
 
     @classmethod
     def tearDownClass(cls):
@@ -511,6 +526,9 @@ class SubscriberTest(TestCase):
         cls.number2.delete()
         cls.number3.delete()
         cls.pcu.delete()
+        cls.sub2_network1.delete()
+        cls.number4.delete()
+        cls.pcu2.delete()
 
     def setUp(self):
         self.client = Client()
@@ -627,3 +645,59 @@ class SubscriberTest(TestCase):
         event_count = models.UsageEvent.objects.filter(
             subscriber_imsi=self.sub2.imsi, kind='delete_imsi').count()
         self.assertEqual(1, event_count)
+
+    def test_bulk_deactivate_subscriber(self):
+        """We can deactivate the bulk Subscriber via DELETE """
+
+
+        url = '/api/v2/subscribers/%s,%s' % (self.sub.imsi,self.sub2_network1.imsi)
+        print(url)
+        header = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile.network.api_token
+        }
+        with mock.patch('endagaweb.celery.app.send_task') as mocked_task:
+            response = self.client.delete(url, **header)
+        self.assertEqual(200, response.status_code)
+        # The  both subscriber should no longer be in the DB.
+        self.assertEqual(0, models.Subscriber.objects.filter(
+            imsi=self.sub.imsi).count())
+        self.assertEqual(0, models.Subscriber.objects.filter(
+            imsi=self.sub2_network1.imsi).count())
+        # associated numbers of both subscriber of same network should
+        # have been deactivated -- reload
+        # them from the DB to check their state.
+        number = models.Number.objects.get(id=self.number.id)
+        self.assertEqual('available', number.state)
+        self.assertEqual(None, number.network)
+        self.assertEqual(None, number.subscriber)
+        number2 = models.Number.objects.get(id=self.number2.id)
+        self.assertEqual('available', number2.state)
+        number3 = models.Number.objects.get(id=self.number4.id)
+        self.assertEqual('available', number3.state)
+        # The associated PendingCreditUpdate should be gone.
+        self.assertEqual(0, models.PendingCreditUpdate.objects.filter(
+            pk=self.pcu.pk).count())
+        self.assertEqual(0, models.PendingCreditUpdate.objects.filter(
+            pk=self.pcu2.pk).count())
+        # The mocked task should have been called with specific arguments
+        self.assertTrue(mocked_task.called)
+        args, _ = mocked_task.call_args
+        task_name, task_args = args
+        task_endpoint, task_data = task_args
+        self.assertEqual('endagaweb.tasks.async_post', task_name)
+        expected_url = '%s/config/deactivate_subscriber' % self.bts.inbound_url
+        self.assertEqual(expected_url, task_endpoint)
+        # The task_data should be signed with the BTS UUID and should have a
+        # jwt key which is a dict with a imsi key.
+
+        serializer = itsdangerous.JSONWebSignatureSerializer(self.bts.secret)
+        task_data = serializer.loads(task_data['jwt'])
+        self.assertEqual(self.sub2_network1.imsi, task_data['imsi'])
+        # A 'delete_imsi' UsageEvent should have been created for both subscriber
+        event_count = models.UsageEvent.objects.filter(
+            subscriber_imsi=self.sub.imsi, kind='delete_imsi').count()
+        event_count1 = models.UsageEvent.objects.filter(
+            subscriber_imsi=self.sub2_network1.imsi, kind='delete_imsi').count()
+        total_event = event_count + event_count1
+        self.assertEqual(2, total_event)
+

@@ -24,6 +24,9 @@ of patent rights can be found in the PATENTS file in the same directory.
     <action inline="true" application="set" data='vbts_destid=${python(VBTS_Get_IMSI_From_Number ${canonical_destination_number})}'/>
     <!-- Get the caller's account balance, 'from_imsi' is an IMSI -->
     <action inline="true" application="set" data='vbts_account_balance=${python(VBTS_Get_Account_Balance ${from_imsi})}'/>
+    <!--Get IMSIs Status -->
+    <action inline="true" application="set" data='vbts_account_status=${python(VBTS_Get_Account_Status ${from_imsi})}'/>
+    <action inline="true" application="set" data='vbts_dest_account_status=${python(VBTS_Get_Account_Status ${vbts_destid}|True)}'/>
     <action inline="true" application="set" data='endaga_uuid=${system /usr/local/bin/snowflake}'/>
     <action inline="true" application="set" data='endaga_uuid=${endaga_uuid:0:36}'/>
     <action inline="true" application="set" data='endaga_apikey=${python(endaga_config_get endaga_token)}'/>

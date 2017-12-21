@@ -13,13 +13,17 @@ import json
 import re
 import time
 
+import pytz
 from django import http
 from django import template
 import django_tables2 as tables
 from django.utils.timesince import timesince
 from django.contrib.gis.geos import Point
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-import pytz
+from django.template.loader import get_template
+from django.utils.timesince import timesince
+from guardian.mixins import PermissionRequiredMixin
+from guardian.shortcuts import get_objects_for_user
 from rest_framework import authentication
 from rest_framework import permissions
 from rest_framework import views as drf_views
@@ -28,12 +32,25 @@ from guardian.shortcuts import get_objects_for_user
 from endagaweb import models
 from endagaweb.views.dashboard import ProtectedView
 from endagaweb.views import django_tables
+from django.template.loader import get_template
+from django.http import HttpResponse
+from googletrans.constants import LANGUAGES
+
+class PermissionRequired(PermissionRequiredMixin):
+    """ A class-based view that sets permission mixin. """
+
+    def dispatch(self, request, *args, **kwargs):
+        user_profile = models.UserProfile.objects.get(user=request.user)
+        PermissionRequiredMixin.permission_object = user_profile.network
+        PermissionRequiredMixin.raise_exception = True
+        return super(PermissionRequired, self).dispatch(request, *args, **kwargs)
 
 
-class TowerList(drf_views.APIView):
+class TowerList(PermissionRequired, drf_views.APIView):
     """View the list of towers."""
 
     # Setup DRF permissions and auth.
+    permission_required = 'view_bts'
     permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (authentication.SessionAuthentication,
                               authentication.TokenAuthentication)
@@ -42,6 +59,7 @@ class TowerList(drf_views.APIView):
         """"Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
         towers = models.BTS.objects.filter(network=user_profile.network)
+        network = user_profile.network
         # Configure the table of towers.  Do not show any pagination controls
         # if the total number of towers is small.
         tower_table = django_tables.TowerTable(list(towers))
@@ -56,6 +74,7 @@ class TowerList(drf_views.APIView):
         # 'Tower 5' for the next BTS.
         suggested_nickname = 'Tower %s' % (len(towers) + 1)
         context = {
+            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
             'user_profile': user_profile,
             'towers': towers,
@@ -122,10 +141,12 @@ class TowerList(drf_views.APIView):
 
 class TowerInfo(ProtectedView):
     """View info on a single tower."""
+    permission_required = 'view_bts'
 
     def get(self, request, uuid=None):
         """Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
+        network = user_profile.network
         try:
             tower = models.BTS.objects.get(uuid=uuid,
                                            network=user_profile.network)
@@ -139,12 +160,14 @@ class TowerInfo(ProtectedView):
         # Set the context with various stats.
         versions = json.loads(tower.package_versions)
         context = {
+            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
             'user_profile': user_profile,
             'tower': tower,
             'tower_endaga_version': tower.printable_version(
                 versions['endaga_version']),
             'uptime': uptime,
+            'language': LANGUAGES.get(tower.locale) or None,
         }
         # Render template.
         info_template = template.loader.get_template(
@@ -155,10 +178,12 @@ class TowerInfo(ProtectedView):
 
 class TowerMonitor(ProtectedView):
     """View TimeseriesStats related to a single tower."""
+    permission_required = 'view_bts'
 
     def get(self, request, uuid=None):
         """Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
+        network = user_profile.network
         try:
             tower = models.BTS.objects.get(
                 uuid=uuid, network=user_profile.network)
@@ -173,6 +198,7 @@ class TowerMonitor(ProtectedView):
             bts=tower).exists()
         # Build up the context.
         context = {
+            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
             'user_profile': user_profile,
             'tower': tower,
@@ -180,6 +206,7 @@ class TowerMonitor(ProtectedView):
             'timezone_offset': timezone_offset,
             'endaga_version': endaga_version,
             'tower_has_monitoring_stats': tower_has_monitoring_stats,
+            'network': user_profile.network
         }
         # Render template.
         monitor_template = template.loader.get_template(
@@ -188,10 +215,11 @@ class TowerMonitor(ProtectedView):
         return http.HttpResponse(html)
 
 
-class TowerEdit(drf_views.APIView):
+class TowerEdit(drf_views.APIView, PermissionRequired):
     """View and edit info for a single tower."""
 
     # Setup DRF permissions and auth.
+    permission_required = 'view_bts'
     permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (authentication.SessionAuthentication,
                               authentication.TokenAuthentication)
@@ -199,6 +227,7 @@ class TowerEdit(drf_views.APIView):
     def get(self, request, uuid=None):
         """Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
+        network = user_profile.network
         try:
             tower = models.BTS.objects.get(uuid=uuid,
                                            network=user_profile.network)
@@ -212,11 +241,13 @@ class TowerEdit(drf_views.APIView):
             network=user_profile.network).count()
         suggested_nickname = 'Tower %s' % (current_number_of_towers + 1)
         context = {
+            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
             'user_profile': user_profile,
             'tower': tower,
             'tower_nickname': tower.nickname if tower.nickname else '',
             'suggested_nickname': suggested_nickname,
+            'network': user_profile.network
         }
         # Render template.
         edit_template = template.loader.get_template(
@@ -272,7 +303,7 @@ class TowerEdit(drf_views.APIView):
                                  content_type="application/json")
 
 
-class TowerDeregister(drf_views.APIView):
+class TowerDeregister(drf_views.APIView, PermissionRequired):
     """A UI for deregistering a single tower.
 
     The actual deregistration is done through the v2 API.
@@ -282,10 +313,12 @@ class TowerDeregister(drf_views.APIView):
     permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (authentication.SessionAuthentication,
                               authentication.TokenAuthentication)
+    permission_required = 'view_bts'
 
     def get(self, request, uuid=None):
         """Handles GET requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
+        network = user_profile.network
         try:
             tower = models.BTS.objects.get(uuid=uuid,
                                            network=user_profile.network)
@@ -293,11 +326,13 @@ class TowerDeregister(drf_views.APIView):
             return http.HttpResponseBadRequest()
         endaga_version = json.loads(tower.package_versions)['endaga_version']
         context = {
+            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
             'user_profile': user_profile,
             'tower': tower,
             'endaga_version': endaga_version,
             'status': tower.get_status_display(),
+            'network': user_profile.network
         }
         # Render template.
         edit_template = template.loader.get_template(
@@ -306,13 +341,14 @@ class TowerDeregister(drf_views.APIView):
         return http.HttpResponse(html)
 
 
-class TowerEvents(drf_views.APIView):
+class TowerEvents(drf_views.APIView, PermissionRequired):
     """View events for a single tower."""
 
     # Setup DRF permissions and auth.
     permission_classes = (permissions.IsAuthenticated,)
     authentication_classes = (authentication.SessionAuthentication,
          authentication.TokenAuthentication)
+    permission_required = 'view_usage'
 
     def get(self, request, *args, **kwargs):
         return self._handle_request(request, *args, **kwargs)
@@ -323,13 +359,14 @@ class TowerEvents(drf_views.APIView):
     def _handle_request(self, request, uuid=None):
         """Handles GET and POST requests."""
         user_profile = models.UserProfile.objects.get(user=request.user)
+        network = user_profile.network
 
         if request.method == "POST":
             page = 1
         elif request.method == "GET":
             page = request.GET.get('page', 1)
         else:
-            return HttpResponseBadRequest()
+            return http.HttpResponseBadRequest()
 
         try:
             tower = models.BTS.objects.get(uuid=uuid,
@@ -351,6 +388,7 @@ class TowerEvents(drf_views.APIView):
             events = event_paginator.page(event_paginator.num_pages)
 
         context = {
+            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
             'user_profile': user_profile,
             'tower': tower,

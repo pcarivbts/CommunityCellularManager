@@ -9,26 +9,30 @@ of patent rights can be found in the PATENTS file in the same directory.
 """
 
 import datetime
-import time
 import json
+import time
 
+import django_tables2 as tables
 from django import http
 from django import template
-from django.contrib import messages
-from django.core import urlresolvers
-from django.db import transaction
-from django.shortcuts import redirect
-import django_tables2 as tables
-from guardian.shortcuts import get_objects_for_user
 from django.conf import settings
+from django.contrib import messages
+from django.core import exceptions
+from django.core import urlresolvers
+from django.db import transaction, IntegrityError
+from django.shortcuts import redirect
+from django.template.loader import get_template
+from googletrans.constants import LANGUAGES
+from guardian.shortcuts import get_objects_for_user
 
 from ccm.common.currency import parse_credits, humanize_credits, \
     CURRENCIES, DEFAULT_CURRENCY
 from endagaweb import models
 from endagaweb.forms import dashboard_forms
-from endagaweb.views.dashboard import ProtectedView
+from endagaweb.forms import dashboard_forms as dform
+from endagaweb.util import api
 from endagaweb.views import django_tables
-
+from endagaweb.views.dashboard import ProtectedView
 
 NUMBER_COUNTRIES = {
     'US': 'United States (+1)',
@@ -41,6 +45,7 @@ NUMBER_COUNTRIES = {
 
 class NetworkInfo(ProtectedView):
     """View info on a single network."""
+    permission_required = 'view_network'
 
     def get(self, request):
         """Handles GET requests."""
@@ -111,6 +116,7 @@ class NetworkInfo(ProtectedView):
 
 class NetworkInactiveSubscribers(ProtectedView):
     """Edit settings for expiring inactive subs."""
+    permission_required = 'edit_network'
 
     def get(self, request):
         """Handles GET requests."""
@@ -145,6 +151,7 @@ class NetworkInactiveSubscribers(ProtectedView):
             'sub_vacuum_form': dashboard_forms.SubVacuumForm({
                 'sub_vacuum_enabled': network.sub_vacuum_enabled,
                 'inactive_days': network.sub_vacuum_inactive_days,
+                'grace_days': network.sub_vacuum_grace_days,
             }),
             'protected_subs': protected_subs,
             'unprotected_subs': unprotected_subs,
@@ -169,22 +176,27 @@ class NetworkInactiveSubscribers(ProtectedView):
             if 'inactive_days' in request.POST:
                 try:
                     inactive_days = int(request.POST['inactive_days'])
+                    grace_days = int(request.POST['grace_days'])
                     if inactive_days > 10000:
                         inactive_days = 10000
+                    if grace_days > 1000:
+                        grace_days = 1000
                     network.sub_vacuum_inactive_days = inactive_days
+                    network.sub_vacuum_grace_days = grace_days
                     network.save()
+                    messages.success(
+                        request, 'Subscriber auto-deletion settings saved.',
+                        extra_tags='alert alert-success')
                 except ValueError:
                     text = 'The "inactive days" parameter must be an integer.'
                     messages.error(request, text,
                                    extra_tags="alert alert-danger")
-            messages.success(
-                request, 'Subscriber auto-deletion settings saved.',
-                extra_tags='alert alert-success')
         return redirect(urlresolvers.reverse('network-inactive-subscribers'))
 
 
 class NetworkPrices(ProtectedView):
     """View pricing for a single network."""
+    permission_required = ['view_network', 'edit_network']
 
     def get(self, request):
         """Handles GET requests."""
@@ -356,6 +368,7 @@ class NetworkPrices(ProtectedView):
 
 class NetworkEdit(ProtectedView):
     """Edit basic network info (but not prices)."""
+    permission_required = 'edit_network'
 
     def get(self, request):
         """Handles GET requests."""
@@ -441,11 +454,14 @@ class NetworkSelectView(ProtectedView):
     network. They must have view_network permission on the instance
     for this to work.
     """
+    permission_required = 'view_network'
 
     def get(self, request, network_id):
         user_profile = models.UserProfile.objects.get(user=request.user)
         try:
             network = models.Network.objects.get(pk=network_id)
+            if 'sync_status' in request.session:
+                del request.session['sync_status']
         except models.Network.DoesNotExist:
             return http.HttpResponseBadRequest()
 
@@ -457,8 +473,33 @@ class NetworkSelectView(ProtectedView):
         return http.HttpResponseRedirect(request.META.get('HTTP_REFERER', '/dashboard'))
 
 
+def sync_denomination(network_id, status):
+    """ Rebase denomination table remove pending changes. """
+    if status == 'apply':
+        with transaction.atomic():
+            models.NetworkDenomination.objects.filter(
+                network=network_id,
+                status__in=['pending']).update(status='done')
+            deleted_denom = models.NetworkDenomination.objects.filter(
+                status__in=['deleted'])
+            for denomination in deleted_denom:
+                denomination.delete()
+    if status == 'discard':
+        with transaction.atomic():
+            new_denom = models.NetworkDenomination.objects.filter(
+                status__in=['pending'])
+            for denomination in new_denom:
+                denomination.delete()
+            deleted_denom = models.NetworkDenomination.objects.filter(
+                status__in=['deleted'])
+            for denomination in deleted_denom:
+                denomination.status = 'done'
+                denomination.save()
+
+
 class NetworkDenomination(ProtectedView):
     """Assign denominations bracket for recharge/adjust-credit in network."""
+    permission_required = 'view_denomination'
 
     def get(self, request):
         """Handles GET requests."""
@@ -466,8 +507,16 @@ class NetworkDenomination(ProtectedView):
         network = user_profile.network
         currency = network.subscriber_currency
 
+        sync_status = False
+        if 'sync_status' in request.session:
+            sync_status = request.session['sync_status']
+        else:
+            sync_denomination(network.id, 'discard')
+            request.session['sync_status'] = sync_status
+
         # Count the associated denomination with selected network.
-        denom = models.NetworkDenomination.objects.filter(network=network)
+        denom = models.NetworkDenomination.objects.filter(
+            network=network, status__in=['done', 'pending'])
         denom_count = denom.count()
 
         dnm_id = request.GET.get('id', None)
@@ -490,18 +539,25 @@ class NetworkDenomination(ProtectedView):
             return http.HttpResponse(json.dumps(response),
                                      content_type="application/json")
 
-        # Configure the table of denominations. Do not show any pagination
-        # controls if the total number of donominations is small.
-        if not user_profile.user.is_staff:
-            denom_table = django_tables.DenominationListTable(list(denom))
-        else:
-            denom_table = django_tables.DenominationTable(list(denom))
+        invalid_ranges = []
+        max_denominations = 100000
+        for denomination in denom:
+            if denomination.start_amount > (max_denominations):
+                start_range = humanize_credits((max_denominations),
+                                               CURRENCIES[currency]).money_str()
+                end_range = humanize_credits((denomination.start_amount),
+                                             CURRENCIES[currency]).money_str()
+                invalid_ranges.append({"start": start_range,
+                                       "end": end_range})
+            max_denominations = denomination.end_amount
+        next_start_amount = humanize_credits(max_denominations,
+                                             CURRENCIES[currency]).amount
+        denom_table = django_tables.DenominationTable(list(denom))
         towers_per_page = 8
         paginate = False
         if denom > towers_per_page:
             paginate = {'per_page': towers_per_page}
         tables.RequestConfig(request, paginate=paginate).configure(denom_table)
-
         # Set the context with various stats.
         context = {
             'networks': get_objects_for_user(request.user, 'view_network',
@@ -512,12 +568,20 @@ class NetworkDenomination(ProtectedView):
             'number_country': NUMBER_COUNTRIES[network.number_country],
             'denomination': denom_count,
             'denominations_table': denom_table,
+            'invalid_ranges': invalid_ranges,
+            'next_start_amount': next_start_amount,
+            'sync_status': sync_status
         }
         # Render template.
         info_template = template.loader.get_template(
             'dashboard/network_detail/denomination.html')
         html = info_template.render(context, request)
         return http.HttpResponse(html)
+
+
+class NetworkDenominationEdit(ProtectedView):
+
+    permission_required = ['view_denomination', 'edit_denomination']
 
     def post(self, request):
         """Operators can use this API to add denomination to a network.
@@ -528,6 +592,16 @@ class NetworkDenomination(ProtectedView):
         user_profile = models.UserProfile.objects.get(user=request.user)
         network = user_profile.network
         try:
+            sync = request.GET.get('sync', False)
+            if sync:
+                sync_denomination(network.id, 'apply')
+                request.session['sync_status'] = False
+                messages.success(
+                    request, 'New denomination changes applied successfully.',
+                    extra_tags='alert alert-success')
+                return http.HttpResponse(json.dumps({'status': 'ok'}),
+                                         content_type="application/json")
+
             currency = network.subscriber_currency
             start_amount_raw = request.POST.get('start_amount')
             start_amount = parse_credits(start_amount_raw,
@@ -546,9 +620,9 @@ class NetworkDenomination(ProtectedView):
                     request, message,
                     extra_tags='alert alert-danger')
                 return redirect(urlresolvers.reverse('network-denominations'))
-            elif start_amount <= 0 or end_amount <= 0:
+            elif start_amount < 1 or end_amount <= 1:
                 messages.error(request,
-                               'Enter value >0 for start/end amount.',
+                               'Enter value >= 1 for start amount.',
                                extra_tags='alert alert-danger')
                 return redirect(urlresolvers.reverse('network-denominations'))
             elif validity_days <= 0:
@@ -567,13 +641,14 @@ class NetworkDenomination(ProtectedView):
                 if dnm_id > 0:
                     try:
                         denom = models.NetworkDenomination.objects.get(
-                            id=dnm_id)
+                            id=dnm_id, status__in=['done', 'pending'])
                         # Check for existing denomination range exist.
                         denom_exists = \
                           models.NetworkDenomination.objects.filter(
-                              end_amount__gte=start_amount,
-                              start_amount__lte=end_amount,
-                              network=user_profile.network).exclude(
+                              end_amount__gte=start_amount+1,
+                              start_amount__lte=end_amount-1,
+                              network=user_profile.network,
+                              status__in=['done', 'pending']).exclude(
                                   id=dnm_id).count()
                         if denom_exists:
                             messages.error(
@@ -581,11 +656,18 @@ class NetworkDenomination(ProtectedView):
                                 extra_tags='alert alert-danger')
                             return redirect(
                                 urlresolvers.reverse('network-denominations'))
-                        denom.network = user_profile.network
-                        denom.start_amount = start_amount
-                        denom.end_amount = end_amount
-                        denom.validity_days = validity_days
+                        denom.status = 'deleted'
                         denom.save()
+                        # Create new denomination for updated record
+                        new_denom = models.NetworkDenomination(
+                            network=user_profile.network)
+                        new_denom.network = user_profile.network
+                        new_denom.start_amount = start_amount
+                        new_denom.end_amount = end_amount
+                        new_denom.validity_days = validity_days
+                        new_denom.status = 'pending'
+                        new_denom.save()
+                        request.session['sync_status'] = True
                         messages.success(
                             request, 'Denomination is updated successfully.',
                             extra_tags='alert alert-success')
@@ -598,9 +680,10 @@ class NetworkDenomination(ProtectedView):
                 else:
                     # Check for existing denomination range exist.
                     denom_exists = models.NetworkDenomination.objects.filter(
-                        end_amount__gte=start_amount,
-                        start_amount__lte=end_amount,
-                        network=user_profile.network).count()
+                        end_amount__gte=start_amount+1,
+                        start_amount__lte=end_amount-1,
+                        network=user_profile.network,
+                        status__in=['done', 'pending']).count()
                     if denom_exists:
                         messages.error(
                             request, 'Denomination range already exists.',
@@ -614,7 +697,9 @@ class NetworkDenomination(ProtectedView):
                     denom.start_amount = start_amount
                     denom.end_amount = end_amount
                     denom.validity_days = validity_days
+                    denom.status = 'pending'
                     denom.save()
+                    request.session['sync_status'] = True
                     messages.success(
                         request, 'Denomination is created successfully.',
                         extra_tags='alert alert-success')
@@ -626,28 +711,292 @@ class NetworkDenomination(ProtectedView):
         return redirect(urlresolvers.reverse('network-denominations'))
 
     def delete(self, request):
-        """Handles delete requests."""
+        """soft delete denominations, this can be commit/rollback by
+        sync_denomination() as per request."""
         response = {
             'status': 'ok',
             'messages': [],
         }
-        dnm_id = request.GET.get('id') or False
-        if dnm_id:
+        dnm_ids = request.GET.getlist('ids[]') or False
+        if dnm_ids:
             try:
-                denom = models.NetworkDenomination.objects.get(id=dnm_id)
-                denom.delete()
+                models.NetworkDenomination.objects.filter(
+                    id__in=dnm_ids).update(status='deleted')
+                request.session['sync_status'] = True
                 response['status'] = 'success'
                 messages.success(request, 'Denomination deleted successfully.',
                                  extra_tags='alert alert-success')
             except models.NetworkDenomination.DoesNotExist:
                 response['status'] = 'failed'
-                messages.error(
-                    request, 'Invalid denomination ID.',
+                messages.error( request, 'Invalid denomination ID.',
                     extra_tags='alert alert-danger')
         else:
             response['status'] = 'failed'
-            messages.error(
-                request, 'Invalid request data.',
+            messages.error(request, 'Invalid request data.',
                 extra_tags='alert alert-danger')
         return http.HttpResponse(json.dumps(response),
                                  content_type="application/json")
+
+
+class NetworkBalanceLimit(ProtectedView):
+    """Edit basic network info (to add credit to Network)."""
+    permission_required = ['edit_network', 'view_network']
+
+    def get(self, request):
+        """Handles GET requests."""
+        user_profile = models.UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        # Set the context with various stats.
+        currency = network.subscriber_currency
+        context = {
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=models.Network),
+            'user_profile': user_profile,
+            'network': network,
+            'currency': CURRENCIES[network.subscriber_currency],
+            'network_balance_limit_form': dashboard_forms.NetworkBalanceLimit({
+                'max_balance': '',
+                'max_unsuccessful_transaction': '',
+
+            }),
+        }
+        # Render template.
+        edit_template = template.loader.get_template(
+            'dashboard/network_detail/network-balancelimit.html')
+        html = edit_template.render(context, request)
+        return http.HttpResponse(html)
+
+    def post(self, request):
+        """Handles POST requests."""
+        user_profile = models.UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        success = []
+        if 'max_balance' not in request.POST:
+            return http.HttpResponseBadRequest()
+        if 'max_unsuccessful_transaction' not in request.POST:
+            return http.HttpResponseBadRequest()
+        try:
+            form = dform.NetworkBalanceLimit(data=request.POST)
+            if form.is_valid():
+                cleaned_field_data = form.clean_network_balance()
+                max_balance = cleaned_field_data.get("max_balance")
+                max_failure_transaction = cleaned_field_data.get("max_unsuccessful_transaction")
+                with transaction.atomic():
+                    try:
+                        currency = network.subscriber_currency
+                        if max_balance:
+                            balance = float(max_balance)
+                            max_network_amount = parse_credits(balance,
+                                                               CURRENCIES[
+                                                                   currency]).amount_raw
+                            network.max_balance = max_network_amount
+                            success.append(
+                                'Network maximum balance limit updated.')
+                        if max_failure_transaction:
+                            transaction_val = int(max_failure_transaction)
+                            network.max_failure_transaction = transaction_val
+                            success.append(
+                                'Network maximun permissible unsuccessful' \
+                                ' transactions limit updated.')
+                        network.save()
+                    except ValueError:
+                        error_text = 'Error : please provide valid value.'
+                        messages.error(request, error_text,
+                                       extra_tags="alert alert-danger")
+                        return redirect(
+                            urlresolvers.reverse('network_balance_limit'))
+                messages.success(request,
+                                 ''.join(success),
+                                 extra_tags="alert alert-success")
+                return redirect(urlresolvers.reverse('network_balance_limit'))
+        except exceptions.ValidationError as e:
+            tags = 'password alert alert-danger'
+            messages.error(request, ''.join(e.messages), extra_tags=tags)
+            return redirect(urlresolvers.reverse('network_balance_limit'))
+
+
+class NetworkNotifications(ProtectedView):
+    """View event notifications for current network. """
+
+    permission_required = 'view_notification'
+
+    def get(self, request):
+        """Handles GET requests.
+        Show event-notification listing page"""
+        user_profile = models.UserProfile.objects.get(user=request.user)
+        network = user_profile.network
+        notifications = models.Notification.objects.filter(network=network)
+        notification_id = request.GET.get('id', None)
+        number = event = None
+        languages = {}
+        if notification_id:
+            response = {
+                'status': 'ok',
+                'messages': [],
+                'data': {}
+            }
+            notification = models.Notification.objects.get(id=notification_id)
+            try:
+                number = int(notification.event)
+            except ValueError:
+                event = str(notification.event).replace('_', ' ').upper()
+            notifications = models.Notification.objects.filter(
+                event=notification.event)
+            translations = {}
+            for notif in notifications:
+                translations[notif.language] = notif.translation
+            notification_data = {
+                'id': notification.id,
+                'event': event,
+                'number': number,
+                'message': notification.message,
+                'protected': notification.protected,
+                'translations': translations,
+                'type': notification.type,
+            }
+            response["data"] = notification_data
+            return http.HttpResponse(json.dumps(response),
+                                     content_type="application/json")
+        # Set the response context.
+        langs = notifications.values_list('language', flat=True).distinct()
+        for lg in langs:
+            languages[lg] = str(LANGUAGES[lg]).capitalize()
+        query = request.GET.get('query', None)
+        language = request.GET.get('language', None)
+        notifications = notifications.distinct('event')
+        l_notifications = q_notifications = None
+        notification_table = django_tables.NotificationTable(
+            list(notifications))
+        if query and len(query) > 0:
+            q_notifications = (notifications.filter(event__icontains=str(
+                query).replace(' ', '_')) |
+                             notifications.filter(type__icontains=query) |
+                             notifications.filter(
+                                 translation__icontains=query) |
+                             notifications.filter(message__icontains=query))
+            notification_table = django_tables.NotificationTable(
+                list(q_notifications))
+        if language and len(language) > 0:
+            l_notifications = notifications.filter(
+                language=language)
+            notification_table = django_tables.NotificationTableTranslated(
+                list(l_notifications))
+        if q_notifications and l_notifications:
+            notifications = q_notifications.filter(
+                language=language)
+            notification_table = django_tables.NotificationTableTranslated(
+                list(notifications))
+        tables.RequestConfig(request, paginate={'per_page': 10}).configure(
+            notification_table)
+        # default page language
+        if not language:
+            language = 'en'
+        context = {
+            'networks': get_objects_for_user(request.user, 'view_network',
+                                             klass=models.Network),
+            'user_profile': user_profile,
+            'notification': dashboard_forms.NotificationForm(
+                language=languages,
+                initial={'type': 'automatic'},),
+            'notification_table': notification_table,
+            'records': len(list(notifications)),
+            'languages': languages,
+            'network': network,
+            'search': dform.NotificationSearchForm({'query': query,
+                                                    'language': language}),
+        }
+        # Render template.
+        template = get_template('dashboard/network_detail/notifications.html')
+        html = template.render(context, request)
+        return http.HttpResponse(html)
+
+
+class NetworkNotificationsEdit(ProtectedView):
+
+    permission_required = ['edit_notification', 'view_notification']
+
+    def post(self, request):
+        """Handles POST requests.
+        CRUD operations for notifications.
+        """
+        delete_notification = request.POST.getlist('id') or None
+        if delete_notification is None:
+            # Create/Edit the notifications
+            user_profile = models.UserProfile.objects.get(user=request.user)
+            network = user_profile.network
+            type = request.POST.get('type')
+            event = request.POST.get('event')
+            message = request.POST.get('message')
+            number = request.POST.get('number')
+            pk = request.POST.get('pk')
+            if event:
+                try:
+                    int(event)
+                    alert_message = 'Mapped events cannot be numeric only!'
+                    messages.error(request, alert_message,
+                                   extra_tags="alert alert-danger")
+                    return redirect(urlresolvers.reverse(
+                        'network-notifications'))
+                except ValueError:
+                    # to use event as key on client
+                    event = str(event).lower().strip().replace(' ', '_')
+            if number:
+                # Format number to 3 digits
+                event = str(number)
+                if int(number) < 10:
+                    event = '00' + event
+                elif int(number) < 100:
+                    event = '0' + event
+            if int(pk) != 0:
+                # Check for existing notification and update
+                notification = models.Notification.objects.get(id=pk)
+                all_notifications = models.Notification.objects.filter(
+                    event=notification.event)
+                for msg in all_notifications:
+                    msg.type = type
+                    if message:
+                        msg.message = message
+                    msg.translation = request.POST.get('lang_' + msg.language)
+                    if not msg.protected:
+                        msg.event = event
+                    msg.save()
+                resp = 'Updated Successfully!'
+                messages.success(request, resp)
+            else:
+                try:
+                    if not models.Notification.objects.filter(
+                            event=event,
+                            language__in=settings.BTS_LANGUAGES,
+                            network=network).exists():
+                        # Create new notifications
+                        languages = settings.BTS_LANGUAGES
+                        with transaction.atomic():
+                            for language in languages:
+                                translation = request.POST.get(
+                                    'lang_' + language)
+                                notification =\
+                                    models.Notification.objects.create(
+                                    network=network, language=language)
+                                notification.type = type
+                                notification.message = message
+                                notification.translation = translation
+                                notification.event = event
+                                notification.save()
+                        resp = 'Added Successfully!'
+                        messages.success(request, resp)
+                        return redirect(
+                            urlresolvers.reverse('network-notifications'))
+                except IntegrityError:
+                    resp = 'Notification Already Exists!'
+                    messages.warning(request, resp)
+                    return redirect(
+                        urlresolvers.reverse('network-notifications'))
+        else:
+            # Delete notifications
+            notifications = models.Notification.objects.filter(
+                id__in=delete_notification)
+            events = notifications.values_list('event', flat=True).distinct()
+            models.Notification.objects.filter(event__in=events).delete()
+            resp = 'Selected notification(s) deleted successfully.'
+            messages.success(request, resp)
+        return redirect(urlresolvers.reverse('network-notifications'))

@@ -9,7 +9,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
 <extension name="number_check">
   <condition field="${destination_number}" expression="^${number_check_number}$">
-    <action application="python" data='endaga_i18n Your number is %(number)s.|{"number": ${vbts_callerid}}'/>
+    <action application="python" data='endaga_notification ${number_check_number}|{"from_number": ${vbts_callerid}}'/>
     <action application="set" data='res=${python(VBTS_Send_SMS ${vbts_callerid}|${destination_number}|${_localstr})}'/>
   </condition>
 </extension>

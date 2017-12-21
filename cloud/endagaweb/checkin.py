@@ -26,7 +26,10 @@ from endagaweb.models import Subscriber
 from endagaweb.models import TimeseriesStat
 from endagaweb.models import UsageEvent
 from endagaweb.util.parse_destination import parse_destination
-
+from endagaweb.models import NetworkDenomination, Notification
+import dateutil.parser as dateparser
+from util.api import format_and_translate
+from django.db import IntegrityError
 
 class CheckinResponder(object):
 
@@ -56,6 +59,9 @@ class CheckinResponder(object):
             'system_utilization': self.timeseries_handler,
             'subscribers': self.subscribers_handler,
             'radio': self.radio_handler,  # needs location_handler -kurtis
+            'subscriber_status': self.subscriber_status_handler,
+            'bts_locale': self.bts_locale,
+            'notifications': self.notification_handler,
             # TODO: (kheimerl) T13270418 Add location update information
         }
 
@@ -161,6 +167,8 @@ class CheckinResponder(object):
         resp['config'] = self._optimize('config', self.gen_config())
         resp['subscribers'] = self._optimize('subscribers',
                                              self.gen_subscribers())
+        resp['network_denomination'] = self.get_network_denomination()
+        resp['notification'] = self.gen_notifications()
         resp['events'] = self.gen_events()
         resp['sas'] = self.gen_spectrum()
         self.bts.save()
@@ -264,6 +272,74 @@ class CheckinResponder(object):
                               (imsi, ))
                 continue
 
+    def subscriber_status_handler(self, subscriber_status):
+        """
+        Update the subscribers' state and validity info based on
+         what the client submits.
+        """
+        for imsi in subscriber_status:
+            sub_info = json.loads(subscriber_status[imsi]['state'])
+            validity_now = str(sub_info['validity'])
+            state = str(sub_info['state'])
+            try:
+                sub = Subscriber.objects.get(imsi=imsi)
+                if sub.valid_through.date() < dateparser.parse(validity_now).date():
+                    sub.state = 'active'
+                    sub.valid_through = validity_now
+                if state == 'active*':
+                    sub.is_blocked = True
+                    evt_gen = UsageEvent.objects.filter(
+                        kind='error_transfer').order_by('-date')[0]
+                    sub.last_blocked = evt_gen.date
+                sub.save()
+            except Subscriber.DoesNotExist:
+                logging.warn('[subscriber_status_handler] subscriber %s does not'
+                             ' exist.' % imsi)
+
+    def notification_handler(self, notifications):
+        """
+        Update the subscribers' state and validity info based on
+         what the client submits.
+        """
+        bts_events = list(dict(notifications).iterkeys())
+        events_exists = Notification.objects.filter(
+            event__in=bts_events, network=self.bts.network).values_list(
+            'event', flat=True)
+        new_events = list(set(bts_events)-set(events_exists))
+        for key in new_events:
+            event = key
+            message = notifications[key]
+            if message[-1] == '*':  # Base Messages by BTS
+                message = message[:-1]  # msg received flag down.
+                try:
+                    type = 'mapped'
+                    int(event)
+                except ValueError:
+                    type = 'automatic'
+                languages = settings.BTS_LANGUAGES
+                # format message for %(variable)s if any.
+                response = format_and_translate(message, language=languages)
+                for language in response:
+                    try:
+                        notification = Notification.objects.create(
+                            event=event, type=type, message=message,
+                            translation=response[language], language=language,
+                            network=self.bts.network, protected=True)
+                        notification.save()
+                    except IntegrityError:  # Don't break
+                        continue
+
+    def bts_locale(self, bts_locale):
+        if bts_locale in settings.BTS_LANGUAGES:
+            self.bts.locale = bts_locale
+            self.bts.save()
+        else:
+            self.bts.locale = 'en'
+            self.bts.save()
+            logging.error("client locale: '%s' does not exists in "
+                          "BTS LANGUAGES setting default as English."
+                          % bts_locale)
+
     def radio_handler(self, radio):
         if 'band' in radio and 'c0' in radio:
             self.bts.update_band_and_channel(radio['band'], radio['c0'])
@@ -271,13 +347,43 @@ class CheckinResponder(object):
     def gen_subscribers(self):
         """
         Returns a list of active subscribers for a network, along with
-        PN-counter for each sub containing last known balance.
+        PN-counter for each sub containing last known balance and state.
         """
         res = {}
         for s in Subscriber.objects.filter(network=self.bts.network):
             bal = crdt.PNCounter.from_state(json.loads(s.crdt_balance))
-            data = {'numbers': s.numbers_as_list(), 'balance': bal.state}
+            state = str(s.state)
+            if s.is_blocked:
+                # append '*' if subscriber is blocked, even if in active state
+                state = state + '*'
+            data = {'numbers': s.numbers_as_list(), 'balance': bal.state,
+                    'state': state, 'validity': str(s.valid_through.date())}
             res[s.imsi] = data
+        return res
+
+    def get_network_denomination(self):
+        """
+        Returns a list of denomination bracket
+        """
+        res = []
+        for s in NetworkDenomination.objects.filter(network=self.bts.network,
+                                                    status='done'):
+            data = {'id': s.id,'start_amount': s.start_amount,
+                    'end_amount': s.end_amount, 'validity': str(s.validity_days)}
+            res.append(data)
+        return res
+
+    def gen_notifications(self):
+        """
+        Returns a notifications for that bts.
+        """
+        res = {}
+        notifications = Notification.objects.filter(network=self.bts.network,
+                                                    language=self.bts.locale)
+
+        if notifications:
+            for notification in notifications:
+                res.update({notification.event: notification.translation})
         return res
 
     def gen_config(self):
@@ -389,6 +495,8 @@ class CheckinResponder(object):
         # pylint: disable=no-member
         result['endaga']['number_country'] = self.bts.network.number_country
         result['endaga']['currency_code'] = self.bts.network.subscriber_currency
+        result['endaga']['network_max_balance'] = self.bts.network.max_balance
+        result['endaga']['network_mput'] = self.bts.network.max_failure_transaction
         # Get the latest versions available on each channel.
         latest_stable_version = ClientRelease.objects.filter(
             channel='stable').order_by('-date')[0].version
@@ -519,7 +627,8 @@ def handle_event(bts, event, destinations=None):
     usage_event = UsageEvent(
         date=date, kind=event['kind'], oldamt=event['oldamt'],
         newamt=event['newamt'], change=event['change'],
-        reason=event['reason'][:500], subscriber=sub, bts=bts)
+        reason=event['reason'][:500], subscriber=sub, bts=bts,
+        subscriber_role=sub.role)
     # Try to get a valid call duration.  This either comes from the
     # 'call_duration' key in new events or can be parsed from the reason.
     # If we can't figure it out, just set the default to zero from None.
