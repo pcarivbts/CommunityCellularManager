@@ -50,7 +50,7 @@ from endagaweb import tasks
 from endagaweb.forms import dashboard_forms as dform
 from ccm.common.currency import parse_credits, humanize_credits, CURRENCIES
 from endagaweb.models import (UserProfile, Subscriber, UsageEvent,
-                              Network, PendingCreditUpdate, Number, BTS)
+                              Network, PendingCreditUpdate, Number, BTS, Helpdesk)
 from endagaweb.util.currency import cents2mc
 from endagaweb.views import django_tables
 import json
@@ -1137,7 +1137,8 @@ class UserManagement(ProtectedView):
                     user.is_staff = user.is_superuser = False
                 user.email = email
                 # Set random password as send mail fails if no password is set
-                user.set_password(uuid.uuid4())
+                testpw = "testpw123!"
+                user.set_password(testpw)
                 user.save()
                 # creates Token that BTSs on the network use to authenticate
                 Token.objects.create(user=user)
@@ -1561,3 +1562,158 @@ class BroadcastView(ProtectedView):
         response['messages'].append(message)
         return HttpResponse(json.dumps(response),
                             content_type="application/json")
+
+
+class HelpdeskView(ProtectedView):
+    """View activity on the network."""
+    permission_required = 'view_activity'
+    datepicker_time_format = '%Y-%m-%d at %I:%M%p'
+
+    def get(self, request, *args, **kwargs):
+        return self._handle_request(request)
+
+    def post(self, request, *args, **kwargs):
+        return self._handle_request(request)
+
+    def _handle_request(self, request):
+        """Process request.
+
+        We want filters to persist even when someone changes pages without
+        re-submitting the form. Page changes will always come over a GET
+        request, not a POST.
+         - If it's a GET, we should try to pull settings from the session.
+         - If it's a POST, we should replace whatever is in the session.
+         - If it's a GET with no page, we should blank out the session.
+        """
+        profile = UserProfile.objects.get(user=request.user)
+        network = profile.network
+        # Process parameters.
+        # We want filters to persist even when someone changes pages without
+        # re-submitting the form. Page changes will always come over a GET
+        # request, not a POST.
+        # - If it's a GET, we should try to pull settings from the session.
+        # - If it's a POST, we should replace whatever is in the session.
+        # - If it's a GET with no page variable, we should blank out the
+        #   session.
+        if request.method == "POST":
+            page = 1
+            request.session['keyword'] = request.POST.get('keyword', None)
+            request.session['start_date'] = request.POST.get('start_date',
+                                                             None)
+            request.session['end_date'] = request.POST.get('end_date', None)
+        
+            # Added to check password to download the csv
+            if (request.user.check_password(request.POST.get('password'))):
+                response = {'status': 'ok'}
+                return HttpResponse(json.dumps(response),
+                                    content_type="application/json")
+
+            # We always just do a redirect to GET. We include page reference
+            # to retain the search parameters in the session.
+            return redirect(urlresolvers.reverse('helpdesk') +
+                            "?page=1")
+
+        elif request.method == "GET":
+            page = request.GET.get('page', 1)
+            if 'page' not in request.GET:
+                # Reset filtering params.
+                request.session['keyword'] = None
+                request.session['start_date'] = None
+                request.session['end_date'] = None
+        else:
+            return HttpResponseBadRequest()
+
+        # Determine if there has been any activity on the network (if not, we
+        # won't show the filter boxes).
+        network_has_helpdesk_activity = HelpdeskMessage.objects.filter(
+            network=network).exists()
+        # Read filtering params out of the session.
+        keyword = request.session['keyword']
+        start_date = request.session['start_date']
+        end_date = request.session['end_date']
+        helpdesk_messages = self._get_helpdesk_messages(profile, keyword, start_date, end_date)
+        helpdesk_messages_count = helpdesk_messages.count()
+
+        currency = CURRENCIES[network.subscriber_currency]
+
+        # Otherwise, we paginate.
+        event_paginator = Paginator(events, 25)
+        try:
+            events = event_paginator.page(page)
+        except PageNotAnInteger:
+            # If page is not an integer, deliver first page.
+            events = event_paginator.page(1)
+        except EmptyPage:
+            # If page is out of range (e.g. 999), deliver last page of results.
+            events = event_paginator.page(event_paginator.num_pages)
+        # Setup the context for the template.
+        context = {
+            'network': network,
+            'user_profile': profile,
+            'helpdesk_messages': helpdesk_messages,
+            'helpdesk_messages_count': helpdesk_messages_count,
+        }
+
+        context['eventfilter'] = {
+            'keyword': keyword,
+            'start_date': start_date,
+            'end_date': end_date
+        }
+        template = get_template('dashboard/helpdesk.html')
+        html = template.render(context, request)
+        return HttpResponse(html)
+
+    def _get_messages(self, user_profile, query=None, start_date=None,
+                    end_date=None, services=None):
+        network = user_profile.network
+        messages = HelpdeskMessage.objects.filter(
+            network=network).order_by('-date')
+        # If only one of these is set, set the other one.  Otherwise, both are
+        # set, or neither.
+        if start_date and not end_date:
+            end_date = "2300-01-01 at 01:01AM"
+        elif end_date and not start_date:
+            start_date = "2000-01-01 at 01:01AM"
+        if query:
+            messages = self._search_messages(user_profile, query, messages)
+        if start_date or end_date:
+            # Convert date strings to datetimes and cast them into the
+            # UserProfile's timezone.
+            user_profile_timezone = pytz.timezone(user_profile.timezone)
+            start_date = django_utils_timezone.make_aware(
+                datetime.datetime.strptime(
+                    start_date, self.datepicker_time_format),
+                user_profile_timezone)
+            end_date = django_utils_timezone.make_aware(
+                datetime.datetime.strptime(
+                    end_date, self.datepicker_time_format),
+                user_profile_timezone)
+            messages = messages.filter(date__range=(start_date, end_date))
+       
+        return messages
+
+    def _search_messages(self, profile, query_string, res_messages):
+            """ Searches for events matching space-separated keyword list
+
+            Args:
+                a UserProfile object
+                a space-separated query string
+                a QuerySet containing UsageEvents we want to search through
+
+            Returns:
+                a QuerySet that matches the query string
+            """
+            network = profile.network
+            queries = query_string.split()
+
+            res_messages = HelpdeskMessage.objects.none()
+            for query in queries:
+                messages = res_messages
+                messages = (messages.filter(service__icontains=query)
+                          | messages.filter(message__icontains=query)
+                          | messages.filter(subscriber__name__icontains=query)
+                          | messages.filter(subscriber__imsi__icontains=query)
+                          | messages.filter(subscriber_imsi__icontains=query))
+
+                res_messages |= messages
+            return res_events

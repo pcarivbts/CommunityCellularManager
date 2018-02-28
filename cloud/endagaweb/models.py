@@ -1969,4 +1969,14 @@ class Notification(models.Model):
     protected = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = ('event', 'translation', 'network')
+        unique_together = ('event', 'translation', 'network')    
+    
+class Helpdesk(models.Model):
+
+    network = models.ForeignKey('Network', on_delete=models.CASCADE)
+    subscriber = models.ForeignKey('Subscriber', on_delete=models.CASCADE)
+    service = models.TextField(max_length=4, null=False)
+    message = models.TextField(max_length=160, null=True)
+    date = models.DateTimeField()
+
+    

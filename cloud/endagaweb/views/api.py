@@ -367,6 +367,23 @@ class SendSMS(APIView):
                 'off_network_send', 'sms', destination_number=to_)
             network.bill_for_sms(cost_to_operator, 'outside_sms')
             return Response("", status=status.HTTP_202_ACCEPTED)
+        
+        
+class HelpdeskSMS(APIView):
+    """API handler for sending SMS"""
+    authentication_classes = (SessionAuthentication, TokenAuthentication)
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, format=None):
+        """POST handler."""
+        from_ = str(request.POST['from'])
+        to_ = str(request.POST['to'])
+        body = str(request.POST['body'])
+        network = get_network_from_user(request.user)
+        number = models.Number.objects.get(number=from_)
+        helpdesk_message = models.Helpdesk(subscriber=number.subscriber, message=body, service=to_)
+        helpdesk_message.save()
+        return Response("", status=status.HTTP_202_ACCEPTED)
 
 class InboundSMS(APIView):
     # TODO eventually, one for each incoming provider (really, eventually, that
@@ -797,3 +814,6 @@ class BTSRegistration(APIView):
     def get_vpn_conf(self, bts):
         return render_to_string("internal/openvpn_client_conf.html",
                 {'vpn_server_ip': settings.ENDAGA['VPN_SERVER_IP']})
+
+
+

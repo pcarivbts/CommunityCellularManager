@@ -30,6 +30,7 @@ urlpatterns = [
     url(r'^api/v1/fetch/(.*)/', endagaweb.views.api.GetNumber.as_view()),
     url(r'^api/v1/fetch/', endagaweb.views.api.GetNumber.as_view()),
     url(r'^api/v1/send/', endagaweb.views.api.SendSMS.as_view()),
+    url(r'^api/v1/helpdesk/', endagaweb.views.api.HelpdeskSMS.as_view()),
     url(r'^api/v1/inbound/', endagaweb.views.api.InboundSMS.as_view()),
     url(r'^api/v1/receipt/',
         endagaweb.views.api.InboundReceipt.as_view()),

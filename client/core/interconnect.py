@@ -111,6 +111,33 @@ class endaga_ic(object):
             raise
 
         return r.status_code == 202
+    
+    def helpdesk(self, to, from_, body, to_country=None, from_country=None):
+        """Send an SMS to our cloud API.
+
+        Args:
+            message params
+
+        Returns:
+            True if the message was accepted, False otherwise.
+        """
+        # Convert "to" to e.164 format.  We always add a plus, and
+        # libphonenumber is smart enough to sort it out from there (even if
+        # there's already a plus).
+        message = {
+            'from': from_,
+            'to': number_utilities.convert_to_e164("+" + to, None),
+            'body': body
+        }
+        # TODO(matt): use urlparse.urljoin here?
+        endpoint = self.conf['registry'] + "/send/"
+        try:
+            r = requests.post(endpoint, headers=self.auth_header, data=message)
+        except BaseException as e:  # log and rethrow as it was before
+            logger.error("Endaga: Send SMS network error: %s." % e)
+            raise
+
+        return r.status_code == 202
 
     def checkin(self, timeout=11):
         """Gather system status."""
