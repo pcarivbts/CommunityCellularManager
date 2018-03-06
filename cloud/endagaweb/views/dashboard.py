@@ -1565,8 +1565,8 @@ class BroadcastView(ProtectedView):
 
 
 class HelpdeskView(ProtectedView):
-    """View activity on the network."""
-    permission_required = 'view_activity'
+    """View helpdesk on the network."""
+    permission_required = 'view_helpdesk'
     datepicker_time_format = '%Y-%m-%d at %I:%M%p'
 
     def get(self, request, *args, **kwargs):
@@ -1610,7 +1610,7 @@ class HelpdeskView(ProtectedView):
 
             # We always just do a redirect to GET. We include page reference
             # to retain the search parameters in the session.
-            return redirect(urlresolvers.reverse('helpdesk') +
+            return redirect(urlresolvers.reverse('helpdesk-activity') +
                             "?page=1")
 
         elif request.method == "GET":
@@ -1625,33 +1625,34 @@ class HelpdeskView(ProtectedView):
 
         # Determine if there has been any activity on the network (if not, we
         # won't show the filter boxes).
-        network_has_helpdesk_activity = HelpdeskMessage.objects.filter(
+        network_has_helpdesk_activity = Helpdesk.objects.filter(
             network=network).exists()
         # Read filtering params out of the session.
         keyword = request.session['keyword']
         start_date = request.session['start_date']
         end_date = request.session['end_date']
-        helpdesk_messages = self._get_helpdesk_messages(profile, keyword, start_date, end_date)
-        helpdesk_messages_count = helpdesk_messages.count()
+        messages = self._get_messages(profile, keyword, start_date, end_date)
+        messages_count = messages.count()
 
         currency = CURRENCIES[network.subscriber_currency]
 
         # Otherwise, we paginate.
-        event_paginator = Paginator(events, 25)
+        messages_paginator = Paginator(messages, 25)
         try:
-            events = event_paginator.page(page)
+            messages = messages_paginator.page(page)
         except PageNotAnInteger:
             # If page is not an integer, deliver first page.
-            events = event_paginator.page(1)
+            messages = messages_paginator.page(1)
         except EmptyPage:
             # If page is out of range (e.g. 999), deliver last page of results.
-            events = event_paginator.page(event_paginator.num_pages)
+            messages = messages_paginator.page(messages_paginator.num_pages)
         # Setup the context for the template.
         context = {
             'network': network,
             'user_profile': profile,
-            'helpdesk_messages': helpdesk_messages,
-            'helpdesk_messages_count': helpdesk_messages_count,
+            'messages': messages,
+            'messages_count': messages_count,
+            'network_has_helpdesk_activity': network_has_helpdesk_activity,
         }
 
         context['eventfilter'] = {
@@ -1666,7 +1667,7 @@ class HelpdeskView(ProtectedView):
     def _get_messages(self, user_profile, query=None, start_date=None,
                     end_date=None, services=None):
         network = user_profile.network
-        messages = HelpdeskMessage.objects.filter(
+        messages = Helpdesk.objects.filter(
             network=network).order_by('-date')
         # If only one of these is set, set the other one.  Otherwise, both are
         # set, or neither.
@@ -1692,7 +1693,7 @@ class HelpdeskView(ProtectedView):
        
         return messages
 
-    def _search_messages(self, profile, query_string, res_messages):
+    def _search_messages(self, profile, query_string, orig_messages):
             """ Searches for events matching space-separated keyword list
 
             Args:
@@ -1706,14 +1707,26 @@ class HelpdeskView(ProtectedView):
             network = profile.network
             queries = query_string.split()
 
-            res_messages = HelpdeskMessage.objects.none()
+            res_messages = Helpdesk.objects.none()
+
             for query in queries:
-                messages = res_messages
+                messages = orig_messages
                 messages = (messages.filter(service__icontains=query)
                           | messages.filter(message__icontains=query)
                           | messages.filter(subscriber__name__icontains=query)
-                          | messages.filter(subscriber__imsi__icontains=query)
-                          | messages.filter(subscriber_imsi__icontains=query))
+                          | messages.filter(subscriber__imsi__icontains=query))
+            
+                # Get any numbers that match, and add their associated
+                # subscribers' events to the results
+                potential_subs = (
+                    Number.objects.filter(number__icontains=query)
+                                  .values('subscriber')
+                                  .filter(subscriber__network=network)
+                                  .distinct())
+                if potential_subs:
+                    messages |= (Helpdesk.objects
+                                .filter(subscriber__in=potential_subs))
 
                 res_messages |= messages
-            return res_events
+ 
+            return res_messages

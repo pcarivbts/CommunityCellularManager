@@ -368,23 +368,28 @@ class SendSMS(APIView):
             network.bill_for_sms(cost_to_operator, 'outside_sms')
             return Response("", status=status.HTTP_202_ACCEPTED)
         
-        
 class HelpdeskSMS(APIView):
     """API handler for sending SMS"""
     authentication_classes = (SessionAuthentication, TokenAuthentication)
     permission_classes = (IsAuthenticated,)
 
     def post(self, request, format=None):
-        """POST handler."""
-        from_ = str(request.POST['from'])
-        to_ = str(request.POST['to'])
-        body = str(request.POST['body'])
-        network = get_network_from_user(request.user)
-        number = models.Number.objects.get(number=from_)
-        helpdesk_message = models.Helpdesk(subscriber=number.subscriber, message=body, service=to_)
-        helpdesk_message.save()
-        return Response("", status=status.HTTP_202_ACCEPTED)
+        return self.handle_sms(request.POST, format)
 
+    def handle_sms(self, request, format=None):
+        needed_fields = ["from", "to", "body"]
+        if all(i in request for i in needed_fields):
+            from_ = request['from']
+            to_number = request['to']
+            body = request['text']
+            network = get_network_from_user(request.user)
+            number = models.Number.objects.get(number=from_)
+            helpdesk_message = models.Helpdesk(network=network, subscriber=number.subscriber, message=body, service=to_)
+            helpdesk_message.save()
+            return Response("", status=status.HTTP_202_ACCEPTED)
+        else:
+            return Response("", status=status.HTTP_400_BAD_REQUEST)
+        
 class InboundSMS(APIView):
     # TODO eventually, one for each incoming provider (really, eventually, that
     # should be extracted into a service, behind a LB).

@@ -100,6 +100,10 @@ PERMISSIONS = (
                 ('view_activity', 'View Activity'),
                 ('download_activity', 'Download Activity(Report)'),
 
+                # Helpdesk
+                ('view_helpdesk', 'View Helpdesk'),
+                ('download_helpdesk', 'Download Helpdesk(Network)'),
+
             )
 
 
