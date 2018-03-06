@@ -23,7 +23,7 @@ from ccm.common import logger
 urls = (
     "/endaga_sms", "core.federer_handlers.sms.endaga_sms",
     "/out_endaga_sms", "core.federer_handlers.sms.OutgoingSMSHandler",
-    "/helpdesk_sms", "core.federer_handlers.sms.endaga_sms",
+    "/helpdesk_sms", "core.federer_handlers.sms.HelpdeskSMSHandler",
     "/endaga_registration",
         "core.federer_handlers.registration.endaga_registration",
     "/config/(.*)", "core.federer_handlers.config.config",
