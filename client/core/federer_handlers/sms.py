@@ -97,6 +97,7 @@ class OutgoingSMSHandler(object):
             t.start()
             raise web.Accepted()
         else:
+            logger.error("Endaga " +  data)
             raise web.NotFound()
 
     def sms_worker(self, to, from_num, from_name, body, service_type):
@@ -149,7 +150,7 @@ class HelpdeskSMSHandler(object):
     def __init__(self):
         self.conf = ConfigDB()
         self.interconnect_client = interconnect.endaga_ic(self.conf)
-        self.worker = self.sms_worker
+        self.worker = self.helpdesk_worker
 
     def POST(self):
         """Handles POST requests."""
@@ -183,9 +184,9 @@ class HelpdeskSMSHandler(object):
             message params
         """
         try:
-            # TODO: handle else (message failed to send).
-            if self.interconnect_client.send(to, from_num, body):
-                billing_url = self.conf['helpdesk_url']
+            # TODO(matt): handle else (message failed to send).
+            if self.interconnect_client.helpdesk_send(to, from_num, body):
+                billing_url = self.conf['billing_url']
                 params = {
                     "from_name": from_name,
                     "from_number": from_num,

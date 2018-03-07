@@ -381,10 +381,9 @@ class HelpdeskSMS(APIView):
         if all(i in request for i in needed_fields):
             from_ = request['from']
             to_number = request['to']
-            body = request['text']
-            network = get_network_from_user(request.user)
+            body = request['body']
             number = models.Number.objects.get(number=from_)
-            helpdesk_message = models.Helpdesk(network=network, subscriber=number.subscriber, message=body, service=to_)
+            helpdesk_message = models.Helpdesk(network=number.subscriber.network, subscriber=number.subscriber, message=body, service=to_number)
             helpdesk_message.save()
             return Response("", status=status.HTTP_202_ACCEPTED)
         else:

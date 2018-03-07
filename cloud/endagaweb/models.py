@@ -1977,10 +1977,10 @@ class Notification(models.Model):
     
 class Helpdesk(models.Model):
 
-    network = models.ForeignKey('Network', on_delete=models.CASCADE)
+    network = models.ForeignKey('Network', null=True, on_delete=models.CASCADE)
     subscriber = models.ForeignKey('Subscriber', on_delete=models.CASCADE)
     service = models.TextField(max_length=4, null=False)
     message = models.TextField(max_length=160, null=True)
-    date = models.DateTimeField()
+    date = models.DateTimeField(auto_now_add=True)
 
     
