@@ -78,10 +78,12 @@ of patent rights can be found in the PATENTS file in the same directory.
               </ul>
             </li>
             <li><a href="/dashboard/activity"><i class="fa fa-list-ul"></i> Activity</a></li>
-            <li><a href="/dashboard/towers"><i class="fa fa-signal"></i> Towers</a></li>
+            {% if 'view_helpdesk' in user_permission %}
+                <li><a href="/dashboard/helpdesk"><i class="fa fa-folder-open"></i> Helpdesk</a></li>
+            {% endif %}
+           <li><a href="/dashboard/towers"><i class="fa fa-signal"></i> Towers</a></li>
             <li><a href="/dashboard/subscribers"><i class="fa fa-users"></i> Subscribers</a></li>
             <li><a href="/dashboard/network"><i class="fa fa-cogs"></i> Network</a></li>
-
           </ul>
 
           <ul class="nav navbar-nav navbar-top-links navbar-right navbar-user">

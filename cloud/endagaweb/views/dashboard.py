@@ -1565,7 +1565,8 @@ class BroadcastView(ProtectedView):
 
 
 class HelpdeskView(ProtectedView):
-    """View helpdesk on the network."""
+    """View helpdesk messages on the network."""
+    
     permission_required = 'view_helpdesk'
     datepicker_time_format = '%Y-%m-%d at %I:%M%p'
 
@@ -1587,14 +1588,7 @@ class HelpdeskView(ProtectedView):
         """
         profile = UserProfile.objects.get(user=request.user)
         network = profile.network
-        # Process parameters.
-        # We want filters to persist even when someone changes pages without
-        # re-submitting the form. Page changes will always come over a GET
-        # request, not a POST.
-        # - If it's a GET, we should try to pull settings from the session.
-        # - If it's a POST, we should replace whatever is in the session.
-        # - If it's a GET with no page variable, we should blank out the
-        #   session.
+
         if request.method == "POST":
             page = 1
             request.session['keyword'] = request.POST.get('keyword', None)
@@ -1626,15 +1620,13 @@ class HelpdeskView(ProtectedView):
         # Determine if there has been any activity on the network (if not, we
         # won't show the filter boxes).
         network_has_helpdesk_activity = Helpdesk.objects.filter(
-            network=network).exists()
+            subscriber__network=network).exists()
         # Read filtering params out of the session.
         keyword = request.session['keyword']
         start_date = request.session['start_date']
         end_date = request.session['end_date']
         messages = self._get_messages(profile, keyword, start_date, end_date)
         messages_count = messages.count()
-
-        currency = CURRENCIES[network.subscriber_currency]
 
         # Otherwise, we paginate.
         messages_paginator = Paginator(messages, 25)
@@ -1668,7 +1660,7 @@ class HelpdeskView(ProtectedView):
                     end_date=None, services=None):
         network = user_profile.network
         messages = Helpdesk.objects.filter(
-            network=network).order_by('-date')
+            subscriber__network=network).order_by('-date')
         # If only one of these is set, set the other one.  Otherwise, both are
         # set, or neither.
         if start_date and not end_date:
@@ -1694,12 +1686,12 @@ class HelpdeskView(ProtectedView):
         return messages
 
     def _search_messages(self, profile, query_string, orig_messages):
-            """ Searches for events matching space-separated keyword list
+            """ Searches for messages matching space-separated keyword list
 
             Args:
                 a UserProfile object
                 a space-separated query string
-                a QuerySet containing UsageEvents we want to search through
+                a QuerySet containing Helpdesk messages we want to search through
 
             Returns:
                 a QuerySet that matches the query string
@@ -1714,7 +1706,8 @@ class HelpdeskView(ProtectedView):
                 messages = (messages.filter(service__icontains=query)
                           | messages.filter(message__icontains=query)
                           | messages.filter(subscriber__name__icontains=query)
-                          | messages.filter(subscriber__imsi__icontains=query))
+                          | messages.filter(subscriber__imsi__icontains=query)
+                          | messages.filter(subscriber__bts__nickname__icontains=query))
             
                 # Get any numbers that match, and add their associated
                 # subscribers' events to the results
