@@ -235,7 +235,7 @@ class MarginAnalysis(drf_views.APIView):
         # Attach the network selection form with any specified initial data.
         select_network_form = SelectNetworkForm(initial=initial_form_data)
         select_network_form.helper.form_action = (
-            '/dashboard/staff/margin-analysis')
+            reverse('margin-analysis'))
         context['select_network_form'] = select_network_form
         # Render the template.
         margin_template = template.loader.get_template(
@@ -516,7 +516,7 @@ class NetworkEarnings(drf_views.APIView):
         # Attach the network selection form with any specified initial data.
         select_network_form = SelectNetworkForm(initial=initial_form_data)
         select_network_form.helper.form_action = (
-            '/dashboard/staff/network-earnings')
+            reverse('/network-earnings'))
         context['select_network_form'] = select_network_form
         # Render the template.
         earnings_template = template.loader.get_template(

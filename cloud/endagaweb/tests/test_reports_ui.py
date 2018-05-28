@@ -11,6 +11,8 @@ of patent rights can be found in the PATENTS file in the same directory.
 """
 
 from django import test
+from django.core.urlresolvers import reverse
+
 
 from endagaweb import models
 from endagaweb.util import parse_usage_event
@@ -56,36 +58,36 @@ class ReportUITest(test.TestCase):
             'email': self.username,
             'password': self.password,
         }
-        self.client.post('/auth/', data)
+        self.client.post(reverse('auth-and-login'), data)
 
     def logout(self):
         """Log the client out."""
-        self.client.get('/logout')
+        self.client.get(reverse('logout'))
 
     def test_get_call_report_sans_auth(self):
         self.logout()
-        response = self.client.get('/dashboard/reports/calls')
+        response = self.client.get(reverse('call-report'))
         self.assertEqual(302, response.status_code)
 
     def test_get_call_report_with_auth(self):
         self.login()
-        response = self.client.get('/dashboard/reports/calls')
+        response = self.client.get(reverse('call-report'))
         self.assertEqual(200, response.status_code)
 
     def test_get_subscriber_report_sans_auth(self):
         self.logout()
-        response = self.client.get('/dashboard/reports/subscriber')
+        response = self.client.get(reverse('subscriber-report'))
         self.assertEqual(302, response.status_code)
 
     def test_get_subscriber_report_with_auth(self):
         self.login()
-        response = self.client.get('/dashboard/reports/subscriber')
+        response = self.client.get(reverse('subscriber-report'))
         self.assertEqual(200, response.status_code)
 
     def test_get_billing_report_sans_auth(self):
         try:
             self.logout()
-            response = self.client.get('/dashboard/reports/billing')
+            response = self.client.get(reverse('billing-report'))
             self.assertEqual(302, response.status_code)
         except:
             self.assertIsNone(None, response.status_code)
@@ -93,7 +95,7 @@ class ReportUITest(test.TestCase):
     def test_get_billing_report_with_auth(self):
         try:
             self.login()
-            response = self.client.get('/dashboard/reports/billing')
+            response = self.client.get(reverse('billing-report'))
             self.assertEqual(200, response.status_code)
         except:
             self.assertIsNone(None, response.status_code)
@@ -101,7 +103,7 @@ class ReportUITest(test.TestCase):
     def test_get_health_report_sans_auth(self):
         try:
             self.logout()
-            response = self.client.get('/dashboard/reports/health')
+            response = self.client.get(reverse('health-report'))
             self.assertEqual(302, response.status_code)
         except:
             self.assertIsNone(None, response.status_code)
@@ -109,7 +111,7 @@ class ReportUITest(test.TestCase):
     def test_get_health_report_with_auth(self):
         try:
             self.login()
-            response = self.client.get('/dashboard/reports/health')
+            response = self.client.get(reverse('health-report'))
             self.assertEqual(200, response.status_code)
         except:
             self.assertIsNone(None, response.status_code)

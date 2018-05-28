@@ -16,6 +16,7 @@ import mock
 import uuid
 
 from django import test
+from django.core.urlresolvers import reverse
 
 from endagaweb import models
 from endagaweb.views import towers
@@ -70,7 +71,7 @@ class TowerUITest(test.TestCase):
 
     def test_get_towers_sans_auth(self):
         self.logout()
-        response = self.client.get('/dashboard/towers')
+        response = self.client.get(reverse('tower-list'))
         # Unlike other routes, we don't redirect to the login page with the
         # next parameter set.  This is because these are DRF routes and it's
         # not clear how to setup that redirect functionality for DRF views.
@@ -78,27 +79,29 @@ class TowerUITest(test.TestCase):
 
     def test_get_tower_info_sans_auth(self):
         self.logout()
-        response = self.client.get('/dashboard/towers/%s' % self.uuid)
+        response = self.client.get(reverse('tower-info',
+                                            kwargs={'uuid': self.uuid}))
         self.assertEqual(302, response.status_code)
 
     def test_get_tower_edit_sans_auth(self):
         self.logout()
-        response = self.client.get('/dashboard/towers/%s/edit' % self.uuid)
+        response = self.client.get(reverse('tower-list', kwargs={'uuid': self.uuid}))
         self.assertEqual(403, response.status_code)
 
     def test_get_towers_with_auth(self):
         self.login()
-        response = self.client.get('/dashboard/towers')
+        response = self.client.get(reverse('tower-list'))
         self.assertEqual(200, response.status_code)
 
     def test_get_tower_info_with_auth(self):
         self.login()
-        response = self.client.get('/dashboard/towers/%s' % self.uuid)
+        response = self.client.get(reverse('tower-info', 
+                                           kwargs={'uuid': self.uuid}))
         self.assertEqual(200, response.status_code)
 
     def test_get_tower_edit_with_auth(self):
         self.login()
-        response = self.client.get('/dashboard/towers/%s/edit' % self.uuid)
+        response = self.client.get(reverse('tower-edit', kwargs={'uuid': self.uuid}))
         self.assertEqual(200, response.status_code)
 
     def test_add_tower(self):
@@ -111,7 +114,7 @@ class TowerUITest(test.TestCase):
             'uuid': '59216199-d664-4b7a-a2db-6f26e9a5d300',
             'name': 'test-tower-2',
         }
-        self.client.post('/dashboard/towers', data)
+        self.client.post(reverse('tower-list'), data)
         self.assertEqual(2, models.BTS.objects.filter(
             network=self.user_profile.network).count())
 
@@ -122,7 +125,7 @@ class TowerUITest(test.TestCase):
             'uuid': '69216199-d664-4b7a-a2db-6f26e9a5d300',
             'name': 'test-tower-3',
         }
-        response = self.client.post('/dashboard/towers', data)
+        response = self.client.post(reverse('tower-list'), data)
         # We'll get back JSON (the page reload will be triggered in js).
         expected_response = {
             'status': 'ok',
@@ -140,7 +143,7 @@ class TowerUITest(test.TestCase):
         data = {
             'uuid': '',
         }
-        response = self.client.post('/dashboard/towers', data)
+        response = self.client.post(reverse('tower-list'), data)
         # We'll get back only JSON.
         expected_response = {
             'status': 'failed',
@@ -158,7 +161,7 @@ class TowerUITest(test.TestCase):
             'name': 'test-tower-4',
             'latitude': 'invalid-lat',
         }
-        response = self.client.post('/dashboard/towers', data)
+        response = self.client.post(reverse('tower-list'), data)
         # We'll get back JSON.
         self.assertEqual('failed', json.loads(response.content)['status'])
 
@@ -170,7 +173,7 @@ class TowerUITest(test.TestCase):
             'name': 'test-tower-5',
             'longitude': 'invalid-lon',
         }
-        response = self.client.post('/dashboard/towers', data)
+        response = self.client.post(reverse('tower-list'), data)
         # We'll get back JSON.
         self.assertEqual('failed', json.loads(response.content)['status'])
 
@@ -182,7 +185,7 @@ class TowerUITest(test.TestCase):
             'latitude': 24.2,
             'longitude': -73.5,
         }
-        url = '/dashboard/towers/%s/edit' % self.uuid
+        url = reverse('tower-edit', kwargs={'uuid': self.uuid})
         self.client.post(url, data)
         # Fetch the BTS from the DB and verify its attributes have changed.
         tower = models.BTS.objects.get(uuid=self.uuid)
@@ -193,7 +196,7 @@ class TowerUITest(test.TestCase):
     def test_switch_network_fails_sans_access(self):
         """Trying to switch to a network you don't have permission on will fail."""
         self.login()
-        response = self.client.get('/dashboard/network/select/%s' % self.secondary_network.pk)
+        response = self.client.get(reverse('network-select', kwargs={'network_id': self.secondary_network.pk}))
         self.assertEqual(401, response.status_code)
         self.user_profile.refresh_from_db()
         self.assertEqual(self.primary_network, self.user_profile.network)
@@ -201,7 +204,7 @@ class TowerUITest(test.TestCase):
     def test_switch_network_fails_not_exists(self):
         """Trying to switch to a network that doesn't exist will fail."""
         self.login()
-        response = self.client.get('/dashboard/network/select/1337')
+        response = self.client.get(reverse('network-select', kwargs={'network_id': 1337}))
         self.assertEqual(400, response.status_code)
         self.user_profile.refresh_from_db()
         self.assertEqual(self.primary_network, self.user_profile.network)
@@ -210,7 +213,7 @@ class TowerUITest(test.TestCase):
         """Switching to a network should work if you have permission."""
         self.login()
         self.secondary_network.auth_group.user_set.add(self.user_profile.user)
-        response = self.client.get('/dashboard/network/select/%s' % self.secondary_network.pk)
+        response = self.client.get(reverse('network-select', kwargs={'network_id': self.secondary_network.pk}))
         self.assertEqual(302, response.status_code)
         self.user_profile.refresh_from_db()
         self.assertEqual(self.secondary_network, self.user_profile.network)
@@ -221,7 +224,7 @@ class TowerUITest(test.TestCase):
         """If you are revoked from a network, you should still default to yours."""
         self.login()
         self.secondary_network.auth_group.user_set.add(self.user_profile.user)
-        response = self.client.get('/dashboard/network/select/%s' % self.secondary_network.pk)
+        response = self.client.get(reverse('network-select', kwargs={'network_id': self.secondary_network.pk}))
         self.assertEqual(302, response.status_code)
         self.user_profile.refresh_from_db()
         self.assertEqual(self.secondary_network, self.user_profile.network)

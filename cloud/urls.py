@@ -9,6 +9,6 @@ of patent rights can be found in the PATENTS file in the same directory.
 from django.conf.urls import include, url
 
 urlpatterns = [
-    url(r'', include('endagaweb.urls')),
+    url(r'^ccm/', include('endagaweb.urls')),
     url(r'^sason/', include('sason.urls'))
 ]

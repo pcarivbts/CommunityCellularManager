@@ -75,11 +75,11 @@ class NetworkNotification(test.TestCase):
             'email': self.user,
             'password': self.password,
         }
-        self.client.post('/auth/', data)
+        self.client.post(reverse('auth-and-login'), data)
 
     def logout(self):
         """Log the client out."""
-        self.client.get('/logout')
+        self.client.get(reverse('logout'))
 
     def setUp(self):
         self.view = network.NetworkNotifications()
@@ -117,12 +117,12 @@ class NetworkNotification(test.TestCase):
 
     def test_dashboard_notification_request_unauth(self):
         self.logout()
-        response = self.client.get('/dashboard/network/notification')
+        response = self.client.get(reverse('network-notifications'))
         self.assertEqual(302, response.status_code)
 
     def test_dashboard_notification_request_auth(self):
         self.login()
-        response = self.client.get('/dashboard/network/notification')
+        response = self.client.get(reverse('network-notifications'))
         self.assertEqual(200, response.status_code)
 
     def test_notification_created(self):
@@ -138,7 +138,7 @@ class NetworkNotification(test.TestCase):
         for language in translate:
             params['lang_'+language] = translate[language]
 
-        self.client.post('/dashboard/network/notification/update', params)
+        self.client.post(reverse('network-notifications-manage'), params)
         self.assertEqual(len(BTS_LANGUAGES), models.Notification.objects.filter(
             network=self.user_profile.network, event='123').count())
 
@@ -147,7 +147,7 @@ class NetworkNotification(test.TestCase):
         event_id = models.Notification.objects.filter(
             network=self.user_profile.network).values_list('id', flat=True)
         delete_event = {'id': event_id}
-        self.client.post('/dashboard/network/notification/update',
+        self.client.post(reverse('network-notifications-manage'),
                          delete_event)
         # delete all events for that network
         self.assertEqual(0, models.Notification.objects.filter(

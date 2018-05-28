@@ -45,7 +45,7 @@ of patent rights can be found in the PATENTS file in the same directory.
         <p>
           <strong>Last Camped</strong>:
           {{ subscriber.last_camped | naturaltime }} on
-          <a href="/dashboard/towers/{{ subscriber.bts.uuid }}">
+          <a href="{% url 'tower-list' subscriber.bts.uuid %}">
             {% if subscriber.bts.nickname %}
               {{ subscriber.bts.nickname }} ({{ subscriber.bts.uuid|slice:"5" }}..)
             {% else %}

@@ -46,9 +46,9 @@ var handler = StripeCheckout.configure({
     token: function(token, args) {
         $.ajax({
             type: "POST",
-            url:  "/dashboard/card/",
+            url:  "{% url 'card' %}",
             data: {"stripe_token": token},
-            complete: window.location.replace("/dashboard/billing"),
+            complete: window.location.replace("{% url 'billing' %}"),
             async: false,
         })
     }

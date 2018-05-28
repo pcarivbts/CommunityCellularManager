@@ -165,7 +165,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <p>{{ billing_tier.note }}</p>
 
             <span class='col-xs-12 col-lg-offset-2 col-lg-8'>
-              <form action='/dashboard/network/prices' method='post'>
+              <form action='{% url "network-prices" %}' method='post'>
                 <input type='hidden' name='tier_id' value='{{ billing_tier.id }}' />
                 {% csrf_token %}
                 <table class='table table-condensed price-table'>

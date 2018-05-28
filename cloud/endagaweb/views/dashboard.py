@@ -35,6 +35,7 @@ from django.db.models import Q
 from django.db.models.signals import post_save
 from django.http import HttpResponse, HttpResponseBadRequest, QueryDict, \
     JsonResponse
+from django.http import HttpResponsePermanentRedirect
 from django.shortcuts import redirect
 from django.template.loader import get_template
 from django.utils import timezone as django_utils_timezone
@@ -92,12 +93,12 @@ def addcard(request):
         if network.update_card(token):
             messages.add_message(request, messages.INFO, "addcard_saved",
                     extra_tags="billing_resp_code")
-            return redirect("/dashboard/billing")
+            return redirect("billing")
         else:
             # The card has been declined
             messages.add_message(request, messages.ERROR,
                     "addcard_stripe_declined", extra_tags="billing_resp_code")
-            return redirect("/dashboard/billing")
+            return redirect("billing")
     else:
         return HttpResponseBadRequest()
 
@@ -114,13 +115,13 @@ def addmoney(request):
             messages.add_message(request, messages.SUCCESS,
                                  "addmoney_stripe_success",
                                  extra_tags="billing_resp_code")
-            return redirect("/dashboard/billing")
+            return redirect(HttpResponsePermanentRedirect(reverse('billing')))
         except stripe.StripeError:
             logger.error("Failed to add money, stripe.CardError: %s", request)
             messages.add_message(request, messages.WARNING,
                                  "addmoney_stripe_error",
                                  extra_tags="billing_resp_code")
-            return redirect("/dashboard/billing")
+            return redirect(HttpResponsePermanentRedirect(reverse('billing')))
     else:
         return HttpResponseBadRequest()
 

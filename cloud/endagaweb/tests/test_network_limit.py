@@ -12,7 +12,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
+
 from django import test
+from django.core.urlresolvers import reverse
+
 from django.test import TestCase
 from endagaweb import models
 
@@ -58,12 +61,12 @@ class NetworkLimitUITest(TestBase):
 
     def test_network_balance_limit_unauth_get_request(self):
         self.logout()
-        response = self.client.get('/dashboard/network/balance-limit')
+        response = self.client.get(reverse('network_balance_limit'))
         self.assertEqual(302, response.status_code)
 
     def test_network_balance_limit_auth_get_request(self):
         self.login()
-        response = self.client.get('/dashboard/network/balance-limit')
+        response = self.client.get(reverse('network_balance_limit'))
         self.assertEqual(200, response.status_code)
 
     def test_post_bad_response_with_invalid_input_limits(self):
@@ -73,7 +76,7 @@ class NetworkLimitUITest(TestBase):
             'max_unsuccessful_transaction': 2,
 
         }
-        response = self.client.post('/dashboard/network/balance-limit', data)
+        response = self.client.post(reverse('network_balance_limit'), data)
         self.assertEqual(400, response.status_code)
 
     def test_post_bad_response_with_invalid_input_transactions(self):
@@ -83,7 +86,7 @@ class NetworkLimitUITest(TestBase):
             'max_unsuccessful_transactions': 2,
 
         }
-        response = self.client.post('/dashboard/network/balance-limit', data)
+        response = self.client.post(reverse('network_balance_limit'), data)
         self.assertEqual(400, response.status_code)
 
     def test_post_response_redirect_status_code(self):
@@ -93,7 +96,7 @@ class NetworkLimitUITest(TestBase):
             'max_unsuccessful_transaction': 6,
 
         }
-        response = self.client.post('/dashboard/network/balance-limit', data)
+        response = self.client.post(reverse('network_balance_limit'), data)
         self.assertEqual(302, response.status_code)
 
     def test_post_response_redirect_url(self):
@@ -103,5 +106,5 @@ class NetworkLimitUITest(TestBase):
             'max_unsuccessful_transaction': 6,
 
         }
-        response = self.client.post('/dashboard/network/balance-limit', data)
-        self.assertEqual('/dashboard/network/balance-limit', response.url)
+        response = self.client.post(reverse('network_balance_limit'), data)
+        self.assertEqual(reverse('network_balance_limit'), response.url)

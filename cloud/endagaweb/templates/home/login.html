@@ -37,7 +37,7 @@ of patent rights can be found in the PATENTS file in the same directory.
         <div class="formy">
         <div class="row">
             <div class="col-md-12">
-                <form action="/auth/" method="POST" role="form"> {% csrf_token %}
+                <form action="{% url 'auth-and-login' %}" method="POST" role="form"> {% csrf_token %}
                     <div class="form-group">
                         <label for="email">Email address</label>
                         <input type="text" class="form-control" placeholder="Email" autofocus name="email" id="email" value="" />

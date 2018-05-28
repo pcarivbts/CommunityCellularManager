@@ -164,7 +164,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       });
       var marker = L.marker([{{ tower.latitude }}, {{ tower.longitude }}], {icon: markerIcon}).addTo(map);
       {# Build the marker popup html. #}
-      var towerInfoLink = '/dashboard/towers/{{ tower.uuid }}';
+      var towerInfoLink = '{% url "tower-info" tower.uuid %}';
       var markerPopupHTML = '<b>Tower ID</b>: <a href="' + towerInfoLink + '">{{ tower.uuid|slice:"5" }}..</a>';
       {% if tower.nickname %}
       markerPopupHTML += '<br /><b>Name</b>: {{ tower.nickname }}';
@@ -227,7 +227,7 @@ of patent rights can be found in the PATENTS file in the same directory.
         longitude: addTowerMarkerPosition.lng,
         csrfmiddlewaretoken: '{{ csrf_token }}',
       };
-      $.post('/dashboard/towers', data, function(response) {
+      $.post('{% url "tower-list" %}', data, function(response) {
         if (response['status'] == 'ok') {
           // Show that it was successful and then reload the page.
           // Clear out any old messages and show the div again.

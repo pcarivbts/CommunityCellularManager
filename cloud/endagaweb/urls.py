@@ -78,20 +78,20 @@ urlpatterns = [
 
     # Auth.
     url(r'^login/$', endagaweb.views.user.loginview, name='endagaweb-login'),
-    url(r'^auth/', endagaweb.views.user.auth_and_login),
-    url(r'^account/password/change', endagaweb.views.user.change_password),
-    url(r'^account/update', endagaweb.views.user.update_contact),
+    url(r'^auth/', endagaweb.views.user.auth_and_login, name='auth-and-login'),
+    url(r'^account/password/change', endagaweb.views.user.change_password, name="change-password"),
+    url(r'^account/update', endagaweb.views.user.update_contact, name="update-account"),
     url(r'^account/', endagaweb.views.dashboard.DashboardView.as_view(),
         name='dashboard-view'),
-    url(r'^logout/$', django.contrib.auth.views.logout, {'next_page': '/'}),
+    url(r'^logout/$', django.contrib.auth.views.logout, {'next_page': '/'}, name="logout"),
     # Added for ExpiredPassword
-    url(r'^password/change', endagaweb.views.user.change_expired_password),
+    url(r'^password/change', endagaweb.views.user.change_expired_password, name="change-expired-password"),
 
     # Dashboard.
-    url(r'^dashboard/card', endagaweb.views.dashboard.addcard),
-    url(r'^addmoney/', endagaweb.views.dashboard.addmoney),
-    url(r'^dashboard/billing$', endagaweb.views.dashboard.billing_view),
-    url(r'^dashboard/profile', endagaweb.views.dashboard.profile_view),
+    url(r'^dashboard/card', endagaweb.views.dashboard.addcard, name="card"),
+    url(r'^addmoney/', endagaweb.views.dashboard.addmoney, name="addmoney"),
+    url(r'^dashboard/billing$', endagaweb.views.dashboard.billing_view, name="billing"),
+    url(r'^dashboard/profile', endagaweb.views.dashboard.profile_view, name="profile"),
     # Tower views in the dashboard.
     # /towers -- GET a list of towers or POST here to add one
     # /towers/<uuid> -- GET details on one tower
@@ -149,26 +149,31 @@ urlpatterns = [
         name='user-update'),
 
     url(r'^dashboard/user/management/checkuser',
-        endagaweb.views.user.check_user),
+        endagaweb.views.user.check_user,
+        name='checkuser'),
 
     url(r'^dashboard/network/notification/translate',
-        endagaweb.views.user.get_translation),
+        endagaweb.views.user.get_translation,
+        name='notification-translate'),
 
     url(r'^dashboard/network/notification/event',
-        endagaweb.views.user.get_event),
+        endagaweb.views.user.get_event,
+        name='network-event'),
 
     url(r'^dashboard/user/management/permissions',
-        endagaweb.views.user.role_default_permissions),
+        endagaweb.views.user.role_default_permissions,
+        name='role-permission'),
 
     url(r'^dashboard/network/broadcast_sms$',
         endagaweb.views.dashboard.SubscriberSendSMS.as_view(),
         name='broadcast-sms'),
 
-    url(r'^reset$', endagaweb.views.user.reset),
+    url(r'^reset$', endagaweb.views.user.reset,
+        name='reset'),
 
     url(r'^reset/(?P<token>[A-Za-z0-9-]+)/(?P<uidb64>[0-9A-Za-z_\-]+)/$',
         endagaweb.views.user.reset_confirm,
-        name='password_reset_confirm'),
+        name='password-reset-confirm'),
 
     url(r'^success/$', endagaweb.views.user.success, name='success'),
 
@@ -199,7 +204,8 @@ urlpatterns = [
         endagaweb.views.network.NetworkEdit.as_view(),
         name='network-edit'),
     url(r'^dashboard/network/select/(?P<network_id>[0-9]+)$',
-        endagaweb.views.network.NetworkSelectView.as_view()),
+        endagaweb.views.network.NetworkSelectView.as_view(),
+        name='network-select'),
     # Added for network balance limit
     url(r'^dashboard/network/balance-limit',
         endagaweb.views.network.NetworkBalanceLimit.as_view(),
@@ -223,7 +229,7 @@ urlpatterns = [
         name='subscriber-report'),
     url(r'^report/downloadcsv',
         endagaweb.views.reports.ReportGraphDownload.as_view(),
-        ),
+        name='download-csv'),
     url(r'^dashboard/reports/billing',
         endagaweb.views.reports.BillingReportView.as_view(),
         name='billing-report'),
@@ -235,11 +241,13 @@ urlpatterns = [
         name='sms-brosdcast'),
     # Raise a server error on-demand to test the 500 template.
     url(r'^insta-five-hundred$',
-        endagaweb.views.static.InstaFiveHundred.as_view()),
+        endagaweb.views.static.InstaFiveHundred.as_view(),
+        name='insta-five-hundred'),
 
     # OAuth login TODO(omar): setup OAuth provider
-    url(r'^staff-login/', endagaweb.views.user.staff_login_view),
-    url(r'^accounts/', include('allauth.urls')),
+    url(r'^staff-login/', endagaweb.views.user.staff_login_view,
+        name='staff-login'),
+    url(r'^accounts/', include('allauth.urls'), name='accounts'),
 ]
 
 
@@ -248,9 +256,11 @@ if 'django.contrib.admin' in settings.INSTALLED_APPS:
     # analysis page in staff-mode.
     urlpatterns += [
         url(r'^dashboard/staff/all-numbers$',
-            endagaweb.views.staff.Numbers.as_view()),
+            endagaweb.views.staff.Numbers.as_view(),
+            name='all-numbers'),
         url(r'^dashboard/staff/all-towers$',
-            endagaweb.views.staff.Towers.as_view()),
+            endagaweb.views.staff.Towers.as_view(),
+            name='all-towers'),
         url(r'^dashboard/staff/margin-analysis$',
             endagaweb.views.staff.MarginAnalysis.as_view(),
             name='margin-analysis'),
@@ -272,11 +282,14 @@ urlpatterns += [
         name='Call_Sms_Data_Usage'),
 
     # Old stats.
-    url(r'^stats/numbers', endagaweb.views.stats.numbers),
-    url(r'^stats/totals', endagaweb.views.stats.totals),
+    url(r'^stats/numbers', endagaweb.views.stats.numbers,
+        name='stats-numbers'),
+    url(r'^stats/totals', endagaweb.views.stats.totals,
+        name='stats-totals'),
 
     # Debug.
-    url(r'^debug', endagaweb.views.debug.debug_view),
+    url(r'^debug', endagaweb.views.debug.debug_view,
+        name='debug'),
 ]
 
 

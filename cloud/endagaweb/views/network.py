@@ -470,7 +470,7 @@ class NetworkSelectView(ProtectedView):
 
         user_profile.network = network
         user_profile.save()
-        return http.HttpResponseRedirect(request.META.get('HTTP_REFERER', '/dashboard'))
+        return http.HttpResponseRedirect(request.META.get('HTTP_REFERER', urlresolvers.reverse('Call_Sms_Data_Usage')))
 
 
 def sync_denomination(network_id, status):

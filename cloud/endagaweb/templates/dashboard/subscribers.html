@@ -35,7 +35,7 @@ of patent rights can be found in the PATENTS file in the same directory.
         {% else %}
           You have {{ total_number_of_subscribers }} total subscribers on <b>{{ network.name }}</b>
           {% if total_number_of_subscribers > number_of_filtered_subscribers %}
-          <a href="/dashboard/subscribers">
+          <a href="{% url 'subscribers-list' %}">
               (Clear Search)<sup>&nbsp;<i class="fa fa-times" data-toggle="tooltip" title="Clear Search" aria-hidden="true"></i></sup>
           </a>
           {% endif %}
@@ -271,7 +271,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             }, 1000);
               clearTimeout(messageClearTimeout);
               setTimeout(function() {
-                window.location.href = '/dashboard/subscribers';
+                window.location.href = '{% url "subscribers-list" %}';
             }, 2000);
           },
           error: function(response) {
@@ -303,7 +303,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 
       };
          $.ajax({
-            url: '/dashboard/subscribers/role',
+            url: '{% url "subscribers-update-role" %}',
             data: data,
             type: 'POST',
             beforeSend: function(xhr) {
@@ -317,7 +317,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             }, 1000);
               clearTimeout(messageClearTimeout);
               setTimeout(function() {
-                window.location.href = '/dashboard/subscribers';
+                window.location.href = '{% url "subscribers-list" %}';
             }, 2000);
           },
           error: function(response) {
@@ -358,7 +358,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             password: $('#pwd-input').val(),
             csrfmiddlewaretoken: '{{ csrf_token }}',
         };
-        $.post('/dashboard/subscribers', data, function(response) {
+        $.post('{% url "subscribers-list" %}', data, function(response) {
             if (response['status'] == 'ok') {
                 // Clear out any old messages and show the div again.
                 $('#messages-container').html();

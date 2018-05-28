@@ -212,7 +212,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                     {% else %}
                     You have {{ total_users }} total users on <b>{{ network.name }} </b>
                     {% if total_users != total_users_found %}
-                        <a href="/dashboard/user/management">
+                        <a href="{% url 'user-management' %}">
                                 (Clear Search)<sup>&nbsp;<i class="fa fa-times" data-toggle="tooltip" title="Clear Search" aria-hidden="true"></i></sup>
                         </a>
                     {% endif %}
@@ -225,7 +225,7 @@ of patent rights can be found in the PATENTS file in the same directory.
             <div class='modal fade' id='add-user-modal' data-backdrop="static" data-keyboard="false">
                 <div class='modal-dialog'>
                     <div class='modal-content'>
-                        <form id='user_form' action='/dashboard/user/management' name='user_form'
+                        <form id='user_form' action='{% url "user-management" %}' name='user_form'
                                   method='POST' data-toggle='validator' onsubmit='return createUser();'> {% csrf_token %}
                             <div class='modal-header'>
                              <button type="button" class="close" onclick="destroyContent()" data-dismiss="modal" aria-label="Close">
@@ -435,7 +435,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     var status = $(this).prop('checked');
     if(res){
     $.ajax({
-      url: "/dashboard/user/management?"+$.param({'block_id': res, 'status': status }),
+      url: "{% url 'user-management' %}"+$.param({'block_id': res, 'status': status }),
         type: 'DELETE',
         beforeSend: function(xhr) {
             xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
@@ -479,7 +479,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     function changeRole(role) {
         if (role.value) {
             $.ajax({
-                url: "/dashboard/user/management/permissions?role=" + role.value
+                url: "{% url 'role-permission' %}?role=" + role.value
             }).done(function(response) {
                 moveAllItems('#permissions_right', '#permissions_left');
 
@@ -550,7 +550,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 _changeInterval = setInterval(function() {
                     clearInterval(_changeInterval)
                     $.ajax({
-                        url: "/dashboard/user/management/checkuser?email=" + $('#email').val(),
+                        url: "{% url 'checkuser' %}"?email=" + $('#email').val(),
                     }).done(function(response) {
                         $('#email').removeClass('form-control-success');
                         $('#email').removeClass('form-control-warning');
@@ -622,9 +622,9 @@ of patent rights can be found in the PATENTS file in the same directory.
             $.each($('#permissions_right option'), function(key, val) {
                 permissions.push($(val).val());
             });
-            var action_url = "/dashboard/user/management";
+            var action_url = "{% url 'user-management' %}";
             if($('#valid_email').val() == 2) {
-                var action_url = "/dashboard/user/management/update"
+                var action_url = "{% url 'user-update' %}"
             }
             $.ajax({
 
@@ -639,7 +639,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                     permissions: permissions.join(",")
                 }
             }).done(function(response) {
-                window.location.href = '/dashboard/user/management';
+                window.location.href = '{% url "user-management" %}';
             });
             $('#add-user-modal').hide();
             $("#loading").show();
@@ -648,7 +648,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     }
     function editUser() {
         $.ajax({
-            url: '/dashboard/user/management/update?user=' + $('#email').val() + '&id='+$('input[name=id]:checked').val(),
+            url: '{% url "user-update" %}?user=' + $('#email').val() + '&id='+$('input[name=id]:checked').val(),
             type: 'GET',
             success: function (response) {
                 $('#role').val(response.user_role);
@@ -689,14 +689,14 @@ of patent rights can be found in the PATENTS file in the same directory.
         ids.push($(element).val());
     });
     $.ajax({
-        url: "/dashboard/user/management?"+$.param({'ids': ids}),
+        url: "{% url 'user-management' %}?"+$.param({'ids': ids}),
         type: 'DELETE',
         beforeSend: function(xhr) {
             xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
         },
         success: function (response) {
             $('#delete-user-modal').modal('hide');
-            window.location.href = '/dashboard/user/management';
+            window.location.href = '{% url "user-management" %}';
         }
     });
   });
@@ -705,7 +705,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     var mode= $(this).prop('checked');
     var id=$( this ).val();
     $.ajax({
-      url: "/dashboard/user/management?"+$.param({'block_ids': ids}),
+      url: "{% url 'user-management' %}?"+$.param({'block_ids': ids}),
         type: 'DELETE',
         beforeSend: function(xhr) {
             xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
@@ -723,14 +723,14 @@ of patent rights can be found in the PATENTS file in the same directory.
     });
     // Sending Block/UnBlock as Delete request
     $.ajax({
-        url: "/dashboard/user/management?"+$.param({'block_ids': ids}),
+        url: "{% url 'user-management' %}?"+$.param({'block_ids': ids}),
         type: 'DELETE',
         beforeSend: function(xhr) {
             xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
         },
         success: function (response) {
             $('#delete-user-modal').modal('hide');
-            window.location.href = '/dashboard/user/management';
+            window.location.href = '{% url "user-management" %}';
         }
     });
   });
@@ -741,7 +741,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     }
   }
   function destroyContent() {
-    window.location.href = '/dashboard/user/management';
+    window.location.href = '{% url "user-management" %}';
   }
 </script>
 

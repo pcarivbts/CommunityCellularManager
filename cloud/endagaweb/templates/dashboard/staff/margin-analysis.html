@@ -130,7 +130,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% if network %}
 <div class='row' id='price-stats'>
   <div class='col-xs-10'>
-    <form action='/dashboard/staff/margin-analysis' method='post'>
+    <form action='{% url "margin-analysis" %}' method='post'>
       <input type='hidden' name='network' value='{{ network.id }}' />
       {% csrf_token %}
       <table class='table table-bordered'>

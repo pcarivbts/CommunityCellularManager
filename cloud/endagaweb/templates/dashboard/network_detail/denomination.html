@@ -69,7 +69,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 {{ message }}
             </div>
             {% endfor %}
-            <form action="/dashboard/network/denominations/manage" method="POST" name="notification_form" id="notification_form">
+            <form action="{% url 'network-denominations-manage' %}" method="POST" name="notification_form" id="notification_form">
             <div class="table-container">
                 {% if denomination %}
                 {% render_table denominations_table %}
@@ -163,7 +163,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                         Create Denomination
                     </h4>
                 </div>
-                <form action="/dashboard/network/denominations/manage" id="network_form" name="network_form" method="POST"
+                <form action="{% url 'network-denominations-manage' %}" id="network_form" name="network_form" method="POST"
                           data-toggle="validator" class="form-horizontal">{% csrf_token %}
                     <div class='modal-body'>
                         <div class="form-group row">
@@ -295,7 +295,7 @@ of patent rights can be found in the PATENTS file in the same directory.
         function doAction(action, id) {
             $("#dnm_id").val(id);
             $.ajax({
-                url: '/dashboard/network/denominations?id=' + id,
+                url: '{% url "network-denominations" %}?id=' + id,
                 type: 'GET',
                 success: function (response) {
                     if(action == 'edit') {
@@ -331,14 +331,14 @@ of patent rights can be found in the PATENTS file in the same directory.
             });
             // Post to the endagaweb API.
             $.ajax({
-                url: '/dashboard/network/denominations/manage?'+$.param({'ids': ids}),
+                url: '{% url "network-denominations-manage" %}?'+$.param({'ids': ids}),
                 type: 'DELETE',
                 beforeSend: function (xhr) {
                     xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
                 },
                 success: function (response) {
                     $('#delete-user-modal').modal('hide');
-                    window.location.href = '/dashboard/network/denominations';
+                    window.location.href = '{% url "network-denominations" %}';
                 },
                 error: function (response) {
                     // Show an error message after a small delay.
@@ -353,13 +353,13 @@ of patent rights can be found in the PATENTS file in the same directory.
         $('#sync-confirm').click(function () {
             // Post to the endagaweb API.
             $.ajax({
-                url: '/dashboard/network/denominations/manage?sync=1',
+                url: '{% url "network-denominations-manage" %}?sync=1',
                 type: 'POST',
                 beforeSend: function (xhr) {
                     xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
                 },
                 success: function (response) {
-                    window.location.href = '/dashboard/network/denominations';
+                    window.location.href = '{% url "network-denominations" %}';
                 },
                 error: function (response) {
                     // Show an error message after a small delay.

@@ -48,10 +48,10 @@ of patent rights can be found in the PATENTS file in the same directory.
           <ul class="nav navbar-nav navbar-right">
             <li><a href="/">Home</a></li>
             {% if user_profile.user.is_authenticated %}
-            <li><a href="/dashboard">Dashboard</a></li>
-            <li><a href="/logout">Logout</a></li>
+            <li><a href="{% url 'Call_Sms_Data_Usage' %}">Dashboard</a></li>
+            <li><a href="{% url 'logout' %}">Logout</a></li>
             {% else %}
-            <li><a href="/login">Login</a></li>
+            <li><a href="{% url 'endagaweb-login' %}">Login</a></li>
             {% endif %}
           </ul>
         </nav>

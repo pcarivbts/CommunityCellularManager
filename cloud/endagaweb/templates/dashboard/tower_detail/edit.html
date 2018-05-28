@@ -148,7 +148,7 @@ of patent rights can be found in the PATENTS file in the same directory.
         longitude: editTowerMarkerPosition.lng,
         csrfmiddlewaretoken: '{{ csrf_token }}',
       };
-      $.post('/dashboard/towers/{{ tower.uuid }}/edit', data, function(response) {
+      $.post('{% url "tower-edit" tower.uuid %}/edit', data, function(response) {
         if (response['status'] == 'ok') {
           // Show a 'success' message.
           var message = 'Tower info updated successfully.';

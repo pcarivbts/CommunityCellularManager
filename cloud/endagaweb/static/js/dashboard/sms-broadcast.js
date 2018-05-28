@@ -15,7 +15,7 @@
       message: $('#message').val(),
       csrfmiddlewaretoken: $('#token').val(),
     };
-    $.post('/dashboard/broadcast', data, function(response) {
+    $.post('{% url "sms-broadcast" %}', data, function(response) {
       if (response['status'] == 'ok') {
         // Show that it was successful and then reload the page.
         // Clear out any old messages and show the div again.

@@ -32,7 +32,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% if network_has_activity %}
 <div class="row">
     <div class="col-xs-12 col-lg-7">
-        <form action="/dashboard/activity" class="form-horizontal" method="post" role="form" onsubmit="setloading()">
+        <form action="{% url 'network-activity' %}" class="form-horizontal" method="post" role="form" onsubmit="setloading()">
         {% csrf_token %}
 
         <div class="form-group">
@@ -268,7 +268,7 @@ of patent rights can be found in the PATENTS file in the same directory.
         password: $('#pwd-input').val(),
         csrfmiddlewaretoken: '{{ csrf_token }}',
       };
-      $.post('/dashboard/activity', data, function(response) {
+      $.post('{% url "network-activity" %}', data, function(response) {
         if (response['status'] == 'ok') {
           // Clear out any old messages and show the div again.
           $('#messages-container').html();

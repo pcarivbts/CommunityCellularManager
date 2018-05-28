@@ -107,7 +107,7 @@ top: -1px;
     </p>
     <p>
       If you later wish to "undo" deregistration, you should re-add the tower
-      via the link on the <a href='/dashboard/towers'>tower list page</a>,
+      via the link on the <a href='{% url "tower-list" %}'>tower list page</a>,
       and then power cycle the hardware.
     </p>
 
@@ -190,7 +190,7 @@ var towerElement = document.getElementById("towerId");
               $('#deregister-tower-messages-container').html(html).show();
             }, 1000);
             setTimeout(function() {
-              window.location.href = '/dashboard/towers';
+              window.location.href = '{% url "tower-list" %}';
             }, 2000);
           },
           error: function(response) {

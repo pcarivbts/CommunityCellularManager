@@ -18,6 +18,7 @@ import logging
 import os
 from syslog import LOG_LOCAL0
 
+from django.core.urlresolvers import reverse_lazy
 import dj_database_url
 
 # inherit base Django settings (more general than the endagaweb app)
@@ -103,8 +104,8 @@ AUTHENTICATION_BACKENDS = (
 )
 
 # Where to redirect for required logins.
-LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/dashboard'
+LOGIN_URL = reverse_lazy('endagaweb-login')
+LOGIN_REDIRECT_URL = reverse_lazy('Call_Sms_Data_Usage')
 SOCIALACCOUNT_ADAPTER = 'endagaweb.views.user.WhitelistedSocialAccountAdapter'
 STAFF_EMAIL_DOMAIN_WHITELIST = ['fb.com']
 SOCIALACCOUNT_QUERY_EMAIL = True

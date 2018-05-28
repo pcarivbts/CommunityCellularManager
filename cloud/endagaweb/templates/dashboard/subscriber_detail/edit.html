@@ -226,7 +226,7 @@
           }, 1000);
           clearTimeout(messageClearTimeout);
           setTimeout(function() {
-            window.location.href = '/dashboard/subscribers';
+            window.location.href = '{% url "subscribers-list" %}';
           }, 2000);
         },
         error: function(response) {

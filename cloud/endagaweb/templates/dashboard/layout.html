@@ -60,28 +60,27 @@ of patent rights can be found in the PATENTS file in the same directory.
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="/dashboard">{% tmpl_const "SITENAME" %}</a>
+          <a class="navbar-brand" href="{% url 'Call_Sms_Data_Usage' %}">{% tmpl_const "SITENAME" %}</a>
         </div> <!-- / .navbar-header -->
 
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse navbar-ex1-collapse">
           <ul class="nav navbar-nav side-nav">
             <!-- TODO set these as active appropriately -->
-           <!-- <li><a href="/dashboard"><i class="fa fa-line-chart"></i> Graphs</a></li>-->
+           <!-- <li><a href="{% url 'Call_Sms_Data_Usage' %}"><i class="fa fa-line-chart"></i> Graphs</a></li>-->
             <li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-area-chart"></i> Reports</a>
               <ul class="dropdown-menu">
-                <li><a href="/dashboard">Call Sms & Data Usage</a></li>
+                <li><a href="{% url 'Call_Sms_Data_Usage' %}">Call Sms & Data Usage</a></li>
                 <li><a href="{% url 'call-report' %}">Call & SMS</a></li>
                 <li><a href="{% url 'subscriber-report' %}?filter=Subscriber">Subscriber</a></li>
                 <li><a href="{% url 'billing-report' %}">Billing</a></li>
                 <li><a href="{% url 'health-report' %}?filter=Health">Health</a></li>
               </ul>
             </li>
-            <li><a href="/dashboard/activity"><i class="fa fa-list-ul"></i> Activity</a></li>
-            <li><a href="/dashboard/towers"><i class="fa fa-signal"></i> Towers</a></li>
-            <li><a href="/dashboard/subscribers"><i class="fa fa-users"></i> Subscribers</a></li>
-            <li><a href="/dashboard/network"><i class="fa fa-cogs"></i> Network</a></li>
-
+            <li><a href="{% url 'network-activity' %}"><i class="fa fa-list-ul"></i> Activity</a></li>
+            <li><a href="{% url 'tower-list' %}"><i class="fa fa-signal"></i> Towers</a></li>
+            <li><a href="{% url 'subscribers-list' %}"><i class="fa fa-users"></i> Subscribers</a></li>
+            <li><a href="{% url 'network-info' %}"><i class="fa fa-cogs"></i> Network</a></li>
           </ul>
 
           <ul class="nav navbar-nav navbar-top-links navbar-right navbar-user">
@@ -114,7 +113,7 @@ of patent rights can be found in the PATENTS file in the same directory.
               </a>
               <ul class="dropdown-menu">
                 {% for network in networks.all %}
-                <li><a href="/dashboard/network/select/{{ network.pk }}">{% if network == user_profile.network %}<i class="fa fa-check"></i>&nbsp;{% endif %}{{ network.name }} </a></li>
+                <li><a href="{% url 'network-select' network.pk %}">{% if network == user_profile.network %}<i class="fa fa-check"></i>&nbsp;{% endif %}{{ network.name }} </a></li>
                 {% endfor %}
               </ul>
               </a>
@@ -123,24 +122,24 @@ of patent rights can be found in the PATENTS file in the same directory.
             <li class="dropdown">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-user"></i> {{ user_profile.display_name }} <b class="caret"></b></a>
               <ul class="dropdown-menu">
-                <li><a href="/dashboard/profile"><i class="fa fa-gear"></i>&nbsp; Settings</a></li>
-                <li><a href="/dashboard/billing"><i class="fa fa-money"></i>&nbsp; Billing</a></li>
+                <li><a href="{% url 'profile' %}"><i class="fa fa-gear"></i>&nbsp; Settings</a></li>
+                <li><a href="{% url 'billings' %}"><i class="fa fa-money"></i>&nbsp; Billing</a></li>
                 <li class="divider"></li>
 
                 {% if user_profile.user.is_superuser %}
-                    <li><a href="/django-admin"><i class="fa fa-key"></i>&nbsp; Django Admin</a></li>
-                    <li><a href="/dashboard/staff/all-numbers"><i class="fa fa-space-shuttle"></i>&nbsp; All Numbers</a></li>
-                    <li><a href="/dashboard/staff/all-towers"><i class="fa fa-building-o"></i>&nbsp; All Towers</a></li>
-                    <li><a href="/dashboard/staff/margin-analysis"><i class="fa fa-euro"></i>&nbsp; Margin Analysis</a></li>
-                    <li><a href="/dashboard/staff/tower-monitoring"><i class="fa fa-paper-plane-o"></i>&nbsp; Tower Monitoring</a></li>
-                    <li><a href="/dashboard/staff/network-earnings"><i class="fa fa-credit-card"></i>&nbsp; Network Earnings</a></li>
+                    <li><a href="{% url 'admin:index' %}"><i class="fa fa-key"></i>&nbsp; Django Admin</a></li>
+                    <li><a href="{% url 'all-numbers' %}"><i class="fa fa-space-shuttle"></i>&nbsp; All Numbers</a></li>
+                    <li><a href="{% url 'all-towers' %}"><i class="fa fa-building-o"></i>&nbsp; All Towers</a></li>
+                    <li><a href="{% url 'margin-analysis' %}"><i class="fa fa-euro"></i>&nbsp; Margin Analysis</a></li>
+                    <li><a href="{% url 'tower-monitoring' %}"><i class="fa fa-paper-plane-o"></i>&nbsp; Tower Monitoring</a></li>
+                    <li><a href="{% url 'network-earnings' %}"><i class="fa fa-credit-card"></i>&nbsp; Network Earnings</a></li>
                 {% endif %}
 
                 {% if 'user_management' in user_permission %}
-                    <li><a href="/dashboard/user/management"><i class="fa fa-user" aria-hidden="true"></i>&nbsp; User Management</a></li>
+                    <li><a href="{% url 'user-management' %}"><i class="fa fa-user" aria-hidden="true"></i>&nbsp; User Management</a></li>
                     <li class="divider"></li>
                 {% endif %}
-                <li><a href="/logout"><i class="fa fa-sign-out"></i>&nbsp; Log Out</a></li>
+                <li><a href="{% url 'logout' %}"><i class="fa fa-sign-out"></i>&nbsp; Log Out</a></li>
               </ul>
             </li>
           </ul>

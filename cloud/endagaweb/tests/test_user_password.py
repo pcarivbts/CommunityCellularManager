@@ -12,7 +12,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
+
 from django import test
+from django.core.urlresolvers import reverse
 from django.test import TestCase
 from endagaweb import models
 
@@ -70,8 +72,8 @@ class UserPasswordStrengthTests(TestBase):
             'new_password1': 'Admin_123',
             'new_password2': 'Admin_123'
         }
-        response = self.client.post('/account/password/change/',  data ,
-                                    follow=True, HTTP_REFERER='/password/change')
+        response = self.client.post(reverse('change-password'),  data ,
+                                    follow=True, HTTP_REFERER=reverse('change-expired-password'))
         message = self.getmessage(response)
         self.assertEqual(message.tags, self.error_tag)
 
@@ -83,8 +85,8 @@ class UserPasswordStrengthTests(TestBase):
             'new_password1': 'test_12',
             'new_password2': 'test_12'
         }
-        response = self.client.post('/account/password/change/', data,
-                                    follow=True,HTTP_REFERER='/password/change')
+        response = self.client.post(reverse('change-password'), data,
+                                    follow=True,HTTP_REFERER=reverse('change-expired-password'))
         message = self.getmessage(response)
         self.assertEqual(message.tags, self.error_tag)
 
@@ -96,8 +98,8 @@ class UserPasswordStrengthTests(TestBase):
             'new_password1': 'user_abcde',
             'new_password2': 'user_abcde'
         }
-        response = self.client.post('/account/password/change/', data,
-                                    follow=True, HTTP_REFERER='/password/change')
+        response = self.client.post(reverse('change-password'), data,
+                                    follow=True, HTTP_REFERER=reverse('change-expired-password'))
         message = self.getmessage(response)
         self.assertEqual(message.tags, self.error_tag)
 
@@ -109,8 +111,8 @@ class UserPasswordStrengthTests(TestBase):
             'new_password1': '1988@1999',
             'new_password2': '1988@1999'
         }
-        response = self.client.post('/account/password/change/', data,
-                                    follow=True, HTTP_REFERER='/password/change')
+        response = self.client.post(reverse('change-password'), data,
+                                    follow=True, HTTP_REFERER=reverse('change-expired-password'))
         message = self.getmessage(response)
         self.assertEqual(message.tags,self.error_tag)
 
@@ -123,8 +125,8 @@ class UserPasswordStrengthTests(TestBase):
             'new_password1': '1988abcd',
             'new_password2': '1988abcd'
         }
-        response = self.client.post('/account/password/change/', data,
-                                    follow=True, HTTP_REFERER='/password/change')
+        response = self.client.post(reverse('change-password'), data,
+                                    follow=True, HTTP_REFERER=reverse('change-expired-password'))
         message = self.getmessage(response)
         self.assertEqual(message.tags, self.error_tag)
 
@@ -136,8 +138,8 @@ class UserPasswordStrengthTests(TestBase):
             'new_password1': 'sinha_1',
             'new_password2': 'sinha_1'
         }
-        response = self.client.post('/account/password/change', data,
-                                    follow=True, HTTP_REFERER='/password/change')
+        response = self.client.post(reverse('change-password'), data,
+                                    follow=True, HTTP_REFERER=reverse('change-expired-password'))
         message = self.getmessage(response)
         self.assertEqual(message.tags, self.error_tag)
 
@@ -149,8 +151,8 @@ class UserPasswordStrengthTests(TestBase):
             'new_password1': 'userA_183',
             'new_password2': 'userA_183'
         }
-        response = self.client.post('/account/password/change', data,
-                                    follow=True, HTTP_REFERER='/password/change')
+        response = self.client.post(reverse('change-password'), data,
+                                    follow=True, HTTP_REFERER=reverse('change-expired-password'))
         message = self.getmessage(response)
         self.assertEqual(message.tags, self.success_tag)
 
@@ -163,9 +165,9 @@ class UserPasswordStrengthTests(TestBase):
             'new_password1': 'userA_184',
             'new_password2': 'userA_184'
         }
-        response = self.client.post('/account/password/change/', data,
-                                    HTTP_REFERER='/dashboard/profile')
-        self.assertEqual(response.url, '/dashboard/profile')
+        response = self.client.post(reverse('change-password'), data,
+                                    HTTP_REFERER=reverse('profile'))
+        self.assertEqual(response.url, reverse('profile'))
         self.assertEqual(response.status_code,302)
 
     def test_redirect_url_for_password_change(self):
@@ -177,10 +179,9 @@ class UserPasswordStrengthTests(TestBase):
             'new_password1': 'userA%185',
             'new_password2': 'userA%184'
         }
-        response = self.client.post('/account/password/change', data,
-
-                                    HTTP_REFERER='/password/change')
-        self.assertEqual(response.url, '/password/change')
+        response = self.client.post(reverse('change-password'), data,
+                                    HTTP_REFERER=reverse('change-expired-password'))
+        self.assertEqual(response.url, reverse('change-expired-password'))
         self.assertEqual(response.status_code, 302)
 
     def test_new_password_case7(self):
@@ -191,8 +192,8 @@ class UserPasswordStrengthTests(TestBase):
             'new_password1': '185@auser1',
             'new_password2': '185@auser1'
         }
-        response = self.client.post('/account/password/change', data,follow=True,
-                                    HTTP_REFERER='/password/change' )
+        response = self.client.post(reverse('change-password'), data,follow=True,
+                                    HTTP_REFERER=reverse('change-expired-password') )
         message = self.getmessage(response)
         self.assertEqual(message.tags, self.success_tag)
 
@@ -204,8 +205,8 @@ class UserPasswordStrengthTests(TestBase):
             'new_password1': 'User*#4As',
             'new_password2': 'User*#4As'
         }
-        response = self.client.post('/account/password/change', data,follow=True,
-                                    HTTP_REFERER='/password/change' )
+        response = self.client.post(reverse('change-password'), data,follow=True,
+                                    HTTP_REFERER=reverse('change-expired-password') )
         message = self.getmessage(response)
         self.assertEqual(message.tags, self.success_tag)
 
@@ -217,7 +218,7 @@ class UserPasswordStrengthTests(TestBase):
             'new_password1': '4as8trtaabb^',
             'new_password2': '4as8trtaabb^'
         }
-        response = self.client.post('/account/password/change', data,follow=True,
-                                    HTTP_REFERER='/password/change' )
+        response = self.client.post(reverse('change-password'), data,follow=True,
+                                    HTTP_REFERER=reverse('change-expired-password') )
         message = self.getmessage(response)
         self.assertEqual(message.tags, self.success_tag)

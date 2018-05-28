@@ -17,6 +17,8 @@ from datetime import datetime
 from random import randrange
 import uuid
 from django import test
+from django.core.urlresolvers import reverse
+
 import json
 
 import pytz
@@ -69,30 +71,30 @@ class DenominationUITest(TestBase):
 
     def test_add_denominaton(self):
         self.logout()
-        response = self.client.get('/dashboard/network/denominations/manage')
+        response = self.client.get(reverse('network-denominations-manage'))
         # Anonymous User can not see this page so returning  permission denied.
         self.assertEqual(302, response.status_code)
 
     def test_add_denominaton_auth(self):
         self.login()
-        response = self.client.get('/dashboard/network/denominations/manage')
+        response = self.client.get(reverse('network-denominations-manage'))
         self.assertEqual(200, response.status_code)
 
     def test_delete_denominaton(self):
         self.logout()
-        response = self.client.delete('/dashboard/network/denominations/manage')
+        response = self.client.delete(reverse('network-denominations-manage'))
         # Anonymous User can not see this page so returning  permission denied.
         self.assertEqual(302, response.status_code)
 
     def test_delete_denominaton_auth(self):
         self.login()
-        response = self.client.delete('/dashboard/network/denominations/manage')
+        response = self.client.delete(reverse('network-denominations-manage'))
         self.assertEqual(200, response.status_code)
 
     def test_post_add_denominaton(self):
         self.logout()
         data = {}
-        response = self.client.post('/dashboard/network/denominations/manage', data)
+        response = self.client.post(reverse('network-denominations-manage'), data)
         # Anonymous User can not see this page so returning  permission denied.
         self.assertEqual(302, response.status_code)
 
@@ -103,5 +105,5 @@ class DenominationUITest(TestBase):
             'end_amount': 2,
             'validity_days': 3
         }
-        response = self.client.post('/dashboard/network/denominations', data)
+        response = self.client.post(reverse('network-denominations'), data)
         self.assertEqual(302, response.status_code)

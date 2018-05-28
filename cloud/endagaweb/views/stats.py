@@ -11,13 +11,15 @@ import json
 
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
+from django.core.urlresolvers import reverse_lazy
 from django.db import connection
 
 from endagaweb.models import Number
 from endagaweb.models import Transaction
 from endagaweb.models import UserProfile
 
-@login_required(login_url='/login/')
+
+@login_required(login_url=reverse_lazy('endagaweb-login'))
 def numbers(request):
     user_profile = UserProfile.objects.get(user=request.user)
     truncate_date = connection.ops.date_trunc_sql('month','created')
@@ -30,7 +32,7 @@ def numbers(request):
     resp = [n.created for n in numbers]
     return HttpResponse(json.dumps(resp), content_type="application/json")
 
-@login_required(login_url='/login/')
+@login_required(login_url=reverse_lazy('endagaweb-login'))
 def totals(request):
     user_profile = UserProfile.objects.get(user=request.user)
     resp = {}

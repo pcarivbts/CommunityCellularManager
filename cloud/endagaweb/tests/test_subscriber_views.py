@@ -11,7 +11,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 from django import test
 import mock
 
-
+from django.core.urlresolvers import reverse
 from endagaweb import models
 
 
@@ -59,8 +59,8 @@ class SubscriberBaseTest(test.TestCase):
                                    subscriber=cls.subscriber2)
         cls.number2.save()
 
-        cls.adjust_credit_endpoint = (
-            '/dashboard/subscribers/%s/adjust-credit' % cls.subscriber_imsi)
+        cls.adjust_credit_endpoint = (reverse('subscriber-adjust-credit', 
+                                        kwargs={'imsi': cls.subscriber_imsi}))
         # Drop all PCUs.
         for pcu in models.PendingCreditUpdate.objects.all():
             pcu.delete()
@@ -85,8 +85,8 @@ class SubscriberInfoTest(SubscriberBaseTest):
     """Testing endagaweb.views.dashboard.SubscriberInfo."""
 
     def test_get(self):
-        response = self.client.get('/dashboard/subscribers/%s' %
-                                   self.subscriber_imsi)
+        response = self.client.get(reverse('subscriber-info', kwargs={'imsi':
+                self.subscriber_imsi}))
         self.assertEqual(200, response.status_code)
 
     def test_post_update_role_single_subscriber(self):
@@ -94,7 +94,7 @@ class SubscriberInfoTest(SubscriberBaseTest):
             'category': 'Retailer',
             'imsi_val[] ': 'IMSI000123'
         }
-        url = '/dashboard/subscribers/role'
+        url = reverse('subscribers-update-role')
         response = self.client.post(
             url, data)
         self.assertEqual(200, response.status_code)
@@ -106,7 +106,7 @@ class SubscriberInfoTest(SubscriberBaseTest):
             'category': 'Test Sim',
             'imsi_val[] ': 'IMSI000123'
         }
-        url = '/dashboard/subscribers/role'
+        url = reverse('subscribers-update-role')
         response = self.client.post(
             url, data)
         self.assertEqual(200, response.status_code)
@@ -120,7 +120,7 @@ class SubscriberInfoTest(SubscriberBaseTest):
             'imsi_val[] ':imsi_list
         }
 
-        url = '/dashboard/subscribers/role'
+        url = reverse('subscribers-update-role')
         response = self.client.post(
             url, data)
         self.assertEqual(200, response.status_code)
@@ -134,8 +134,8 @@ class SubscriberActivityTest(SubscriberBaseTest):
     """Testing endagaweb.views.dashboard.SubscriberActivity."""
 
     def test_get(self):
-        response = self.client.get('/dashboard/subscribers/%s/activity' %
-                                   self.subscriber_imsi)
+        response = self.client.get(reverse('subscriber-activity', 
+                                           kwargs={'imsi': self.subscriber_imsi}))
         self.assertEqual(200, response.status_code)
 
     def test_get_with_query_params(self):
@@ -143,7 +143,7 @@ class SubscriberActivityTest(SubscriberBaseTest):
                         '&end_date=2015-03-07-at-01.44PM'
                         '&start_date=2015-03-04-at-01.30PM'
                         '&keyword=asdf')
-        base_url = '/dashboard/subscribers/%s/activity' % self.subscriber_imsi
+        base_url = reverse('subscriber-activity', kwargs={'imsi': self.subscriber_imsi})
         url = '%s?%s' % (base_url, query_params)
         response = self.client.get(url)
         self.assertEqual(200, response.status_code)
@@ -158,7 +158,7 @@ class SubscriberActivityTest(SubscriberBaseTest):
             'services[]=sms&'
             'services[]=transfer&'
         )
-        url = '/dashboard/subscribers/%s/activity' % self.subscriber_imsi
+        url = reverse('subscriber-activity', kwargs={'imsi': self.subscriber_imsi})
         response = self.client.post(
             url, data, content_type='application/x-www-form-urlencoded')
         # TODO(matt): check the format of the redirect URL
@@ -169,8 +169,8 @@ class SubscriberSendSMSTest(SubscriberBaseTest):
     """Testing endagaweb.views.dashboard.SubscriberSendSMS."""
 
     def test_get(self):
-        response = self.client.get('/dashboard/subscribers/%s/send-sms' %
-                                   self.subscriber_imsi)
+        response = self.client.get(reverse('subscriber-send-sms', 
+                                        kwargs={'imsi': self.subscriber_imsi}))
         self.assertEqual(200, response.status_code)
 
     def test_post(self):
@@ -178,7 +178,8 @@ class SubscriberSendSMSTest(SubscriberBaseTest):
         data = {
             'message': 'test -- hi there',
         }
-        url = '/dashboard/subscribers/%s/send-sms' % self.subscriber_imsi
+        url = reverse('subscriber-send-sms', 
+                      kwargs={'imsi': self.subscriber_imsi})
         with mock.patch('endagaweb.tasks.async_post.delay') as mocked_task:
             self.client.post(url, data)
             self.assertTrue(mocked_task.called)
@@ -240,8 +241,8 @@ class SubscriberEditTest(SubscriberBaseTest):
     """Testing endagaweb.views.dashboard.SubscriberEdit."""
 
     def test_get(self):
-        response = self.client.get('/dashboard/subscribers/%s/edit' %
-                                   self.subscriber_imsi)
+        response = self.client.get(reverse('subscriber-edit',
+                                        kwargs={'imsi': self.subscriber_imsi}))
         self.assertEqual(200, response.status_code)
 
 
@@ -258,7 +259,7 @@ class BroadcastViewTest(SubscriberBaseTest):
             'tower_id': '',
             'imsi': self.subscriber_imsi
         }
-        url = '/dashboard/broadcast'
+        url = reverse('sms-brosdcast')
         with mock.patch('endagaweb.tasks.async_post.delay') as mocked_task:
             self.client.post(url, data)
             self.assertTrue(mocked_task.called)

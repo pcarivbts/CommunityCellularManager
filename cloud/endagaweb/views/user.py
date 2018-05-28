@@ -24,6 +24,7 @@ from django.contrib.auth.views import password_reset, password_reset_confirm
 from django.core import urlresolvers
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse_lazy
 from django.core.validators import validate_email
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.http import JsonResponse
@@ -123,7 +124,7 @@ def auth_and_login(request):
             user = User.objects.get(username=user)
             today = timezone.now()
             user_profile = UserProfile.objects.get(user=user)
-            next_url = '/dashboard'
+            next_url = reverse('Call_Sms_Data_Usage')
             if 'next' in request.POST and request.POST['next']:
                 next_url = request.POST['next']
             if (today - user_profile.last_pwd_update).days >= \
@@ -140,14 +141,14 @@ def auth_and_login(request):
             # Notification, if blocked user is trying to log in
             text = "This user is blocked. Please contact admin."
             messages.error(request, text)
-            return redirect('/login/')
+            return redirect(urlresolvers.reverse('endagaweb-login'))
     else:
         text = "Sorry, that email / password combination is not valid."
         messages.error(request, text)
-        return redirect('/login/')
+        return redirect(urlresolvers.reverse('endagaweb-login'))
 
 
-@login_required(login_url='/login/')
+@login_required(login_url=reverse_lazy('endagaweb-login'))
 def change_password(request):
     """Handles password change request data."""
     if request.method != 'POST':
@@ -158,10 +159,10 @@ def change_password(request):
         return HttpResponseBadRequest()
     # Validate url for redirect
     if urlparse.urlparse(request.META['HTTP_REFERER']
-                         ).path != '/dashboard/profile':
+                         ).path != reverse('profile'):
         redirect_url = '/password/change'
     else:
-        redirect_url = '/dashboard/profile'
+        redirect_url = reverse('profile')
     if not request.user.check_password(request.POST['old_password']):
         text = 'Error: old password is incorrect.'
         tags = 'password alert alert-danger'
@@ -181,8 +182,8 @@ def change_password(request):
             tags = 'password alert alert-success'
             messages.success(request, text, extra_tags=tags)
             if urlparse.urlparse(request.META['HTTP_REFERER']
-                                 ).path != '/dashboard/profile':
-                redirect_url = '/dashboard'
+                                 ).path != reverse('profile'):
+                redirect_url = reverse('Call_Sms_Data_Usage')
                 return redirect(redirect_url)
             else:
                 return redirect(redirect_url)
@@ -201,7 +202,7 @@ def change_password(request):
         messages.error(request, ''.join(e.messages), extra_tags=tags)
         return redirect(redirect_url)
 
-@login_required(login_url='/login/')
+@login_required(login_url=reverse_lazy('endagaweb-login'))
 def change_expired_password(request):
     """Render password change template to change
         password
@@ -219,7 +220,7 @@ def change_expired_password(request):
     html = template.render(context, request)
     return HttpResponse(html)
 
-@login_required(login_url='/login/')
+@login_required(login_url=reverse_lazy('endagaweb-login'))
 def update_contact(request):
     """Handles a user changing their background contact info."""
     if request.method == 'POST':
@@ -230,7 +231,7 @@ def update_contact(request):
             except ValidationError:
                 messages.error(request, "Invalid email address.",
                                extra_tags="contact alert alert-danger")
-                return redirect("/dashboard/profile")
+                return redirect(reverse('profile'))
         if 'first_name' in request.POST:
             request.user.first_name = request.POST['first_name']
         if 'last_name' in request.POST:
@@ -242,10 +243,10 @@ def update_contact(request):
         request.user.save()
         messages.success(request, "Profile information updated.",
                          extra_tags="contact alert alert-success")
-        return redirect("/dashboard/profile")
+        return redirect(reverse('profile'))
     return HttpResponseBadRequest()
 
-@login_required(login_url='/login/')
+@login_required(login_url=reverse_lazy('endagaweb-login'))
 def update_notify_emails(request):
     if request.method == 'POST':
         if 'notify_emails' in request.POST:
@@ -258,16 +259,16 @@ def update_notify_emails(request):
                         messages.error(request, "Invalid email address: '" + current_email +
                                        "'. Example of a valid input is 'shaddi@example.com, damian@example.com'",
                                        extra_tags="alert alert-danger notify-emails")
-                        return redirect("/dashboard/profile")
+                        return redirect(reverse('profile'))
             network = UserProfile.objects.get(user=request.user).network
             network.notify_emails = notify_emails
             network.save()
             messages.success(request, "Notify emails updated.",
                          extra_tags="alert alert-success notify-emails")
-            return redirect("/dashboard/profile")
+            return redirect(reverse('profile'))
     return HttpResponseBadRequest()
 
-@login_required(login_url='/login/')
+@login_required(login_url=reverse_lazy('endagaweb-login'))
 def update_notify_numbers(request):
     if request.method == 'POST':
         if 'notify_numbers' in request.POST:
@@ -280,17 +281,17 @@ def update_notify_numbers(request):
                         messages.error(request, "Invalid phone number: '" + current_number +
                                        "'. Example of valid input is '+62000000, +52000000, +63000000'",
                                        extra_tags="alert alert-danger notify-numbers")
-                        return redirect("/dashboard/profile")
+                        return redirect(reverse('profile'))
             network = UserProfile.objects.get(user=request.user).network
             network.notify_numbers = notify_numbers
             network.save()
             messages.success(request, "Notify numbers updated.",
                          extra_tags="alert alert-success notify-numbers")
-            return redirect("/dashboard/profile")
+            return redirect(reverse('profile'))
     return HttpResponseBadRequest()
 
 
-@login_required(login_url='/login/')
+@login_required(login_url=reverse_lazy('endagaweb-login'))
 def check_user(request):
     if request.method == 'GET':
         context = {}
@@ -331,7 +332,7 @@ def success(request):
     return render(request, "dashboard/user_management/success.html")
 
 
-@login_required(login_url='/login/')
+@login_required(login_url=reverse_lazy('endagaweb-login'))
 def role_default_permissions(request):
     if request.method == 'GET':
         role = request.GET['role']
@@ -384,7 +385,7 @@ def validate_password_strength(value):
     return bool(pattern.match(value))
 
 
-@login_required(login_url='/login/')
+@login_required(login_url=reverse_lazy('endagaweb-login'))
 def get_translation(request):
     # For ajax call to translate on runtime
     if request.method == 'GET':
@@ -401,7 +402,7 @@ def get_translation(request):
     return HttpResponseBadRequest()
 
 
-@login_required(login_url='/login/')
+@login_required(login_url=reverse_lazy('endagaweb-login'))
 def get_event(request):
     # For ajax call to translate on runtime
     if request.method == 'GET':

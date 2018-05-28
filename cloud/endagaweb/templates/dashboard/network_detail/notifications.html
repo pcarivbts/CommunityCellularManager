@@ -250,7 +250,7 @@ label.btn span {
         </div>
         {% endfor %}
         {% crispy search %}
-        <form action="/dashboard/network/notification/update" method="POST"
+        <form action="{% url 'network-notifications-manage' %}" method="POST"
               name="notification_form" id="notification_form">
             <div class="table-container col-sm-12">
                 {% csrf_token %}
@@ -296,7 +296,7 @@ label.btn span {
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <form action="/dashboard/network/notification/update"
+                    <form action="{% url 'network-notifications-manage' %}"
                       id="add-notification-modal" name="notification"
                       method="POST">
                         {% csrf_token %}
@@ -414,7 +414,7 @@ function getTranslation() {
             $('[id^="lang_"]').removeClass('loadinggif').removeAttr('disabled');
             }
         },
-        url: '/dashboard/network/notification/translate?message=' + $('#id_message').val(),
+        url: '{% url "notification-translate" %}?message=' + $('#id_message').val(),
         type: 'GET',
         timeout: 5000,
 
@@ -497,7 +497,7 @@ function editNotification() {
   $('.title').html('Edit Notification');
 
   $.ajax({
-      url: '/dashboard/network/notification?id=' + notif_id,
+      url: '{% url "network-notifications" %}?id=' + notif_id,
       type: 'GET',
       beforeSend: function (xhr) {
           xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
@@ -539,7 +539,7 @@ function getNotification(id) {
     $("#status").hide();
     $('#notification-translate').val('Translate');
   $.ajax({
-      url: '/dashboard/network/notification?id=' + id,
+      url: '{% url "network-notifications" %}?id=' + id,
       type: 'GET',
       beforeSend: function (xhr) {
           xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
@@ -594,13 +594,13 @@ function resetForm() {
 }
 function filterNotifications(lang) {
     $.ajax({
-        url: "/dashboard/network/notification?lang=" + lang.value
+        url: '{% url "network-notifications" %}?lang=' + lang.value
         }).done(function(response) {
-        window.location.href = '/dashboard/network/notification?lang=' + lang.value;
+        window.location.href = '{% url "network-notifications" %}?lang=' + lang.value;
     });
 }
 function destroyContent() {
-  window.location.href = '/dashboard/network/notification';
+  window.location.href = '{% url "network-notifications" %}';
 }
 function editLanguage(key) {
   $('[id^="lang_"]').attr({'disabled':'disabled'});
@@ -623,7 +623,7 @@ function checkEvent(){
         var event = $('#id_number').val();
     }
     $.ajax({
-        url: "/dashboard/network/notification/event?event=" + event,
+        url: "{% url 'network-event' %}?event=" + event,
     }).done(function(response) {
         if (response.event){
         // if event not exists

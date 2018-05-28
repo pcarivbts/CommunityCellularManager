@@ -30,7 +30,7 @@ of patent rights can be found in the PATENTS file in the same directory.
     <div class='row'>
         {% if total_number_of_subscribers %}
 
-        <form action="/dashboard/subscriber_management/subscriber"
+        <form action="{% url 'subscriber-category' %}"
               class="form-horizontal" method="get" role="form">
             <div class="col-md-6">
                 <div class="input-group">
@@ -154,13 +154,13 @@ $('#update').click(function(){
     imsi_val : imsi_val,
     csrfmiddlewaretoken: '{{ csrf_token }}',
   };
-  var url = '/dashboard/subscriber_management/subscriber';
+  var url = "{% url 'subscriber-category' %}";
   $.ajax({
         url: url,
         data: data,
         type: "POST"
     }).done(function(response) {
-        window.location = "/dashboard/subscriber_management/subscriber";
+        window.location = "{% url 'subscriber-category' %}";
     }).fail(function(response) {
     });
 });
