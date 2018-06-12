@@ -93,12 +93,12 @@ def addcard(request):
         if network.update_card(token):
             messages.add_message(request, messages.INFO, "addcard_saved",
                     extra_tags="billing_resp_code")
-            return redirect("billing")
+            return redirect(HttpResponsePermanentRedirect(reverse('billing')))
         else:
             # The card has been declined
             messages.add_message(request, messages.ERROR,
                     "addcard_stripe_declined", extra_tags="billing_resp_code")
-            return redirect("billing")
+            return redirect(HttpResponsePermanentRedirect(reverse('billing')))
     else:
         return HttpResponseBadRequest()
 

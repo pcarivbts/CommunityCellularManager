@@ -550,7 +550,7 @@ of patent rights can be found in the PATENTS file in the same directory.
                 _changeInterval = setInterval(function() {
                     clearInterval(_changeInterval)
                     $.ajax({
-                        url: "{% url 'checkuser' %}"?email=" + $('#email').val(),
+                        url: "{% url 'checkuser' %}?email=" + $('#email').val(),
                     }).done(function(response) {
                         $('#email').removeClass('form-control-success');
                         $('#email').removeClass('form-control-warning');

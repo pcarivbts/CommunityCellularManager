@@ -59,11 +59,11 @@ class TestBase(TestCase):
             'email': self.username,
             'password': self.password,
         }
-        self.client.post('/auth/', data)
+        self.client.post(reverse('auth-and-login'), data)
 
     def logout(self):
         """Log the client out."""
-        self.client.get('/logout')
+        self.client.get(reverse('/logout'))
 
 
 class DenominationUITest(TestBase):

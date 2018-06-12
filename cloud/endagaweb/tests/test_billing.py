@@ -630,8 +630,8 @@ class SMSAPIBillingTest(TestCase):
         endagaweb.views.api.tasks = mock.Mock()
         # Setup the api client, SMS endpoints and the token-based auth.
         cls.client = Client()
-        cls.send_endpoint = '/api/v1/send/'
-        cls.inbound_endpoint = '/api/v1/inbound/'
+        cls.send_endpoint = reverse('api-v1-send')
+        cls.inbound_endpoint = reverse('api-v1-inbound')
         cls.header = {
             'HTTP_AUTHORIZATION': 'Token %s' % cls.user_profile.network.api_token
         }

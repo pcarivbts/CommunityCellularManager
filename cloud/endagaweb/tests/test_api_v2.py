@@ -102,24 +102,24 @@ class NumberTest(TestCase):
             'email': user.username,
             'password': self.password,
         }
-        self.client.post('/auth/', data)
+        self.client.post(reverse('auth-and-login'), data)
 
     def logout(self):
         """Log the client out."""
-        self.client.get('/logout')
+        self.client.get(reverse('logout'))
 
     def test_get(self):
         """GET is not supported."""
         header = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile2.network.api_token
         }
-        url = '/api/v2/numbers/%s' % self.number.number
+        url = reverse('api-v2-number', kwargs={'msisdn': self.number.number})
         response = self.client.get(url, **header)
         self.assertEqual(405, response.status_code)
 
     def test_post_sans_token(self):
         """POST fails without a token."""
-        url = '/api/v2/numbers/%s' % self.number.number
+        url = reverse('api-v2-number', kwargs={'msisdn': self.number.number})
         data = {
             'state': 'available'
         }
@@ -130,7 +130,7 @@ class NumberTest(TestCase):
     def test_post_wrong_token(self):
         """POST with the wrong token fails."""
         # Try to POST to UserProfile1's number with UP2's API token.
-        url = '/api/v2/numbers/%s' % self.number.number
+        url = reverse('api-v2-number', kwargs={'msisdn': self.number.number})
         data = {
             'state': 'available'
         }
@@ -142,7 +142,7 @@ class NumberTest(TestCase):
 
     def test_post_sans_params(self):
         """POST fails without valid params."""
-        url = '/api/v2/numbers/%s' % self.number.number
+        url = reverse('api-v2-number', kwargs={'msisdn': self.number.number})
         data = {}
         header = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile.network.api_token
@@ -152,7 +152,7 @@ class NumberTest(TestCase):
 
     def test_post_invalid_state(self):
         """POST fails with invalid state."""
-        url = '/api/v2/numbers/%s' % self.number.number
+        url = reverse('api-v2-number', kwargs={'msisdn': self.number.number})
         data = {
             'state': 'invalid'
         }
@@ -177,7 +177,7 @@ class NumberTest(TestCase):
                                    kind="number.nexmo.monthly")
         new_number.save()
         # Deactivate the original number.
-        url = '/api/v2/numbers/%s' % self.number.number
+        url = reverse('api-v2-number', kwargs={'msisdn': self.number.number})
         data = {
             'state': 'available'
         }
@@ -220,7 +220,7 @@ class NumberTest(TestCase):
 
         (Should delete the subscriber instead.)
         """
-        url = '/api/v2/numbers/%s' % self.number.number
+        url = reverse('api-v2-number', kwargs={'msisdn': self.number.number})
         data = {
             'state': 'available'
         }

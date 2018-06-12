@@ -19,7 +19,7 @@ from rest_framework.test import APIClient
 from rest_framework.test import APITestCase
 
 from endagaweb import models
-
+from django.core.urlresolvers import reverse
 
 # See endagaweb.stats_app.views for notes on this date.
 JUN30_2014 = 1406680050
@@ -48,7 +48,7 @@ class StatsAPITest(APITestCase):
         cls.bts.save()
         # Setup a DRF API client and a target endpoint.
         cls.api_client = APIClient()
-        cls.endpoint = '/api/v1/stats'
+        cls.endpoint = reverse('api-v1-stats-params')
 
     @classmethod
     def tearDownClass(cls):

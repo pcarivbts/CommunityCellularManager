@@ -17,7 +17,7 @@ from crispy_forms.layout import Layout, Submit, Field, Fieldset, ButtonHolder
 from django import forms
 from django.contrib.auth.forms import PasswordChangeForm, PasswordResetForm
 from django.contrib.auth.models import User
-from django.core import urlresolvers
+from django.core.urlresolvers import reverse
 from django.db.models import Value
 from django.db.models.functions import Coalesce
 from django.utils import safestring
@@ -51,7 +51,7 @@ class UpdateContactForm(forms.Form):
         self.helper = FormHelper()
         self.helper.form_id = 'id-updateAccountForm'
         self.helper.form_method = 'post'
-        self.helper.form_action = '/account/update'
+        self.helper.form_action = reverse('update-account')
         self.helper.form_class = 'profile-form'
         self.helper.add_input(Submit('submit', 'Save'))
         self.helper.layout = Layout(
@@ -79,7 +79,7 @@ class SubscriberInfoForm(forms.Form):
         params = {
             'imsi': kwargs.get('initial').get('imsi')
         }
-        self.helper.form_action = urlresolvers.reverse(
+        self.helper.form_action = reverse(
             'subscriber-edit', kwargs=params)
         # Hide the label for the sub vacuum prevention radio.
         self.fields['prevent_automatic_deactivation'].label = ''
@@ -105,7 +105,7 @@ class SubscriberCreditUpdateForm(forms.Form):
         params = {
             'imsi': kwargs.get('initial').get('imsi')
         }
-        self.helper.form_action = urlresolvers.reverse(
+        self.helper.form_action = reverse(
             'subscriber-adjust-credit', kwargs=params)
         self.helper.form_class = 'col-xs-12 col-md-10 col-lg-8'
         self.helper.layout = Layout(
@@ -147,7 +147,7 @@ class SubscriberSearchForm(forms.Form):
         self.helper = FormHelper()
         self.helper.form_id = 'id-SearchForm'
         self.helper.form_method = 'get'
-        self.helper.form_action = '/dashboard/subscribers'
+        self.helper.form_action = reverse('subscribers-list')
         self.helper.form_class = 'form-horizontal'
         self.helper.field_class = 'col-xs-12 col-sm-8 col-md-12 col-xl-8'
         search_button = StrictButton('Search', css_class='btn-default',
@@ -167,7 +167,7 @@ class ChangePasswordForm(PasswordChangeForm):
         self.helper = FormHelper()
         self.helper.form_id = 'id-updateAccountForm'
         self.helper.form_method = 'post'
-        self.helper.form_action = '/account/password/change'
+        self.helper.form_action = reverse('change-password')
         self.helper.form_class = 'profile-form'
         self.error_message = ''
         self.helper.add_input(Submit('submit', 'Save'))
@@ -201,7 +201,7 @@ class NotifyEmailsForm(forms.Form):
         self.helper = FormHelper()
         self.helper.form_id = 'id-manage-notify-emails-form'
         self.helper.form_method = 'post'
-        self.helper.form_action = '/account/notify_emails/update'
+        self.helper.form_action = reverse('notify-emails')
         self.helper.form_class = 'profile-form'
         update_button = StrictButton('Update', css_class='btn-default',
                                      type='submit')
@@ -219,7 +219,7 @@ class NotifyNumbersForm(forms.Form):
         self.helper = FormHelper()
         self.helper.form_id = 'id-manage-notify-numbers-form'
         self.helper.form_method = 'post'
-        self.helper.form_action = '/account/notify_numbers/update'
+        self.helper.form_action = reverse('notify-numbers')
         self.helper.form_class = 'profile-form'
         update_button = StrictButton('Update', css_class='btn-default',
                                      type='submit')
@@ -262,7 +262,7 @@ class SubVacuumForm(forms.Form):
         self.helper = FormHelper()
         self.helper.form_id = 'inactive-subscribers-form'
         self.helper.form_method = 'post'
-        self.helper.form_action = '/dashboard/network/inactive-subscribers'
+        self.helper.form_action = reverse('network-inactive-subscribers')
         # Render the inactive_days field differently depending on whether or
         # not this feature is active.
         if args[0]['sub_vacuum_enabled']:
@@ -321,7 +321,7 @@ class NetworkSettingsForm(forms.Form):
         self.helper = FormHelper()
         self.helper.form_id = 'network-settings-form'
         self.helper.form_method = 'post'
-        self.helper.form_action = '/dashboard/network/edit'
+        self.helper.form_action = reverse('network-edit')
         # Render the autoupgrade field channel and window fields differently
         # depending on the state of autoupgrade_enabled.
         if args[0]['autoupgrade_enabled']:
@@ -414,7 +414,7 @@ class SelectTowerForm(forms.Form):
         self.helper = FormHelper()
         self.helper.form_id = 'select-tower-form'
         self.helper.form_method = 'post'
-        self.helper.form_action = '/dashboard/staff/tower-monitoring'
+        self.helper.form_action = reverse('tower-monitoring')
         self.helper.add_input(Submit('submit', 'Select'))
         self.helper.layout = Layout('tower')
 
@@ -430,7 +430,7 @@ class UserSearchForm(forms.Form):
         self.helper = FormHelper()
         self.helper.form_id = 'id-SearchForm'
         self.helper.form_method = 'get'
-        self.helper.form_action = '/dashboard/user/management'
+        self.helper.form_action = reverse('user-management')
         search_button = StrictButton('Search', css_class='btn-default',
                                      type='submit')
         self.helper.layout = Layout(FieldWithButtons('query', search_button))
@@ -471,7 +471,7 @@ class NetworkBalanceLimit(forms.Form):
         self.helper = FormHelper()
         self.helper.form_id = 'id-NetworkBalanceLimitForm'
         self.helper.form_method = 'post'
-        self.helper.form_action = '/dashboard/network/balance-limit'
+        self.helper.form_action = reverse('network-balance-limit')
         self.helper.form_class = 'col-xs-12 col-sm-8 col-md-12 col-xl-8'
         self.helper.add_input(Submit('submit', 'Save'))
         self.helper.layout = Layout('max_balance',
@@ -557,7 +557,7 @@ class NotificationForm(forms.Form):
         self.helper = FormHelper()
         self.helper.form_id = 'network-notification-form'
         self.helper.form_method = 'POST'
-        self.helper.form_action = '/dashboard/network/notification'
+        self.helper.form_action = reverse('network-notifications', kwargs={})
         fields = []
         fields.extend(['type', 'number', 'event', 'message', 'pk'])
         if language:
@@ -616,7 +616,7 @@ class NotificationSearchForm(forms.Form):
         self.helper = FormHelper()
         self.helper.form_id = 'id-NotificationSearchForm'
         self.helper.form_method = 'get'
-        self.helper.form_action = '/dashboard/network/notification'
+        self.helper.form_action = reverse('network-notifications', kwargs={})
         search_button = StrictButton('Filter', css_class='btn-default',
                                      type='submit')
         self.helper.form_class = 'col-sm-4'

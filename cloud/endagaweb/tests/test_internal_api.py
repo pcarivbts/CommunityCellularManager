@@ -96,7 +96,7 @@ class InternalAPITest(TestCase):
         data = {
             'number': self.num
         }
-        response = client.get("/internal/api/v1/number/", data=data)
+        response = client.get(reverse("api-v1-number"), data=data)
         response = json.loads(response.content)
         self.assertEqual(response["netloc"],
                          urlparse.urlparse(self.inbound_url).netloc)
@@ -114,7 +114,7 @@ class InternalAPITest(TestCase):
         header = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile.network.api_token
         }
-        response = client.get("/internal/api/v1/auth/", data=data, **header)
+        response = client.get(reverse("api-v1-auth"), data=data, **header)
         self.assertEqual(response.status_code, 200)
 
     def test_number_auth_bad_num(self):
@@ -126,7 +126,7 @@ class InternalAPITest(TestCase):
         header = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile.network.api_token
         }
-        response = client.get("/internal/api/v1/auth/", data=data, **header)
+        response = client.get(reverse("api-v1-auth"), data=data, **header)
         self.assertEqual(response.status_code, 401)
 
     def test_number_bad_auth(self):
@@ -138,7 +138,7 @@ class InternalAPITest(TestCase):
         header = {
             'HTTP_AUTHORIZATION': 'badtoken'
         }
-        response = client.get("/internal/api/v1/auth/", data=data, **header)
+        response = client.get(reverse("api-v1-auth"), data=data, **header)
         self.assertEqual(response.status_code, 403)
 
     def test_whitelist_auth(self):
@@ -147,7 +147,7 @@ class InternalAPITest(TestCase):
         data = {
             'number': self.num2,
         }
-        response = client.get("/internal/api/v1/auth/", data=data)
+        response = client.get(reverse("api-v1-auth"), data=data)
         self.assertEqual(response.status_code, 200)
 
     def test_whitelist_auth_bad_num(self):
@@ -156,5 +156,5 @@ class InternalAPITest(TestCase):
         data = {
             'number': self.num,
         }
-        response = client.get("/internal/api/v1/auth/", data=data)
+        response = client.get(reverse("api-v1-auth"), data=data)
         self.assertEqual(response.status_code, 403)

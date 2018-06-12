@@ -754,7 +754,7 @@ class NetworkBalanceLimit(ProtectedView):
             'user_profile': user_profile,
             'network': network,
             'currency': CURRENCIES[network.subscriber_currency],
-            'network_balance_limit_form': dashboard_forms.NetworkBalanceLimit({
+            'network-balance-limit_form': dashboard_forms.NetworkBalanceLimit({
                 'max_balance': '',
                 'max_unsuccessful_transaction': '',
 
@@ -804,15 +804,15 @@ class NetworkBalanceLimit(ProtectedView):
                         messages.error(request, error_text,
                                        extra_tags="alert alert-danger")
                         return redirect(
-                            urlresolvers.reverse('network_balance_limit'))
+                            urlresolvers.reverse('network-balance-limit'))
                 messages.success(request,
                                  ''.join(success),
                                  extra_tags="alert alert-success")
-                return redirect(urlresolvers.reverse('network_balance_limit'))
+                return redirect(urlresolvers.reverse('network-balance-limit'))
         except exceptions.ValidationError as e:
             tags = 'password alert alert-danger'
             messages.error(request, ''.join(e.messages), extra_tags=tags)
-            return redirect(urlresolvers.reverse('network_balance_limit'))
+            return redirect(urlresolvers.reverse('network-balance-limit'))
 
 
 class NetworkNotifications(ProtectedView):

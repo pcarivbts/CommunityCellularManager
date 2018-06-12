@@ -63,11 +63,11 @@ class TowerUITest(test.TestCase):
             'email': self.username,
             'password': self.password,
         }
-        self.client.post('/auth/', data)
+        self.client.post(reverse('auth-and-login'), data)
 
     def logout(self):
         """Log the client out."""
-        self.client.get('/logout')
+        self.client.get(reverse('logout'))
 
     def test_get_towers_sans_auth(self):
         self.logout()
@@ -230,7 +230,7 @@ class TowerUITest(test.TestCase):
         self.assertEqual(self.secondary_network, self.user_profile.network)
 
         self.secondary_network.auth_group.user_set.remove(self.user_profile.user)
-        response = self.client.get('/dashboard')
+        response = self.client.get(reverse('Call_Sms_Data_Usage'))
         self.assertEqual(200, response.status_code)
         self.user_profile.refresh_from_db()
         self.assertEqual(self.primary_network, self.user_profile.network)
@@ -239,7 +239,7 @@ class TowerUITest(test.TestCase):
         """If you have no networks, you should get an error"""
         self.login()
         self.primary_network.auth_group.user_set.remove(self.user_profile.user)
-        response = self.client.get('/dashboard')
+        response = self.client.get(reverse('Call_Sms_Data_Usage'))
         self.assertEqual(401, response.status_code)
         self.primary_network.auth_group.user_set.add(self.user_profile.user)
 

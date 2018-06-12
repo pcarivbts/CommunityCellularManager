@@ -49,11 +49,11 @@ class TestBase(TestCase):
             'email': self.username,
             'password': self.password,
         }
-        self.client.post('/auth/', data)
+        self.client.post(reverse('auth-and-login'), data)
 
     def logout(self):
         """Log the client out."""
-        self.client.get('/logout')
+        self.client.get(reverse('logout'))
 
 
 class NetworkLimitUITest(TestBase):
@@ -61,12 +61,12 @@ class NetworkLimitUITest(TestBase):
 
     def test_network_balance_limit_unauth_get_request(self):
         self.logout()
-        response = self.client.get(reverse('network_balance_limit'))
+        response = self.client.get(reverse('network-balance-limit'))
         self.assertEqual(302, response.status_code)
 
     def test_network_balance_limit_auth_get_request(self):
         self.login()
-        response = self.client.get(reverse('network_balance_limit'))
+        response = self.client.get(reverse('network-balance-limit'))
         self.assertEqual(200, response.status_code)
 
     def test_post_bad_response_with_invalid_input_limits(self):
@@ -76,7 +76,7 @@ class NetworkLimitUITest(TestBase):
             'max_unsuccessful_transaction': 2,
 
         }
-        response = self.client.post(reverse('network_balance_limit'), data)
+        response = self.client.post(reverse('network-balance-limit'), data)
         self.assertEqual(400, response.status_code)
 
     def test_post_bad_response_with_invalid_input_transactions(self):
@@ -86,7 +86,7 @@ class NetworkLimitUITest(TestBase):
             'max_unsuccessful_transactions': 2,
 
         }
-        response = self.client.post(reverse('network_balance_limit'), data)
+        response = self.client.post(reverse('network-balance-limit'), data)
         self.assertEqual(400, response.status_code)
 
     def test_post_response_redirect_status_code(self):
@@ -96,7 +96,7 @@ class NetworkLimitUITest(TestBase):
             'max_unsuccessful_transaction': 6,
 
         }
-        response = self.client.post(reverse('network_balance_limit'), data)
+        response = self.client.post(reverse('network-balance-limit'), data)
         self.assertEqual(302, response.status_code)
 
     def test_post_response_redirect_url(self):
@@ -106,5 +106,5 @@ class NetworkLimitUITest(TestBase):
             'max_unsuccessful_transaction': 6,
 
         }
-        response = self.client.post(reverse('network_balance_limit'), data)
-        self.assertEqual(reverse('network_balance_limit'), response.url)
+        response = self.client.post(reverse('network-balance-limit'), data)
+        self.assertEqual(reverse('network-balance-limit'), response.url)

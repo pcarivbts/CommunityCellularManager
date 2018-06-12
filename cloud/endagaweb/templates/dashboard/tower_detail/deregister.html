@@ -176,7 +176,7 @@ var towerElement = document.getElementById("towerId");
         $('#deregister-tower-messages-container').html(html).show();
         // Start the POST.
         $.ajax({
-          url: '/api/v2/towers/{{ tower.uuid }}',
+          url: '{% url "homepage" %}/api/v2/towers/{{ tower.uuid }}',
           type: 'DELETE',
           beforeSend: function(xhr) {
             xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');

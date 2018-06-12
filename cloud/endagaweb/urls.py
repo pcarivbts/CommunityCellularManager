@@ -23,58 +23,78 @@ import rest_framework.authtoken.views
 urlpatterns = [
     # API v1.
     url(r'^api-token-auth/',
-        rest_framework.authtoken.views.obtain_auth_token),
+        rest_framework.authtoken.views.obtain_auth_token,
+        name='api-token-auth'),
     url(r'^api/v1/register/(.*)/(.*)/',
-        endagaweb.views.api.Register.as_view()),
-    url(r'^api/v1/register/', endagaweb.views.api.Register.as_view()),
-    url(r'^api/v1/fetch/(.*)/', endagaweb.views.api.GetNumber.as_view()),
-    url(r'^api/v1/fetch/', endagaweb.views.api.GetNumber.as_view()),
-    url(r'^api/v1/send/', endagaweb.views.api.SendSMS.as_view()),
-    url(r'^api/v1/inbound/', endagaweb.views.api.InboundSMS.as_view()),
+        endagaweb.views.api.Register.as_view(),
+        name='api-v1-register-params'),
+    url(r'^api/v1/register/', endagaweb.views.api.Register.as_view(),
+        name='api-v1-register'),
+    url(r'^api/v1/fetch/(.*)/', endagaweb.views.api.GetNumber.as_view(),
+        name='api-v1-register-params'),
+    url(r'^api/v1/fetch/', endagaweb.views.api.GetNumber.as_view(),
+        name='api-v1-register'),
+    url(r'^api/v1/send/', endagaweb.views.api.SendSMS.as_view(),
+        name='api-v1-send'),
+    url(r'^api/v1/inbound/', endagaweb.views.api.InboundSMS.as_view(),
+        name='api-v1-inbound'),
     url(r'^api/v1/receipt/',
-        endagaweb.views.api.InboundReceipt.as_view()),
-    url(r'^api/v1/checkin', endagaweb.views.api.Checkin.as_view()),
-    url(r'^api/v1/bts/sslconf', endagaweb.views.api.SSLConfig.as_view()),
+        endagaweb.views.api.InboundReceipt.as_view(),
+        name='api-v1-receipt'),
+    url(r'^api/v1/checkin', endagaweb.views.api.Checkin.as_view(),
+        name='api-v1-checkin'),
+    url(r'^api/v1/bts/sslconf', endagaweb.views.api.SSLConfig.as_view(),
+        name='api-v1-bts-sslconf'),
     url(r'^api/v1/bts/register',
-        endagaweb.views.api.BTSRegistration.as_view()),
+        endagaweb.views.api.BTSRegistration.as_view(),
+        name='api-v1-bts-register'),
     url(r'^api/v1/bts/logfile',
-        endagaweb.views.api.BTSLogfile.as_view()),
+        endagaweb.views.api.BTSLogfile.as_view(),
+        name='api-v1-bts-logfile'),
     # API v2.
     # /numbers/<number> -- POST to start the number-deactivation process.
     url(r'^api/v2/numbers/(?P<msisdn>[0-9]+)$',
-        endagaweb.views.api_v2.Number.as_view(), name='number'),
+        endagaweb.views.api_v2.Number.as_view(), name='api-v2-number'),
     # /towers/<uuid> -- DELETE to start the bts deregistration process.
     url(r'^api/v2/towers/(?P<tower_uuid>[A-Za-z0-9-]+)$',
-        endagaweb.views.api_v2.Tower.as_view(), name='apiv2_tower'),
+        endagaweb.views.api_v2.Tower.as_view(), name='api-v2-tower'),
     # /subscribers/<imsi> -- DELETE to start the sub-deactivation process.
     url(r'^api/v2/subscribers/(?P<imsi>[^/]+)$',
-        endagaweb.views.api_v2.Subscriber.as_view(), name='v2_subscribers'),
+        endagaweb.views.api_v2.Subscriber.as_view(), name='api-v2-subscribers'),
 
     # Routes for the new stats API, not to be confused with /stats (below).
     # Passes the infrastructure level in the URL (global, network, etc) and the
     # level id as a query param.
     url(r'^api/v1/stats/(.*)',
-        endagaweb.stats_app.views.StatsAPIView.as_view()),
+        endagaweb.stats_app.views.StatsAPIView.as_view(),
+        name='api-v1-stats-params'),
 
     # the internal API.
     url(r'^internal/api/v1/number/',
-        endagaweb.views.internalapi.NumberLookup.as_view()),
+        endagaweb.views.internalapi.NumberLookup.as_view(),
+        name='api-v1-number'),
     url(r'^internal/api/v1/uuid/',
-        endagaweb.views.internalapi.UUIDLookup.as_view()),
+        endagaweb.views.internalapi.UUIDLookup.as_view(),
+        name='api-v1-uuid'),
     url(r'^internal/api/v1/auth/',
-        endagaweb.views.internalapi.NumberAuth.as_view()),
+        endagaweb.views.internalapi.NumberAuth.as_view(),
+        name='api-v1-auth'),
     url(r'^internal/api/v1/voice/',
-        endagaweb.views.internalapi.BillVoice.as_view()),
+        endagaweb.views.internalapi.BillVoice.as_view(),
+        name='api-v1-voice'),
 
     # Our homepage.
-    url(r'^$', endagaweb.views.static.LandingIndexView.as_view()),
+    url(r'^$', endagaweb.views.static.LandingIndexView.as_view(),
+        name='homepage'),
 
     # ELB testing endpoint
     url(r'^django-status', endagaweb.views.static.TestView.as_view()),
 
     # Notification emails and phone nnumbers
-    url(r'^account/notify_emails/update', endagaweb.views.user.update_notify_emails),
-    url(r'^account/notify_numbers/update', endagaweb.views.user.update_notify_numbers),
+    url(r'^account/notify_emails/update', endagaweb.views.user.update_notify_emails,
+        name='notify-emails'),
+    url(r'^account/notify_numbers/update', endagaweb.views.user.update_notify_numbers,
+        name='notify-numbers'),
 
     # Auth.
     url(r'^login/$', endagaweb.views.user.loginview, name='endagaweb-login'),
@@ -88,10 +108,10 @@ urlpatterns = [
     url(r'^password/change', endagaweb.views.user.change_expired_password, name="change-expired-password"),
 
     # Dashboard.
-    url(r'^dashboard/card', endagaweb.views.dashboard.addcard, name="card"),
+    url(r'^dashboard/card/', endagaweb.views.dashboard.addcard, name="card"),
     url(r'^addmoney/', endagaweb.views.dashboard.addmoney, name="addmoney"),
-    url(r'^dashboard/billing$', endagaweb.views.dashboard.billing_view, name="billing"),
-    url(r'^dashboard/profile', endagaweb.views.dashboard.profile_view, name="profile"),
+    url(r'^dashboard/billing/', endagaweb.views.dashboard.billing_view, name="billing"),
+    url(r'^dashboard/profile/', endagaweb.views.dashboard.profile_view, name="profile"),
     # Tower views in the dashboard.
     # /towers -- GET a list of towers or POST here to add one
     # /towers/<uuid> -- GET details on one tower
@@ -209,9 +229,9 @@ urlpatterns = [
     # Added for network balance limit
     url(r'^dashboard/network/balance-limit',
         endagaweb.views.network.NetworkBalanceLimit.as_view(),
-        name='network_balance_limit'),
+        name='network-balance-limit'),
     # Notifications
-    url(r'^dashboard/network/notification$',
+    url(r'^dashboard/network/notification/$',
         endagaweb.views.network.NetworkNotifications.as_view(),
         name='network-notifications'),
     url(r'^dashboard/network/notification/update',

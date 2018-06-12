@@ -38,7 +38,7 @@ class RegisterTest(test.TestCase):
             kind='number.nexmo.monthly', subscriber=cls.subscriber)
         registered_number.save()
         # Set the registration endpoint.
-        cls.endpoint = '/api/v1/register/'
+        cls.endpoint = reverse('api-v1-register')
 
     @classmethod
     def tearDownClass(cls):

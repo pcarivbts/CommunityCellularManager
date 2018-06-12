@@ -454,7 +454,7 @@ class SubsciberCheckinCampedTest(DjangoTestCase):
         """Towers can checkin and become active."""
         client = APIClient()
         response = client.login(username=self.username, password=self.password)
-        req_str = "/api/v1/checkin"
+        req_str = reverse("api-v1-checkin")
         status_data = {
             'events': [],
             'versions': {
@@ -547,7 +547,7 @@ class CheckinTest(DjangoTestCase):
         self.bts.status = "no-data"
         self.bts.save()
         self.client = APIClient()
-        self.req_str = "/api/v1/checkin"
+        self.req_str = reverse("api-v1-checkin")
         self.new_band = 'GSM850'
         self.new_channel = 128
         self.expected_bal = 5000
@@ -776,7 +776,7 @@ class CheckinTest(DjangoTestCase):
     def test_bts_registration(self):
         """A BTS can register."""
         client = APIClient()
-        req_str = "/api/v1/bts/register"
+        req_str = reverse("api-v1-bts-register")
         data = {
             'bts_uuid': str(self.bts.uuid),
             'vpn_status': 'up',
@@ -792,7 +792,7 @@ class CheckinTest(DjangoTestCase):
     def test_bts_registration_old_style(self):
         """A BTS can register."""
         client = APIClient()
-        req_str = "/api/v1/bts/register"
+        req_str = reverse("api-v1-bts-register")
         data = {
             'bts_uuid': str(self.bts.uuid),
             'vpn_status': 'up',
@@ -820,7 +820,7 @@ class CheckinTest(DjangoTestCase):
         new_bts.delete()
         # Post a checkin as the client would do.
         client = APIClient()
-        req_str = "/api/v1/checkin"
+        req_str = reverse("api-v1-checkin")
         status_data = {
             'events': [],
             'uptime': 143,

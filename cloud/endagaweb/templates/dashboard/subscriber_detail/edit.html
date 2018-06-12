@@ -173,7 +173,7 @@
       // Get the target number and start the POST request.
       var targetNumber = $('#modal-number-target').html();
       $.ajax({
-        url: '/api/v2/numbers/' + targetNumber,
+        url: '{% url "homepage" %}/api/v2/numbers' + targetNumber,
         type: 'POST',
         data: {
           state: 'available',
@@ -211,7 +211,7 @@
       $('#subscriber-messages-container').html(html).show();
       // Post to the endagaweb API.
       $.ajax({
-        url: '/api/v2/subscribers/' + '{{ subscriber.imsi }}',
+        url: '{% url "homepage" %}api/v2/subscribers' + '{{ subscriber.imsi }}',
         type: 'DELETE',
         beforeSend: function(xhr) {
           xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
