@@ -130,6 +130,7 @@ INSTALLED_APPS = [
     'guardian',
     'rest_framework',
     'rest_framework.authtoken',
+    'anymail',
 ]
 
 SITE_ID = 1
@@ -302,9 +303,13 @@ CELERY_QUEUES = {
     }
 }
 
-EMAIL_BACKEND = 'django_mailgun.MailgunBackend'
-MAILGUN_ACCESS_KEY = os.environ.get("MAILGUN_ACCESS_KEY", 'key-testkeypleaseignore')
-MAILGUN_SERVER_NAME = os.environ.get("MAILGUN_SERVER_NAME", '')
+EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend" 
+DEFAULT_FROM_EMAIL =  os.environ.get("DEFAULT_FROM_EMAIL", ""),
+ANYMAIL = {
+    "MAILGUN_API_KEY": os.environ.get("MAILGUN_ACCESS_KEY", ""),
+    "MAILGUN_SENDER_DOMAIN": os.environ.get("MAILGUN_SERVER_NAME", ""),  
+}
+
 
 # File uploads
 DEFAULT_FILE_STORAGE = 'endagaweb.util.storage.DatabaseStorage'
