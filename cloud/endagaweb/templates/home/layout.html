@@ -41,12 +41,12 @@ of patent rights can be found in the PATENTS file in the same directory.
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a href="/" class="navbar-brand">{% tmpl_const "SITENAME" %}</a>
+          <a href="{% url 'homepage' %}" class="navbar-brand">{% tmpl_const "SITENAME" %}</a>
         </div> <!-- /.navbar-header -->
 
         <nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
           <ul class="nav navbar-nav navbar-right">
-            <li><a href="/">Home</a></li>
+            <li><a href="{% url 'homepage' %}">Home</a></li>
             {% if user_profile.user.is_authenticated %}
             <li><a href="{% url 'Call_Sms_Data_Usage' %}">Dashboard</a></li>
             <li><a href="{% url 'logout' %}">Logout</a></li>
