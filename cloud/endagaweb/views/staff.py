@@ -15,7 +15,7 @@ import urllib
 
 from django import http
 from django import template
-from django.core import urlresolvers
+from django.core.urlresolvers import reverse
 from django.db.models.functions import Coalesce
 from django.db.models import Q
 from django.db.models import Sum
@@ -50,6 +50,7 @@ class Numbers(drf_views.APIView):
         user_profile = models.UserProfile.objects.get(user=request.user)
         if not user_profile.user.is_staff:
             return response.Response('', status=status.HTTP_404_NOT_FOUND)
+        network = user_profile.network
         numbers = models.Number.objects.all()
         # Configure the table of numbers.  Do not show any pagination controls
         # if the total number of numbers is small.
@@ -61,6 +62,7 @@ class Numbers(drf_views.APIView):
         tables.RequestConfig(request, paginate=paginate).configure(
             number_table)
         context = {
+            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
             'user_profile': user_profile,
             'number_table': number_table,
@@ -85,6 +87,7 @@ class Towers(drf_views.APIView):
         user_profile = models.UserProfile.objects.get(user=request.user)
         if not user_profile.user.is_staff:
             return response.Response('', status=status.HTTP_404_NOT_FOUND)
+        network = user_profile.network
         # We create a convoluted queryset so that towers that have never synced
         # (last_active = None) sort after active and inactive towers.
         the_past = datetime.datetime.now() - datetime.timedelta(days=10*365)
@@ -109,6 +112,7 @@ class Towers(drf_views.APIView):
         tables.RequestConfig(request, paginate=paginate).configure(
             tower_table)
         context = {
+            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
             'user_profile': user_profile,
             'towers': towers,
@@ -134,9 +138,11 @@ class MarginAnalysis(drf_views.APIView):
         user_profile = models.UserProfile.objects.get(user=request.user)
         if not user_profile.user.is_staff:
             return response.Response('', status=status.HTTP_404_NOT_FOUND)
+        network = user_profile.network
         # Build up the context and initial form data.
         initial_form_data = {}
         context = {
+            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
             'user_profile': user_profile,
         }
@@ -389,9 +395,11 @@ class TowerMonitoring(drf_views.APIView):
         user_profile = models.UserProfile.objects.get(user=request.user)
         if not user_profile.user.is_staff:
             return response.Response('', status=status.HTTP_404_NOT_FOUND)
+        network = user_profile.network
         # Build up the context and initial form data.
         initial_form_data = {}
         context = {
+            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
             'user_profile': user_profile,
         }
@@ -444,9 +452,11 @@ class NetworkEarnings(drf_views.APIView):
         user_profile = models.UserProfile.objects.get(user=request.user)
         if not user_profile.user.is_staff:
             return response.Response('', status=status.HTTP_404_NOT_FOUND)
+        network = user_profile.network
         # Build up the context and initial form data.
         initial_form_data = {}
         context = {
+            'network': network,
             'networks': get_objects_for_user(request.user, 'view_network', klass=models.Network),
             'user_profile': user_profile,
         }
@@ -516,7 +526,7 @@ class NetworkEarnings(drf_views.APIView):
         # Attach the network selection form with any specified initial data.
         select_network_form = SelectNetworkForm(initial=initial_form_data)
         select_network_form.helper.form_action = (
-            reverse('/network-earnings'))
+            reverse('network-earnings'))
         context['select_network_form'] = select_network_form
         # Render the template.
         earnings_template = template.loader.get_template(

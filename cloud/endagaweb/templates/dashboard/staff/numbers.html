@@ -48,7 +48,7 @@ $(function() {
       state: 'released',
       csrfmiddlewaretoken: '{{ csrf_token }}',
     };
-    var url = '{% url "subscriber-edit" %}/' + this.id;
+    var url = '{% url "homepage" %}api/v2/numbers/' + this.id;
     $.ajax({
       url: url,
       type: 'POST',

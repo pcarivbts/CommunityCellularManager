@@ -365,10 +365,11 @@ class SelectNetworkForm(forms.Form):
                 user_profile = models.UserProfile.objects.get(network=network)
             except models.UserProfile.DoesNotExist:
                 continue
-            if user_profile.user.email:
-                owner = user_profile.user.email
-            else:
-                owner = user_profile.user.username
+            owner = ",".join(str(email) for email in user_profile_emails)
+#             if user_profile.user.email:
+#                 owner = user_profile.user.email
+#             else:
+#                 owner = user_profile.user.username
             display = '%s (%s)' % (network.name, owner)
             choices.append((value, display))
         self.fields['network'] = forms.ChoiceField(

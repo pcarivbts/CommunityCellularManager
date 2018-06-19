@@ -326,14 +326,14 @@ if 'django.contrib.admin' in settings.INSTALLED_APPS:
     # Register any apps that have admin functionality and add new URLs.
     admin.autodiscover()
     urlpatterns += [
-        url(r'^django-admin/', include(admin.site.urls)),
+        url(r'^django-admin/', include(admin.site.urls), name='admin'),
     ]
 
 
 # We only install the loginas app in the staff version of the site and we hide
 # the ghosting routes in other versions.
 if 'loginas' in settings.INSTALLED_APPS:
-    urlpatterns += url(r'^django-admin/', include('loginas.urls')),
+    urlpatterns += url(r'^django-admin/', include('loginas.urls'),  name='admin'),
 
 if 'DatabaseStorage' in settings.DEFAULT_FILE_STORAGE:
     urlpatterns += [
