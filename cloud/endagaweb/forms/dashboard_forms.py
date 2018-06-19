@@ -362,7 +362,7 @@ class SelectNetworkForm(forms.Form):
         for network in all_networks:
             value = network.id
             try:
-                user_profile = models.UserProfile.objects.get(network=network)
+                user_profile_emails = models.UserProfile.objects.filter(network=network).values_list('user__email', flat=True)
             except models.UserProfile.DoesNotExist:
                 continue
             owner = ",".join(str(email) for email in user_profile_emails)
