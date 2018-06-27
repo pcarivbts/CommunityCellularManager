@@ -91,7 +91,8 @@ $("#dialog").modal('show');
  {% include "dashboard/report/nav.html" with active_tab='Call_Sms_Data_Usage' %}
    <div class='content col-xs-12 col-sm-10 col-md-10'>
      {% if 'view_graph' in user_permission %}
-     {% include "dashboard/report/cms-filter-action.html" with action_url='Call_Sms_Data_Usage' %}
+     {% url 'Call_Sms_Data_Usage' as action_url %}
+     {% include "dashboard/report/cms-filter-action.html" with action_url=action_url %}
      {% if network_has_activity %}
   <div id='sms-usage-chart'></div>
   <div id='call-usage-chart'></div>

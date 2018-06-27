@@ -56,10 +56,10 @@ urlpatterns = [
     # API v2.
     # /numbers/<number> -- POST to start the number-deactivation process.
     url(r'^api/v2/numbers/(?P<msisdn>[0-9]+)$',
-        endagaweb.views.api_v2.Number.as_view(), name='api-v2-number'),
+        endagaweb.views.api_v2.Number.as_view(), name='api-v2-numbers'),
     # /towers/<uuid> -- DELETE to start the bts deregistration process.
     url(r'^api/v2/towers/(?P<tower_uuid>[A-Za-z0-9-]+)$',
-        endagaweb.views.api_v2.Tower.as_view(), name='api-v2-tower'),
+        endagaweb.views.api_v2.Tower.as_view(), name='api-v2-towers'),
     # /subscribers/<imsi> -- DELETE to start the sub-deactivation process.
     url(r'^api/v2/subscribers/(?P<imsi>[^/]+)$',
         endagaweb.views.api_v2.Subscriber.as_view(), name='api-v2-subscribers'),
