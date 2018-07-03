@@ -25,6 +25,7 @@ from random import randrange
 import urllib
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.urlresolvers import reverse
 from django.test import Client
 from django.test import TestCase
 import stripe
@@ -798,7 +799,7 @@ class VoiceBillingTest(TestCase):
         """We can process outgoing voice CDRs."""
         client = Client()
         response = client.post(
-            "/internal/api/v1/voice/",
+            reverse('api-v1-voice'),
             data='cdr=%s' % (urllib.quote_plus(self.outgoing_xml), ),
             content_type='application/x-www-form-urlencoded')
         self.assertEqual(200, response.status_code)
@@ -824,7 +825,7 @@ class VoiceBillingTest(TestCase):
         off_receive_tier.save()
         client = Client()
         response = client.post(
-            "/internal/api/v1/voice/",
+            reverse('api-v1-voice'),
             data='cdr=%s' % (urllib.quote_plus(self.incoming_xml), ),
             content_type='application/x-www-form-urlencoded')
         # Refresh the user profile to get the latest balance.
@@ -864,7 +865,7 @@ class VoiceBillingTest(TestCase):
         off_receive_tier.save()
         client = Client()
         response = client.post(
-            "/internal/api/v1/voice/",
+            reverse('api-v1-voice'),
             data='cdr=%s' % (urllib.quote_plus(self.internal_xml), ),
             content_type='application/x-www-form-urlencoded')
         self.assertEqual(200, response.status_code)
@@ -888,7 +889,7 @@ class VoiceBillingTest(TestCase):
         """We can process invalid CDRs."""
         client = Client()
         response = client.post(
-            "/internal/api/v1/voice/",
+            reverse('api-v1-voice'),
             data='cdr=%s' % (urllib.quote_plus(self.invalid_xml), ),
             content_type='application/x-www-form-urlencoded')
         self.assertEqual(404, response.status_code)
@@ -897,7 +898,7 @@ class VoiceBillingTest(TestCase):
         """We can handle bad XML."""
         client = Client()
         response = client.post(
-                "/internal/api/v1/voice/",
+                reverse('api-v1-voice'),
                 data='cdr=%s' % urllib.quote_plus("<mhm>"),
                 content_type='application/x-www-form-urlencoded')
         self.assertEqual(400, response.status_code)
@@ -906,7 +907,7 @@ class VoiceBillingTest(TestCase):
         """We can handle even more bad XML!"""
         client = Client()
         response = client.post(
-                "/internal/api/v1/voice/",
+                reverse('api-v1-voice'),
                 data='cdr=%s' % urllib.quote_plus("<yup/>"),
                 content_type='application/x-www-form-urlencoded')
         self.assertEqual(400, response.status_code)

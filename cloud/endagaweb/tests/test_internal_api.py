@@ -11,6 +11,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 import json
 import urlparse
 
+from django.core.urlresolvers import reverse
 from django.test import Client
 from django.test import TestCase
 

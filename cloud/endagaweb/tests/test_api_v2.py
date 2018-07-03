@@ -11,12 +11,14 @@ of patent rights can be found in the PATENTS file in the same directory.
 import datetime
 import json
 
+from django.core.urlresolvers import reverse
 from django.test import Client
 from django.test import TestCase
 from rest_framework.authtoken.models import Token
 import itsdangerous
 import mock
 import pytz
+import sys
 
 from endagaweb import models
 
@@ -113,13 +115,13 @@ class NumberTest(TestCase):
         header = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile2.network.api_token
         }
-        url = reverse('api-v2-number', kwargs={'msisdn': self.number.number})
+        url = reverse('api-v2-numbers', kwargs={'msisdn': self.number.number})
         response = self.client.get(url, **header)
         self.assertEqual(405, response.status_code)
 
     def test_post_sans_token(self):
         """POST fails without a token."""
-        url = reverse('api-v2-number', kwargs={'msisdn': self.number.number})
+        url = reverse('api-v2-numbers', kwargs={'msisdn': self.number.number})
         data = {
             'state': 'available'
         }
@@ -130,7 +132,7 @@ class NumberTest(TestCase):
     def test_post_wrong_token(self):
         """POST with the wrong token fails."""
         # Try to POST to UserProfile1's number with UP2's API token.
-        url = reverse('api-v2-number', kwargs={'msisdn': self.number.number})
+        url = reverse('api-v2-numbers', kwargs={'msisdn': self.number.number})
         data = {
             'state': 'available'
         }
@@ -142,7 +144,7 @@ class NumberTest(TestCase):
 
     def test_post_sans_params(self):
         """POST fails without valid params."""
-        url = reverse('api-v2-number', kwargs={'msisdn': self.number.number})
+        url = reverse('api-v2-numbers', kwargs={'msisdn': self.number.number})
         data = {}
         header = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile.network.api_token
@@ -152,7 +154,7 @@ class NumberTest(TestCase):
 
     def test_post_invalid_state(self):
         """POST fails with invalid state."""
-        url = reverse('api-v2-number', kwargs={'msisdn': self.number.number})
+        url = reverse('api-v2-numbers', kwargs={'msisdn': self.number.number})
         data = {
             'state': 'invalid'
         }
@@ -177,7 +179,7 @@ class NumberTest(TestCase):
                                    kind="number.nexmo.monthly")
         new_number.save()
         # Deactivate the original number.
-        url = reverse('api-v2-number', kwargs={'msisdn': self.number.number})
+        url = reverse('api-v2-numbers', kwargs={'msisdn': self.number.number})
         data = {
             'state': 'available'
         }
@@ -220,7 +222,7 @@ class NumberTest(TestCase):
 
         (Should delete the subscriber instead.)
         """
-        url = reverse('api-v2-number', kwargs={'msisdn': self.number.number})
+        url = reverse('api-v2-numbers', kwargs={'msisdn': self.number.number})
         data = {
             'state': 'available'
         }
@@ -240,7 +242,7 @@ class NumberTest(TestCase):
     def test_release_number_not_staff(self):
         """Only staff can release numbers."""
         self.login(self.user)
-        url = '/api/v2/numbers/%s' % self.number3.number
+        url = reverse('api-v2-numbers', kwargs={'msisdn': self.number3.number})
         data = {
             'state': 'released'
         }
@@ -257,7 +259,7 @@ class NumberTest(TestCase):
         # But drop the number into an inuse state.
         self.number3.state = 'inuse'
         self.number3.save()
-        url = '/api/v2/numbers/%s' % self.number3.number
+        url = reverse('api-v2-numbers', kwargs={'msisdn': self.number3.number})
         data = {
             'state': 'released'
         }
@@ -274,7 +276,7 @@ class NumberTest(TestCase):
         # But associate the number with a sub.
         self.number3.subscriber = self.sub
         self.number3.save()
-        url = '/api/v2/numbers/%s' % self.number3.number
+        url = reverse('api-v2-numbers', kwargs={'msisdn': self.number3.number})
         data = {
             'state': 'released'
         }
@@ -297,7 +299,7 @@ class NumberTest(TestCase):
         self.number3.subscriber = None
         self.number3.state = 'available'
         self.number3.save()
-        url = '/api/v2/numbers/%s' % self.number3.number
+        url = reverse('api-v2-numbers', kwargs={'msisdn': self.number3.number})
         data = {
             'state': 'released'
         }
@@ -367,7 +369,7 @@ class TowerTest(TestCase):
         header = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile2.network.api_token
         }
-        url = '/api/v2/towers/%s' % self.bts.uuid
+        url = reverse('api-v2-towers', kwargs={'tower_uuid': self.bts.uuid})
         response = self.client.get(url, **header)
         self.assertEqual(405, response.status_code)
 
@@ -377,13 +379,13 @@ class TowerTest(TestCase):
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile2.network.api_token
         }
         data = {}
-        url = '/api/v2/towers/%s' % self.bts.uuid
+        url = reverse('api-v2-towers', kwargs={'tower_uuid': self.bts.uuid})
         response = self.client.post(url, data=data, **header)
         self.assertEqual(405, response.status_code)
 
     def test_delete_sans_token(self):
         """DELETE fails without a token."""
-        url = '/api/v2/towers/%s' % self.bts.uuid
+        url = reverse('api-v2-towers', kwargs={'tower_uuid': self.bts.uuid})
         header = {}
         response = self.client.delete(url, **header)
         self.assertEqual(403, response.status_code)
@@ -391,7 +393,7 @@ class TowerTest(TestCase):
     def test_delete_wrong_token(self):
         """DELETE with the wrong token fails."""
         # Try to DELETE UserProfile1's BTS with UP2's API token.
-        url = '/api/v2/towers/%s' % self.bts.uuid
+        url = reverse('api-v2-towers', kwargs={'tower_uuid':self.bts.uuid})
         header = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile2.network.api_token
         }
@@ -407,7 +409,7 @@ class TowerTest(TestCase):
         }
         self.bts.package_versions = json.dumps(package_versions)
         self.bts.save()
-        url = '/api/v2/towers/%s' % self.bts.uuid
+        url = reverse('api-v2-towers', kwargs={'tower_uuid': self.bts.uuid})
         header = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile.network.api_token
         }
@@ -426,7 +428,7 @@ class TowerTest(TestCase):
         self.assertEqual(1, models.BTS.objects.count())
         self.assertEqual(0, models.DeregisteredBTS.objects.count())
         # Make the request.
-        url = '/api/v2/towers/%s' % self.bts.uuid
+        url = reverse('api-v2-towers', kwargs={'tower_uuid':self.bts.uuid})
         header = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile.network.api_token
         }
@@ -538,7 +540,7 @@ class SubscriberTest(TestCase):
         header = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile2.network.api_token
         }
-        url = '/api/v2/subscribers/%s' % self.sub.imsi
+        url = reverse('api-v2-subscribers', kwargs={'imsi':self.sub.imsi})
         response = self.client.get(url, **header)
         self.assertEqual(405, response.status_code)
 
@@ -548,13 +550,13 @@ class SubscriberTest(TestCase):
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile2.network.api_token
         }
         data = {}
-        url = '/api/v2/subscribers/%s' % self.sub.imsi
+        url = reverse('api-v2-subscribers', kwargs={'imsi':self.sub.imsi})
         response = self.client.post(url, data=data, **header)
         self.assertEqual(405, response.status_code)
 
     def test_delete_sans_token(self):
         """DELETE fails without a token."""
-        url = '/api/v2/subscribers/%s' % self.sub.imsi
+        url = reverse('api-v2-subscribers', kwargs={'imsi':self.sub.imsi})
         header = {}
         response = self.client.delete(url, **header)
         self.assertEqual(403, response.status_code)
@@ -562,7 +564,7 @@ class SubscriberTest(TestCase):
     def test_delete_wrong_token(self):
         """DELETE with the wrong token fails."""
         # Try to DELETE UserProfile1's subscriber with UP2's API token.
-        url = '/api/v2/subscribers/%s' % self.sub.imsi
+        url = reverse('api-v2-subscribers', kwargs={'imsi':self.sub.imsi})
         header = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile2.network.api_token
         }
@@ -578,7 +580,7 @@ class SubscriberTest(TestCase):
         'delete_imsi' UsageEvent.  Also deletes all associated
         PendingCreditUpdates.
         """
-        url = '/api/v2/subscribers/%s' % self.sub.imsi
+        url = reverse('api-v2-subscribers', kwargs={'imsi':self.sub.imsi})
         header = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile.network.api_token
         }
@@ -622,7 +624,7 @@ class SubscriberTest(TestCase):
 
         This is the case for self.sub2.
         """
-        url = '/api/v2/subscribers/%s' % self.sub2.imsi
+        url = reverse('api-v2-subscribers', kwargs={'imsi':self.sub2.imsi})
         header = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile2.network.api_token
         }
@@ -649,9 +651,8 @@ class SubscriberTest(TestCase):
     def test_bulk_deactivate_subscriber(self):
         """We can deactivate the bulk Subscriber via DELETE """
 
-
-        url = '/api/v2/subscribers/%s,%s' % (self.sub.imsi,self.sub2_network1.imsi)
-        print(url)
+        params = '%s,%s' % (self.sub.imsi,self.sub2_network1.imsi)
+        url = reverse('api-v2-subscribers', kwargs={'imsi':params})
         header = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user_profile.network.api_token
         }

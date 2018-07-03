@@ -9,7 +9,7 @@ of patent rights can be found in the PATENTS file in the same directory.
 """
 
 from django import test
-
+from django.core.urlresolvers import reverse
 from endagaweb import models
 
 class RegisterTest(test.TestCase):

@@ -266,7 +266,7 @@ urlpatterns = [
         name='health-report'),
     url(r'^dashboard/broadcast',
         endagaweb.views.dashboard.BroadcastView.as_view(),
-        name='sms-brosdcast'),
+        name='sms-broadcast'),
     # Raise a server error on-demand to test the 500 template.
     url(r'^insta-five-hundred$',
         endagaweb.views.static.InstaFiveHundred.as_view(),

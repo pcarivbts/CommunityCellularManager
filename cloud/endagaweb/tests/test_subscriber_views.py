@@ -259,7 +259,7 @@ class BroadcastViewTest(SubscriberBaseTest):
             'tower_id': '',
             'imsi': self.subscriber_imsi
         }
-        url = reverse('sms-brosdcast')
+        url = reverse('sms-broadcast')
         with mock.patch('endagaweb.tasks.async_post.delay') as mocked_task:
             self.client.post(url, data)
             self.assertTrue(mocked_task.called)

@@ -160,7 +160,7 @@ def change_password(request):
     # Validate url for redirect
     if urlparse.urlparse(request.META['HTTP_REFERER']
                          ).path != reverse('profile'):
-        redirect_url = '/password/change'
+        redirect_url = reverse_lazy('change-expired-password')
     else:
         redirect_url = reverse('profile')
     if not request.user.check_password(request.POST['old_password']):

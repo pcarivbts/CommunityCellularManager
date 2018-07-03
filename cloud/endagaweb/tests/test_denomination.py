@@ -63,7 +63,7 @@ class TestBase(TestCase):
 
     def logout(self):
         """Log the client out."""
-        self.client.get(reverse('/logout'))
+        self.client.get(reverse('logout'))
 
 
 class DenominationUITest(TestBase):
@@ -71,30 +71,30 @@ class DenominationUITest(TestBase):
 
     def test_add_denominaton(self):
         self.logout()
-        response = self.client.get(reverse('network-denominations-manage'))
+        response = self.client.get(reverse('network-denominations'))
         # Anonymous User can not see this page so returning  permission denied.
         self.assertEqual(302, response.status_code)
 
     def test_add_denominaton_auth(self):
         self.login()
-        response = self.client.get(reverse('network-denominations-manage'))
+        response = self.client.get(reverse('network-denominations'))
         self.assertEqual(200, response.status_code)
 
     def test_delete_denominaton(self):
         self.logout()
-        response = self.client.delete(reverse('network-denominations-manage'))
+        response = self.client.delete(reverse('network-denominations'))
         # Anonymous User can not see this page so returning  permission denied.
         self.assertEqual(302, response.status_code)
 
     def test_delete_denominaton_auth(self):
         self.login()
-        response = self.client.delete(reverse('network-denominations-manage'))
+        response = self.client.delete(reverse('network-denominations'))
         self.assertEqual(200, response.status_code)
 
     def test_post_add_denominaton(self):
         self.logout()
         data = {}
-        response = self.client.post(reverse('network-denominations-manage'), data)
+        response = self.client.post(reverse('network-denominations'), data)
         # Anonymous User can not see this page so returning  permission denied.
         self.assertEqual(302, response.status_code)
 
@@ -105,5 +105,5 @@ class DenominationUITest(TestBase):
             'end_amount': 2,
             'validity_days': 3
         }
-        response = self.client.post(reverse('network-denominations'), data)
+        response = self.client.post(reverse('network-denominations-manage'), data)
         self.assertEqual(302, response.status_code)

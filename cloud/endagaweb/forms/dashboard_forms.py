@@ -129,7 +129,7 @@ class SubscriberSendSMSForm(forms.Form):
         params = {
             'imsi': kwargs.get('initial').get('imsi')
         }
-        self.helper.form_action = urlresolvers.reverse('subscriber-send-sms',
+        self.helper.form_action = reverse('subscriber-send-sms',
                                                        kwargs=params)
         self.helper.form_class = 'col-xs-12 col-md-8 col-lg-6'
         self.helper.layout = Layout(
