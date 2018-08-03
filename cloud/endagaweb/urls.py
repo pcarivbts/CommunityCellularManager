@@ -70,7 +70,9 @@ urlpatterns = [
     url(r'^api/v1/stats/(.*)',
         endagaweb.stats_app.views.StatsAPIView.as_view(),
         name='api-v1-stats-params'),
-
+    url(r'^api/v1/stats/',
+        endagaweb.stats_app.views.StatsAPIView.as_view(),
+        name='api-v1-stats'),
     # the internal API.
     url(r'^internal/api/v1/number/',
         endagaweb.views.internalapi.NumberLookup.as_view(),

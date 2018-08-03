@@ -137,6 +137,7 @@ of patent rights can be found in the PATENTS file in the same directory.
       $('.timezone-notice').fadeIn(500);
     }, 800);
   });
+  var url_stats = '{% url "api-v1-stats" %}'
 </script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap3-dialog/1.34.7/js/bootstrap-dialog.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.12.2/react.min.js"></script>
@@ -441,7 +442,7 @@ function renderNonLoder() {
       'level-id':{{ level_id }},
       'aggregation': 'non_loader_base'
     };
-    var endpoint = '{% url "homepage" %}/api/v1/stats/{{ level }}';
+    var endpoint = '{% url "api-v1-stats" %}{{ level }}';
     $.get(endpoint, queryParams, function(data) {
 
       var tableHeader = data['results'][0]['values']['header'];
