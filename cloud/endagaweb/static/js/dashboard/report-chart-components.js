@@ -9,6 +9,7 @@
 
 // React chart components.
 
+alert(url_stats);
 
 var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
 
@@ -39,7 +40,7 @@ var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
             icons: ['graph', 'list'],
             defaultView: 'graph',
             defaultButtonText: 'week',
-            endpoint: '{% url "homepage" %}/api/v1/stats/',
+            endpoint: url_stats,
             statTypes: 'sms',
             level: 'network',
             levelID: 0,

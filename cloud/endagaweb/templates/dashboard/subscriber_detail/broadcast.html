@@ -2,7 +2,7 @@
 {% load guardian_tags %}
 {% get_obj_perms request.user for network as 'user_permission' %}
 <div class='modal fade' id='broadcast-modal'>
-    <form id='broadcast-form' name="broadcast-form" method="post" onsubmit="return broadcastSms();">
+    <form id='broadcast-form' action='{% url "sms-broadcast" %}' name="broadcast-form" method="post" onsubmit="return broadcastSms();">
         <div class='modal-dialog'>
             {% if 'send_sms' in user_permission %}
             <div class='modal-content'>

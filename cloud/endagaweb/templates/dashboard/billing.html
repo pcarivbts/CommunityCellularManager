@@ -119,6 +119,10 @@ of patent rights can be found in the PATENTS file in the same directory.
 {% block js %}
 
 <script src="https://checkout.stripe.com/checkout.js"></script>
+<script>
+var url_card = '{% url "card" %}'
+var url_billing = '{% url "billing" %}'
+</script>
 <script src="/static/js/dashboard/card.js"></script>
 <script>
 document.getElementById('add-card-button').addEventListener('click', function(e) {

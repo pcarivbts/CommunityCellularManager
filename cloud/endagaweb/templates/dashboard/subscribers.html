@@ -256,7 +256,7 @@ of patent rights can be found in the PATENTS file in the same directory.
           $('#subscriber-messages-container').html(html).show();
           // Post to the endagaweb API.
           $.ajax({
-            url: '{% url "api-v2-subscribers" %}' + imsi_list_value,
+            url: '{% url "homepage" %}/api/v2/subscribers/' + imsi_list_value,
             type: 'DELETE',
             beforeSend: function(xhr) {
               xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');

@@ -39,16 +39,16 @@ $.ajaxSetup({
         }
     }
 });
-
+ 
 var handler = StripeCheckout.configure({
     key: 'pk_test_lvEW8OEWO4MVah4WwyLC6cxa',
     image: '/static/img/placeholder-logo.png',
     token: function(token, args) {
         $.ajax({
             type: "POST",
-            url:  "{% url 'card' %}",
+            url:  url_card,
             data: {"stripe_token": token},
-            complete: window.location.replace("{% url 'billing' %}"),
+            complete: window.location.replace(url_billing),
             async: false,
         })
     }
