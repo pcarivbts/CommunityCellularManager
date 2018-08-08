@@ -16,7 +16,6 @@ django-debug-toolbar==1.4.0
 django-guardian==1.4.2
 django-logentry-admin==1.0.2
 django-loginas==0.1.9
-django-mailgun==0.8.0
 django-picklefield==0.3.2
 django-qsstats-magic==0.7.2
 django-queryset-csv==0.3.3
@@ -44,7 +43,9 @@ snowflake
 sqlparse==0.1.14
 stripe==1.9.5
 tornado==3.2.2
-uWSGI==2.0.12
 urllib3[secure]>=1.18.1
 xlrd==0.9.3
 googletrans==2.2.0
+uWSGI==2.0.17.1
+supervisor==3.2.0
+django-anymail
