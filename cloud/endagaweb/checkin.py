@@ -190,18 +190,24 @@ class CheckinResponder(object):
 
     def versions(self, section):
         versions = {}
-        versions['endaga_version'] = self.bts.sortable_version(section['endaga'])
-        versions['freeswitch_version'] = self.bts.sortable_version(section['freeswitch'])
-        versions['python_endaga_core_version'] = self.bts.sortable_version(section['python-endaga-core'])
+        versions['endaga_version'] = self.bts.sortable_version(
+            section['endaga'])
+        versions['freeswitch_version'] = self.bts.sortable_version(
+            section['freeswitch'])
+        versions['python_endaga_core_version'] = self.bts.sortable_version(
+            section['python-endaga-core'])
         # backwards compatibility
         if 'python-gsm' in section:
-            versions['python_gsm_version'] = self.bts.sortable_version(section['python-gsm'])
+            versions['python_gsm_version'] = self.bts.sortable_version(
+                section['python-gsm'])
         else:
-            versions['python_gsm_version'] = self.bts.sortable_version(section['python-openbts'])
+            versions['python_gsm_version'] = self.bts.sortable_version(
+                section['python-openbts'])
         if 'gsm' in section:
             versions['gsm_version'] = self.bts.sortable_version(section['gsm'])
         else:
-            versions['gsm_version'] = self.bts.sortable_version(section['openbts-public'])
+            versions['gsm_version'] = self.bts.sortable_version(
+                section['openbts-public'])
         self.bts.package_versions = json.dumps(versions)
 
     def camped_subscribers(self, camped_subscribers):

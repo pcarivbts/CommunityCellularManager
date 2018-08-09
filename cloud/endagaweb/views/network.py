@@ -20,6 +20,7 @@ from django.contrib import messages
 from django.core import exceptions
 from django.core import urlresolvers
 from django.db import transaction, IntegrityError
+from django.http import HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.template.loader import get_template
 from googletrans.constants import LANGUAGES
@@ -463,8 +464,7 @@ class NetworkSelectView(ProtectedView):
             if 'sync_status' in request.session:
                 del request.session['sync_status']
         except models.Network.DoesNotExist:
-            return http.HttpResponseBadRequest()
-
+            return http.HttpResponse('Network doesn\'t exist.', status=401)
         if not request.user.has_perm('view_network', network):
             return http.HttpResponse('User not permitted to view this network', status=401)
 

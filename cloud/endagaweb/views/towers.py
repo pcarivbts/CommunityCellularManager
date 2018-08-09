@@ -46,7 +46,7 @@ class PermissionRequired(PermissionRequiredMixin):
         return super(PermissionRequired, self).dispatch(request, *args, **kwargs)
 
 
-class TowerList(PermissionRequired, drf_views.APIView):
+class TowerList(drf_views.APIView, PermissionRequired):
     """View the list of towers."""
 
     # Setup DRF permissions and auth.

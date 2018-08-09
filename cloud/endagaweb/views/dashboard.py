@@ -1497,7 +1497,7 @@ class BroadcastView(ProtectedView):
         if sendto in ['network', 'tower']:
             if (sendto == 'tower' and not tower_id) or sendto == 'network':
                 # Lookup for BTS inbound_url.
-                bts_list = BTS.objects.filter(network=network_id)
+                bts_list = BTS.objects.filter(network_id=network_id)
             else:
                 # Lookup for BTS inbound_url.
                 bts_list = BTS.objects.filter(id=tower_id)
