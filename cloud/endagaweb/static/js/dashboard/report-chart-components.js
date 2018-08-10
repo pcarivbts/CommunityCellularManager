@@ -9,8 +9,6 @@
 
 // React chart components.
 
-alert(url_stats);
-
 var TimeseriesChartWithButtonsAndDatePickers = React.createClass({
 
     getInitialState: function() {
