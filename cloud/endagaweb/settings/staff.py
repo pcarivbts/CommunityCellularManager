@@ -35,7 +35,7 @@ INSTALLED_APPS += [
 # staff signup / login from these domains.  And we override an allauth Adapter
 # to implement this whitelisting.
 ACCOUNT_EMAIL_REQUIRED = True
-LOGIN_REDIRECT_URL = '/ccm/dashboard'
+LOGIN_REDIRECT_URL = '/dashboard'
 STAFF_EMAIL_DOMAIN_WHITELIST = ['gmail.com']
 SOCIALACCOUNT_ADAPTER = 'endagaweb.views.user.WhitelistedSocialAccountAdapter'
 ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"
