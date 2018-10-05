@@ -182,6 +182,16 @@ def process_confirm(from_imsi, code):
     res = r.fetchone()
     if res and len(res) == 3:
         from_imsi, to_imsi, amount = res
+
+        # One final check that the sender still has enough balance
+        from_imsi_outstanding_balance = subscriber.get_account_balance(from_imsi)
+        if not from_imsi_outstanding_balance or from_imsi_outstanding_balance < amount:
+            # Remove this code as it's no longer valid.
+            db.execute("DELETE FROM pending_transfers WHERE code=?"
+                   " AND from_acct=?", (code, from_imsi))
+            return False, gt("Your account doesn't have sufficient funds for"
+                             " the transfer. (%(code)s)" % {'code': code})
+
         from_num = subscriber.get_numbers_from_imsi(from_imsi)[0]
         to_num = subscriber.get_numbers_from_imsi(to_imsi)[0]
         reason = (get_event('transfer_from_to')) % {
