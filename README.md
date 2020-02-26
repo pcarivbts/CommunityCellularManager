@@ -1,3 +1,6 @@
+# DEPRECATED
+This project is no longer maintained. 
+
 ## Overview
 
 Community Cellular Manager (CCM) is a set of programs which allow for
